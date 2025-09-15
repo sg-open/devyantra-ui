@@ -1,0 +1,22 @@
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://devyantra.com/sitemap.xml
+
+# Crawl-delay for polite crawling
+Crawl-delay: 1
+
+# Block access to admin areas (if any in future)
+Disallow: /admin/
+Disallow: /.env
+Disallow: /node_modules/
+Disallow: /src/
+
+# Allow all content and tools
+Allow: /tools/
+Allow: /assets/
+
+# SEO optimizations
+# Cache policy: Allow caching of static assets
+# Last updated: 2024-01-01

@@ -1,0 +1,1160 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ===== ROOT DESIGN TOKENS ===== */
+:root {
+  /* 8px Baseline Grid System */
+  --grid-base: 8px;
+  --grid-sub: 4px;
+
+  /* Spacing Scale (8px baseline) */
+  --space-xs: 4px;   /* 0.5 baseline */
+  --space-sm: 8px;   /* 1 baseline */
+  --space-md: 12px;  /* 1.5 baseline - internal spacing */
+  --space-lg: 16px;  /* 2 baseline - between elements */
+  --space-xl: 24px;  /* 3 baseline - between modules */
+  --space-2xl: 32px; /* 4 baseline - between sections */
+  --space-3xl: 48px; /* 6 baseline - major sections */
+  --space-4xl: 64px; /* 8 baseline - page sections */
+
+  /* Light mode colors */
+  --dt-background: #F7F7FA;
+  --dt-surface-1: #FFFFFF;
+  --dt-surface-2: #F0F2F6;
+  --dt-surface-3: #E6E9F0;
+  --dt-text-primary: #14161D;
+  --dt-text-secondary: #64748B;
+  --dt-text-tertiary: #94A3B8;
+  --dt-border: rgba(20, 22, 29, 0.08);
+  --dt-border-strong: rgba(20, 22, 29, 0.16);
+  --dt-brand: #3B82F6;
+  --dt-brand-hover: #2563EB;
+  --dt-brand-light: rgba(59, 130, 246, 0.1);
+  --dt-brand-rgb: 59, 130, 246;
+  --dt-success: #10B981;
+  --dt-success-light: rgba(16, 185, 129, 0.08);
+  --dt-warning: #F59E0B;
+  --dt-warning-light: rgba(245, 158, 11, 0.08);
+  --dt-danger: #EF4444;
+  --dt-danger-light: rgba(239, 68, 68, 0.08);
+
+  /* Logo colors for light mode */
+  --logo-primary: #3b82f6;      /* Brand blue - good contrast on light */
+  --logo-accent: #059669;       /* Emerald green - balanced with blue */
+
+  /* Glass effects for light mode */
+  --glass-bg: rgba(255, 255, 255, 0.35);
+  --glass-border: rgba(20, 22, 29, 0.08);
+  --glass-hairline: rgba(20, 22, 29, 0.12);
+
+  /* Typography system */
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', Monaco, 'Cascadia Code', 'Segoe UI Mono', 'Roboto Mono', monospace;
+  --font-display: 'Playfair Display', serif;
+
+  /* Base typography */
+  --font-size-base: 16px;
+  --line-height-base: 1.5;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --letter-spacing-base: 0;
+  --letter-spacing-wide: 0.025em;
+
+  /* Typography scale (aligned to 8px grid) */
+  --text-xs: 12px;   /* 1.5 baseline */
+  --text-sm: 14px;   /* 1.75 baseline */
+  --text-base: 16px; /* 2 baseline */
+  --text-lg: 18px;   /* 2.25 baseline */
+  --text-xl: 20px;   /* 2.5 baseline */
+  --text-2xl: 24px;  /* 3 baseline */
+  --text-3xl: 32px;  /* 4 baseline */
+  --text-4xl: 40px;  /* 5 baseline */
+  --text-5xl: 48px;  /* 6 baseline */
+  --text-6xl: 64px;  /* 8 baseline */
+
+  /* Fluid Typography Scale using clamp() */
+  --text-fluid-xs: clamp(11px, 0.6875rem + 0.125vw, 12px);
+  --text-fluid-sm: clamp(13px, 0.8125rem + 0.25vw, 14px);
+  --text-fluid-base: clamp(15px, 0.9375rem + 0.375vw, 16px);
+  --text-fluid-lg: clamp(17px, 1.0625rem + 0.5vw, 18px);
+  --text-fluid-xl: clamp(19px, 1.1875rem + 0.625vw, 20px);
+  --text-fluid-2xl: clamp(22px, 1.375rem + 1vw, 24px);
+  --text-fluid-3xl: clamp(28px, 1.75rem + 1.5vw, 32px);
+  --text-fluid-4xl: clamp(34px, 2.125rem + 2vw, 40px);
+  --text-fluid-5xl: clamp(40px, 2.5rem + 3vw, 48px);
+  --text-fluid-6xl: clamp(52px, 3.25rem + 4vw, 64px);
+
+  /* Line heights (aligned to grid) */
+  --leading-tight: 1.25;  /* 20px for 16px text = 2.5 baseline */
+  --leading-normal: 1.5;  /* 24px for 16px text = 3 baseline */
+  --leading-relaxed: 1.75; /* 28px for 16px text = 3.5 baseline */
+
+  /* Unified Button System - 8px Baseline Grid Aligned */
+  /* Button heights */
+  --button-height-sm: 32px;  /* 4 baseline */
+  --button-height-md: 40px;  /* 5 baseline (default) */
+  --button-height-lg: 48px;  /* 6 baseline */
+  --button-height: var(--button-height-md); /* Default fallback */
+
+  /* Button padding (designed to center text optically) */
+  --button-padding-sm: 8px 12px;   /* sm: 32px height */
+  --button-padding-md: 10px 16px;  /* md: 40px height */
+  --button-padding-lg: 12px 20px;  /* lg: 48px height */
+
+  /* Button radius and spacing */
+  --button-radius: 10px;  /* Consistent 10px radius for all buttons */
+  --button-gap-sm: 8px;   /* Gap between icon and text for sm */
+  --button-gap-md: 8px;   /* Gap between icon and text for md */
+  --button-gap-lg: 10px;  /* Gap between icon and text for lg */
+
+  /* Button icon sizes */
+  --button-icon-sm: 16px; /* Adjusted for better proportion */
+  --button-icon-md: 20px;
+  --button-icon-lg: 20px;
+
+  /* Input sizing (separate from buttons) */
+  --input-height: 40px;  /* 5 baseline */
+  --padding-input-y: 10px;  /* 1.25 baseline */
+  --padding-input-x: 12px;  /* 1.5 baseline */
+
+  /* Legacy support */
+  --padding-button-y: 10px; /* 1.25 baseline */
+  --padding-button-x: 16px; /* 2 baseline */
+
+  /* Border radius */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+
+  /* Focus ring system - unified for buttons and inputs */
+  --focus-ring-width: 2px;
+  --focus-ring-color: var(--dt-brand);
+  --focus-ring-alpha: 0.5;
+  --focus-ring-offset: 1px;
+  --focus-ring: 0 0 0 var(--focus-ring-offset) transparent, 0 0 0 calc(var(--focus-ring-width) + var(--focus-ring-offset)) rgba(var(--dt-brand-rgb), var(--focus-ring-alpha)), inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+
+  /* Button variant colors */
+  --button-primary-bg: var(--dt-brand);
+  --button-primary-text: #ffffff;
+  --button-primary-hover: var(--dt-brand-hover);
+
+  --button-secondary-bg: transparent;
+  --button-secondary-text: var(--dt-text-primary);
+  --button-secondary-border: var(--glass-hairline);
+  --button-secondary-hover-bg: var(--dt-brand-light);
+  --button-secondary-hover-border: var(--dt-brand);
+
+  --button-ghost-bg: transparent;
+  --button-ghost-text: var(--dt-text-primary);
+  --button-ghost-hover-bg: var(--dt-surface-2);
+
+  /* Motion timing */
+  --transition-fast: 140ms ease-out;
+  --transition-normal: 180ms ease-out;
+  --transition-slow: 240ms ease-out;
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Elevation system */
+  --elevation-1: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+  --elevation-2: 0 3px 6px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.12);
+  --elevation-3: 0 10px 20px rgba(0, 0, 0, 0.15), 0 3px 6px rgba(0, 0, 0, 0.10);
+  --elevation-4: 0 15px 25px rgba(0, 0, 0, 0.15), 0 5px 10px rgba(0, 0, 0, 0.05);
+
+  /* Focus ring */
+  --focus-ring: 0 0 0 var(--focus-ring-width) rgba(59, 130, 246, var(--focus-ring-alpha)),
+                inset 0 0 0 var(--focus-ring-offset) var(--glass-hairline);
+
+  /* Container constraints */
+  --container-max-width: 1200px;
+  --container-padding: var(--space-lg);
+}
+
+/* ===== DARK MODE TOKENS ===== */
+.app-dark {
+  /* Dark mode colors - improved contrast and avoiding pure black */
+  --dt-background: #0F1419;    /* Slightly warmer than pure black */
+  --dt-surface-1: #1A1F2B;     /* Surface above pure black */
+  --dt-surface-2: #252B39;     /* Higher contrast surface */
+  --dt-surface-3: #2D3748;     /* Even higher contrast */
+  --dt-text-primary: #F7FAFC;  /* High contrast text ≥ 4.5:1 */
+  --dt-text-secondary: #A0AEC0; /* Medium contrast ≥ 4.5:1 */
+  --dt-text-tertiary: #718096;  /* Lower contrast for subtle text */
+  --dt-border: rgba(255, 255, 255, 0.08);
+  --dt-border-strong: rgba(255, 255, 255, 0.16);
+
+  /* Desaturated brand in dark mode */
+  --dt-brand: #60A5FA;         /* Slightly desaturated blue */
+  --dt-brand-hover: #3B82F6;   /* Original blue on hover */
+  --dt-brand-light: rgba(96, 165, 250, 0.1);
+  --dt-brand-rgb: 96, 165, 250;
+
+  /* Button variant colors for dark mode */
+  --button-primary-bg: var(--dt-brand);
+  --button-primary-text: #ffffff;
+  --button-primary-hover: var(--dt-brand-hover);
+
+  --button-secondary-bg: transparent;
+  --button-secondary-text: var(--dt-text-primary);
+  --button-secondary-border: var(--glass-hairline);
+  --button-secondary-hover-bg: var(--dt-brand-light);
+  --button-secondary-hover-border: var(--dt-brand);
+
+  --button-ghost-bg: transparent;
+  --button-ghost-text: var(--dt-text-primary);
+  --button-ghost-hover-bg: var(--dt-surface-2);
+
+  /* Logo colors for dark mode - warmer, more vibrant */
+  --logo-primary: #60a5fa;     /* Lighter blue for better dark contrast */
+  --logo-accent: #34d399;      /* Brighter emerald for dark visibility */
+
+  /* Semantic colors for dark mode */
+  --dt-success: #34D399;       /* Slightly brighter green for dark mode */
+  --dt-success-light: rgba(52, 211, 153, 0.1);
+  --dt-warning: #FBBF24;       /* Slightly brighter amber for dark mode */
+  --dt-warning-light: rgba(251, 191, 36, 0.1);
+  --dt-danger: #F87171;        /* Slightly softer red for dark mode */
+  --dt-danger-light: rgba(248, 113, 113, 0.1);
+
+  /* Glass effects for dark mode */
+  --glass-bg: rgba(255, 255, 255, 0.06);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-hairline: rgba(255, 255, 255, 0.12);
+
+  /* Typography adjustments for dark mode legibility */
+  --font-weight-normal: 500;    /* Bump up one weight level */
+  --font-weight-medium: 600;
+  --font-weight-semibold: 700;
+  --letter-spacing-base: 0.01em; /* Slightly wider spacing */
+
+  /* Enhanced elevation for dark mode */
+  --elevation-1: 0 1px 3px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --elevation-2: 0 3px 6px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.2);
+  --elevation-3: 0 10px 20px rgba(0, 0, 0, 0.4), 0 3px 6px rgba(0, 0, 0, 0.2);
+  --elevation-4: 0 15px 25px rgba(0, 0, 0, 0.5), 0 5px 10px rgba(0, 0, 0, 0.3);
+
+  /* Focus ring for dark mode */
+  --focus-ring: 0 0 0 var(--focus-ring-width) rgba(96, 165, 250, var(--focus-ring-alpha)),
+                inset 0 0 0 var(--focus-ring-offset) var(--glass-hairline);
+}
+
+/* ===== PRIMEVUE CSS VARIABLE MAPPINGS ===== */
+:root {
+  /* PrimeVue variables for light mode */
+  --surface-ground: var(--dt-background);
+  --surface-card: var(--dt-surface-1);
+  --surface-border: var(--dt-border);
+  --text-color: var(--dt-text-primary);
+  --text-color-secondary: var(--dt-text-secondary);
+  --primary-color: var(--dt-brand);
+  --primary-200: rgba(var(--dt-brand-rgb), 0.2);
+  --border-radius: 8px;
+
+  /* Color variations for stat cards */
+  --blue-300: #93c5fd;
+  --gray-300: #d1d5db;
+  --green-300: #86efac;
+  --cyan-300: #67e8f9;
+  --yellow-300: #fde047;
+  --red-300: #fca5a5;
+  --green-200: #bbf7d0;
+  --blue-200: #bfdbfe;
+  --yellow-200: #fef08a;
+  --red-200: #fecaca;
+  --red-50: #fef2f2;
+  --red-600: #dc2626;
+  --red-200: #fecaca;
+}
+
+.app-dark {
+  /* PrimeVue variables for dark mode */
+  --surface-ground: var(--dt-surface-2);
+  --surface-card: var(--dt-surface-1);
+  --surface-border: var(--dt-border);
+  --text-color: var(--dt-text-primary);
+  --text-color-secondary: var(--dt-text-secondary);
+  --primary-color: var(--dt-brand);
+  --primary-200: rgba(var(--dt-brand-rgb), 0.2);
+
+  /* Color variations for stat cards - darker versions */
+  --blue-300: #60a5fa;
+  --gray-300: #6b7280;
+  --green-300: #34d399;
+  --cyan-300: #22d3ee;
+  --yellow-300: #fbbf24;
+  --red-300: #f87171;
+  --green-200: rgba(52, 211, 153, 0.2);
+  --blue-200: rgba(96, 165, 250, 0.2);
+  --yellow-200: rgba(251, 191, 36, 0.2);
+  --red-200: rgba(248, 113, 113, 0.2);
+  --red-50: rgba(248, 113, 113, 0.1);
+  --red-600: #f87171;
+}
+
+/* ===== BASE STYLES ===== */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: var(--font-size-base);
+  line-height: var(--leading-normal);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-weight: var(--font-weight-normal);
+  letter-spacing: var(--letter-spacing-base);
+  color: var(--dt-text-primary);
+  background-color: var(--dt-background);
+  margin: 0;
+  padding: 0;
+  transition: background-color var(--transition-slow), color var(--transition-slow);
+  /* Ensure baseline grid alignment */
+  line-height: var(--leading-normal);
+}
+
+/* Grid alignment utility */
+.baseline-grid {
+  background-image:
+    linear-gradient(to bottom, rgba(255, 0, 0, 0.1) 1px, transparent 1px);
+  background-size: var(--grid-base) var(--grid-base);
+}
+
+/* ===== TYPOGRAPHY SCALE ===== */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  margin: 0;
+  margin-bottom: var(--space-lg); /* Baseline aligned spacing */
+  line-height: var(--leading-tight);
+  letter-spacing: -0.02em;
+  font-weight: var(--font-weight-bold);
+}
+
+/* Consistent heading weights for dark mode */
+.app-dark h1,
+.app-dark h2,
+.app-dark h3,
+.app-dark h4,
+.app-dark h5,
+.app-dark h6 {
+  font-weight: var(--font-weight-bold);
+  letter-spacing: -0.01em;
+}
+
+h1 {
+  font-size: var(--text-fluid-5xl); /* Fluid 40px-48px - 6 baseline */
+  line-height: 1.1; /* 52.8px ≈ 56px = 7 baseline */
+}
+
+h2 {
+  font-size: var(--text-fluid-4xl); /* Fluid 34px-40px - 5 baseline */
+  line-height: 1.2; /* 48px = 6 baseline */
+}
+
+h3 {
+  font-size: var(--text-fluid-3xl); /* Fluid 28px-32px - 4 baseline */
+  line-height: 1.25; /* 40px = 5 baseline */
+  font-weight: var(--font-weight-semibold);
+}
+
+h4 {
+  font-size: var(--text-fluid-2xl); /* Fluid 22px-24px - 3 baseline */
+  line-height: 1.33; /* 32px = 4 baseline */
+  font-weight: var(--font-weight-semibold);
+}
+
+h5 {
+  font-size: var(--text-fluid-xl); /* Fluid 19px-20px - 2.5 baseline */
+  line-height: 1.4; /* 28px = 3.5 baseline */
+  font-weight: var(--font-weight-semibold);
+}
+
+h6 {
+  font-size: var(--text-fluid-lg); /* Fluid 17px-18px - 2.25 baseline */
+  line-height: 1.44; /* 26px ≈ 24px = 3 baseline */
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Body text aligned to grid */
+p {
+  margin: 0;
+  margin-bottom: var(--space-lg); /* 16px = 2 baseline */
+  font-size: var(--text-base); /* 16px = 2 baseline */
+  line-height: var(--leading-normal); /* 24px = 3 baseline */
+  font-weight: var(--font-weight-normal);
+}
+
+/* Utility text sizes */
+.text-sm {
+  font-size: var(--text-sm); /* 14px */
+  line-height: 1.43; /* 20px = 2.5 baseline */
+}
+
+.text-xs {
+  font-size: var(--text-xs); /* 12px */
+  line-height: 1.33; /* 16px = 2 baseline */
+}
+
+small {
+  font-size: var(--text-sm);
+  line-height: 1.43;
+}
+
+/* Code elements */
+code {
+  font-family: var(--font-mono);
+  font-size: 0.875em; /* 14px when in 16px context */
+  background: var(--dt-surface-2);
+  padding: var(--space-xs) var(--space-sm); /* 4px 8px */
+  border-radius: var(--radius-sm);
+  color: var(--dt-text-primary);
+}
+
+pre {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+  background: var(--dt-surface-2);
+  padding: var(--space-lg); /* 16px = 2 baseline */
+  border-radius: var(--radius-lg);
+  overflow-x: auto;
+  margin: 0;
+  margin-bottom: var(--space-lg);
+}
+
+/* Label styling for forms */
+label {
+  font-size: var(--text-sm); /* 14px */
+  font-weight: var(--font-weight-medium);
+  color: var(--dt-text-primary);
+  line-height: var(--leading-normal);
+  margin-bottom: var(--space-sm); /* 8px = 1 baseline */
+  display: block;
+}
+
+/* ===== PRIMEVUE COMPONENT OVERRIDES ===== */
+
+/* ===== UNIFIED BUTTON SYSTEM ===== */
+/* Base button styles - applies to all button variants */
+.p-button {
+  /* Size: Medium (default) - 40px height, 8px baseline grid aligned */
+  height: var(--button-height-md) !important;
+  padding: var(--button-padding-md) !important; /* 10px 16px */
+  border-radius: var(--button-radius) !important; /* 10px */
+
+  /* Typography - optimized for optical centering */
+  font-family: var(--font-sans) !important;
+  font-size: var(--text-base) !important; /* 16px for md size */
+  font-weight: var(--font-weight-semibold) !important; /* 600 for primary */
+  line-height: 1 !important; /* Tight line height for height consistency */
+  letter-spacing: var(--letter-spacing-base) !important;
+  text-decoration: none !important;
+
+  /* Layout */
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: var(--button-gap-md) !important;
+  min-height: 44px; /* Touch target minimum */
+
+  /* Interaction & Animation */
+  border: 1px solid transparent !important;
+  transition: all var(--transition-normal) !important;
+  cursor: pointer !important;
+  user-select: none !important;
+
+  /* Primary variant (default) - solid brand */
+  background: var(--button-primary-bg) !important;
+  color: var(--button-primary-text) !important;
+  border-color: transparent !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important; /* Subtle elevation */
+}
+
+/* ===== PRIMARY BUTTON STATES ===== */
+.p-button:hover:not(:disabled) {
+  background: var(--button-primary-hover) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08) !important; /* Subtle elevation tint */
+  transform: translateY(-1px) !important;
+}
+
+.p-button:active:not(:disabled) {
+  background: var(--button-primary-hover) !important;
+  transform: translateY(0) !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* ===== FOCUS STATE - UNIFIED ACROSS ALL BUTTONS ===== */
+.p-button:focus-visible {
+  outline: none !important;
+  box-shadow: var(--focus-ring) !important;
+}
+
+.p-button:focus:not(:focus-visible) {
+  outline: none !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* ===== DISABLED STATE ===== */
+.p-button:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* ===== SECONDARY BUTTON VARIANT ===== */
+.p-button.p-button-outlined,
+.p-button.p-button-secondary {
+  background: var(--button-secondary-bg) !important;
+  color: var(--button-secondary-text) !important;
+  border: 1px solid var(--button-secondary-border) !important;
+  font-weight: var(--font-weight-medium) !important; /* 500 for secondary */
+  box-shadow: none !important;
+}
+
+.p-button.p-button-outlined:hover:not(:disabled),
+.p-button.p-button-secondary:hover:not(:disabled) {
+  background: var(--button-secondary-hover-bg) !important;
+  border-color: var(--button-secondary-hover-border) !important;
+  color: var(--button-secondary-text) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+}
+
+.p-button.p-button-outlined:active:not(:disabled),
+.p-button.p-button-secondary:active:not(:disabled) {
+  background: var(--button-secondary-hover-bg) !important;
+  transform: translateY(0) !important;
+  box-shadow: none !important;
+}
+
+/* ===== GHOST BUTTON VARIANT ===== */
+.p-button.p-button-text,
+.p-button.p-button-ghost {
+  background: var(--button-ghost-bg) !important;
+  color: var(--button-ghost-text) !important;
+  border: 1px solid transparent !important;
+  font-weight: var(--font-weight-medium) !important; /* 500 for ghost */
+  box-shadow: none !important;
+}
+
+.p-button.p-button-text:hover:not(:disabled),
+.p-button.p-button-ghost:hover:not(:disabled) {
+  background: var(--button-ghost-hover-bg) !important;
+  color: var(--button-ghost-text) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+}
+
+.p-button.p-button-text:active:not(:disabled),
+.p-button.p-button-ghost:active:not(:disabled) {
+  background: var(--button-ghost-hover-bg) !important;
+  transform: translateY(0) !important;
+  box-shadow: none !important;
+}
+
+/* ===== BUTTON SIZE VARIANTS ===== */
+/* Small button - 32px height */
+.p-button.p-button-sm {
+  height: var(--button-height-sm) !important; /* 32px = 4 baseline */
+  padding: var(--button-padding-sm) !important; /* 8px 12px */
+  font-size: var(--text-sm) !important; /* 14px */
+  gap: var(--button-gap-sm) !important; /* 8px */
+}
+
+/* Large button - 48px height */
+.p-button.p-button-lg {
+  height: var(--button-height-lg) !important; /* 48px = 6 baseline */
+  padding: var(--button-padding-lg) !important; /* 12px 20px */
+  font-size: var(--text-lg) !important; /* 18px */
+  gap: var(--button-gap-lg) !important; /* 10px */
+}
+
+/* ===== BUTTON ICONS ===== */
+.p-button .p-button-icon,
+.p-button i {
+  font-size: var(--button-icon-md) !important; /* 20px default */
+  margin: 0 !important;
+  flex-shrink: 0 !important;
+}
+
+/* Icon sizes per button size */
+.p-button.p-button-sm .p-button-icon,
+.p-button.p-button-sm i {
+  font-size: var(--button-icon-sm) !important; /* 16px */
+}
+
+.p-button.p-button-lg .p-button-icon,
+.p-button.p-button-lg i {
+  font-size: var(--button-icon-lg) !important; /* 20px */
+}
+
+/* Icon-only buttons (square) */
+.p-button.p-button-icon-only {
+  width: var(--button-height-md) !important;
+  padding: 0 !important;
+  gap: 0 !important;
+}
+
+.p-button.p-button-icon-only.p-button-sm {
+  width: var(--button-height-sm) !important;
+}
+
+.p-button.p-button-icon-only.p-button-lg {
+  width: var(--button-height-lg) !important;
+}
+
+/* Loading state */
+.p-button .pi.pi-spin {
+  animation: pi-spin 1s linear infinite;
+}
+
+@keyframes pi-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ===== ACCESSIBILITY & MOTION ===== */
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .p-button {
+    transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast) !important;
+    transform: none !important;
+  }
+
+  .p-button:hover:not(:disabled) {
+    transform: none !important;
+  }
+
+  .pi-spin {
+    animation: none !important;
+  }
+}
+
+/* Card overrides */
+.p-card {
+  border-radius: var(--radius-card) !important;
+  background: var(--glass-bg) !important;
+  border: 1px solid var(--glass-border) !important;
+  backdrop-filter: blur(12px) !important;
+  box-shadow: var(--shadow-glass) !important;
+  transition: all var(--transition-hover) !important;
+}
+
+.p-card:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: var(--shadow-glass-strong) !important;
+}
+
+.p-card .p-card-body {
+  padding: 1.5rem !important;
+}
+
+.p-card .p-card-title {
+  font-family: var(--font-display) !important;
+  font-weight: 600 !important;
+  color: var(--dt-text-primary) !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.p-card .p-card-subtitle {
+  color: var(--dt-text-secondary) !important;
+  margin-bottom: 1rem !important;
+}
+
+/* Unified Input and Textarea System */
+.p-inputtext,
+.p-inputtextarea {
+  /* Standardized sizing */
+  min-height: var(--input-height) !important; /* 40px = 5 baseline */
+  padding: var(--padding-input-y) var(--padding-input-x) !important; /* 10px 12px */
+  border-radius: var(--radius-lg) !important; /* 10px - same as buttons */
+
+  /* Typography */
+  font-family: var(--font-mono) !important;
+  font-size: var(--text-sm) !important; /* 14px */
+  font-weight: var(--font-weight-normal) !important;
+  line-height: var(--leading-normal) !important;
+  letter-spacing: var(--letter-spacing-base) !important;
+
+  /* Appearance */
+  background: var(--dt-surface-1) !important;
+  border: 1px solid var(--dt-border) !important;
+  color: var(--dt-text-primary) !important;
+
+  /* Interaction */
+  transition: all var(--transition-normal) !important;
+  box-shadow: none !important;
+}
+
+/* Textarea specific sizing */
+.p-inputtextarea {
+  min-height: auto !important;
+  padding: var(--space-md) !important; /* 12px for better text area spacing */
+  resize: vertical !important;
+  line-height: var(--leading-relaxed) !important; /* Better for multiline */
+}
+
+/* Focus state - identical to buttons */
+.p-inputtext:focus,
+.p-inputtextarea:focus {
+  outline: none !important;
+  border-color: var(--dt-brand) !important;
+  box-shadow: var(--focus-ring) !important;
+}
+
+.p-inputtext:focus-visible,
+.p-inputtextarea:focus-visible {
+  outline: none !important;
+  border-color: var(--dt-brand) !important;
+  box-shadow: var(--focus-ring) !important;
+}
+
+/* Placeholder styling - reduced contrast but readable */
+.p-inputtext::placeholder,
+.p-inputtextarea::placeholder {
+  color: var(--dt-text-tertiary) !important;
+  opacity: 1 !important; /* Use color instead of opacity for better contrast control */
+  font-weight: var(--font-weight-normal) !important;
+}
+
+/* Hover state */
+.p-inputtext:hover:not(:focus),
+.p-inputtextarea:hover:not(:focus) {
+  border-color: var(--dt-border-strong) !important;
+}
+
+/* Disabled state */
+.p-inputtext:disabled,
+.p-inputtextarea:disabled {
+  background: var(--dt-surface-2) !important;
+  color: var(--dt-text-tertiary) !important;
+  cursor: not-allowed !important;
+  opacity: 0.7 !important;
+}
+
+/* Error state */
+.p-inputtext.p-invalid,
+.p-inputtextarea.p-invalid {
+  border-color: var(--dt-danger) !important;
+}
+
+.p-inputtext.p-invalid:focus,
+.p-inputtextarea.p-invalid:focus {
+  box-shadow: 0 0 0 var(--focus-ring-width) rgba(239, 68, 68, var(--focus-ring-alpha)),
+              inset 0 0 0 var(--focus-ring-offset) var(--glass-hairline) !important;
+}
+
+/* DataTable overrides */
+.p-datatable {
+  background: var(--glass-bg) !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: var(--radius-card) !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+.p-datatable .p-datatable-header {
+  background: transparent !important;
+  border-bottom: 1px solid var(--glass-border) !important;
+  padding: 1rem 1.5rem !important;
+}
+
+.p-datatable .p-datatable-tbody > tr {
+  background: transparent !important;
+  transition: background-color var(--transition-hover) !important;
+}
+
+.p-datatable .p-datatable-tbody > tr:hover {
+  background: rgba(255, 255, 255, 0.02) !important;
+}
+
+.p-datatable .p-datatable-tbody > tr.p-highlight {
+  background: rgba(59, 130, 246, 0.1) !important;
+}
+
+.p-datatable .p-datatable-tbody > tr.p-datatable-row-selected {
+  background: rgba(59, 130, 246, 0.15) !important;
+}
+
+/* Dialog overrides */
+.p-dialog {
+  border-radius: var(--radius-modal) !important;
+  background: var(--glass-bg) !important;
+  border: 1px solid var(--glass-border) !important;
+  backdrop-filter: blur(16px) !important;
+  box-shadow: var(--shadow-glass-strong) !important;
+}
+
+.p-dialog .p-dialog-header {
+  background: transparent !important;
+  border-bottom: 1px solid var(--glass-border) !important;
+  padding: 1.5rem !important;
+}
+
+.p-dialog .p-dialog-content {
+  background: transparent !important;
+  padding: 1.5rem !important;
+}
+
+.p-dialog .p-dialog-footer {
+  background: transparent !important;
+  border-top: 1px solid var(--glass-border) !important;
+  padding: 1.5rem !important;
+}
+
+/* Message overrides */
+.p-message {
+  border-radius: var(--radius-button) !important;
+  border: 1px solid var(--glass-border) !important;
+  background: var(--glass-bg) !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+.p-message.p-message-success {
+  background: rgba(16, 185, 129, 0.1) !important;
+  border-color: rgba(16, 185, 129, 0.3) !important;
+  color: var(--dt-success) !important;
+}
+
+.p-message.p-message-warn {
+  background: rgba(245, 158, 11, 0.1) !important;
+  border-color: rgba(245, 158, 11, 0.3) !important;
+  color: var(--dt-warning) !important;
+}
+
+.p-message.p-message-error {
+  background: rgba(239, 68, 68, 0.1) !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+  color: var(--dt-danger) !important;
+}
+
+/* Tag overrides */
+.p-tag {
+  border-radius: var(--radius-button) !important;
+  font-family: var(--font-mono) !important;
+  font-size: var(--text-xs) !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
+}
+
+/* ToggleSwitch overrides */
+.p-toggleswitch {
+  border-radius: 50px !important;
+}
+
+.p-toggleswitch .p-toggleswitch-slider {
+  border-radius: 50px !important;
+  background: var(--glass-bg) !important;
+  border: 1px solid var(--glass-border) !important;
+  transition: all var(--transition-hover) !important;
+}
+
+.p-toggleswitch.p-toggleswitch-checked .p-toggleswitch-slider {
+  background: var(--dt-brand) !important;
+  border-color: var(--dt-brand) !important;
+}
+
+.p-toggleswitch:focus .p-toggleswitch-slider {
+  box-shadow: var(--shadow-focus) !important;
+}
+
+/* Toast overrides */
+.p-toast .p-toast-message {
+  border-radius: var(--radius-card) !important;
+  background: var(--glass-bg) !important;
+  border: 1px solid var(--glass-border) !important;
+  backdrop-filter: blur(16px) !important;
+  box-shadow: var(--shadow-glass-strong) !important;
+}
+
+/* Divider overrides */
+.p-divider {
+  border-color: var(--glass-border) !important;
+}
+
+/* Tooltip overrides - Light mode */
+.p-tooltip {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  line-height: 1.4 !important;
+  letter-spacing: 0 !important;
+  background: #1e293b !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(12px) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
+  border-radius: 8px !important;
+  padding: 8px 12px !important;
+  color: #f8fafc !important;
+  max-width: 280px !important;
+  z-index: 9999 !important;
+}
+
+.p-tooltip .p-tooltip-text {
+  font-family: inherit !important;
+  font-size: inherit !important;
+  font-weight: inherit !important;
+  line-height: inherit !important;
+  letter-spacing: inherit !important;
+  color: inherit !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.p-tooltip .p-tooltip-arrow {
+  border-top-color: #1e293b !important;
+  border-bottom-color: #1e293b !important;
+  border-left-color: #1e293b !important;
+  border-right-color: #1e293b !important;
+}
+
+/* Tooltip overrides - Dark mode */
+.app-dark .p-tooltip {
+  background: #f1f5f9 !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  color: #1e293b !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+}
+
+.app-dark .p-tooltip .p-tooltip-arrow {
+  border-top-color: #f1f5f9 !important;
+  border-bottom-color: #f1f5f9 !important;
+  border-left-color: #f1f5f9 !important;
+  border-right-color: #f1f5f9 !important;
+}
+
+/* ===== PRIMEVUE COMPONENT OVERRIDES ===== */
+
+/* Textarea overrides for proper theming */
+.p-textarea {
+  background-color: var(--surface-ground) !important;
+  border-color: var(--surface-border) !important;
+  color: var(--text-color) !important;
+}
+
+/* Make textarea text more visible in dark mode */
+.app-dark .p-textarea {
+  color: #ffffff !important;
+}
+
+.p-textarea:focus {
+  border-color: var(--primary-color) !important;
+  box-shadow: 0 0 0 1px var(--primary-color) !important;
+}
+
+/* InputText overrides for proper theming */
+.p-inputtext {
+  background-color: var(--surface-ground) !important;
+  border-color: var(--surface-border) !important;
+  color: var(--text-color) !important;
+}
+
+/* Make InputText text more visible in dark mode */
+.app-dark .p-inputtext {
+  color: #ffffff !important;
+}
+
+/* Improve placeholder visibility in dark mode */
+.app-dark .p-textarea::placeholder,
+.app-dark .p-inputtext::placeholder {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.p-inputtext:focus {
+  border-color: var(--primary-color) !important;
+  box-shadow: 0 0 0 1px var(--primary-color) !important;
+}
+
+/* Button overrides for consistent theming */
+.p-button.p-button-secondary {
+  background-color: transparent !important;
+  border-color: var(--surface-border) !important;
+  color: var(--text-color) !important;
+}
+
+.p-button.p-button-secondary:hover {
+  background-color: var(--primary-200) !important;
+  border-color: var(--primary-color) !important;
+  color: var(--primary-color) !important;
+}
+
+/* Card overrides for proper theming */
+.p-card {
+  background-color: var(--surface-card) !important;
+  border: 1px solid var(--surface-border) !important;
+  color: var(--text-color) !important;
+}
+
+.p-card .p-card-title {
+  color: var(--text-color) !important;
+}
+
+.p-card .p-card-subtitle {
+  color: var(--text-color-secondary) !important;
+}
+
+/* Message component overrides */
+.p-message {
+  background-color: var(--surface-card) !important;
+  border-color: var(--surface-border) !important;
+  color: var(--text-color) !important;
+}
+
+/* Tag component overrides */
+.p-tag {
+  background-color: var(--primary-200) !important;
+  color: var(--primary-color) !important;
+}
+
+/* Divider overrides */
+.p-divider {
+  border-color: var(--surface-border) !important;
+}
+
+/* ProgressSpinner overrides for dark mode visibility */
+.app-dark .p-progress-spinner-circle {
+  stroke: var(--primary-color) !important;
+}
+
+/* ===== UTILITY CLASSES ===== */
+.glass-surface {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(12px);
+  position: relative;
+}
+
+.glass-surface::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1px solid var(--glass-hairline);
+  pointer-events: none;
+}
+
+.glass-strong {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(16px);
+}
+
+.elevation-1 {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.elevation-2 {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.elevation-3 {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.focus-ring:focus {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+.glow-ring {
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.12), var(--shadow-glow);
+}
+
+/* Animation utilities */
+.animate-fade-in {
+  animation: fadeIn var(--transition-overlay) ease-out;
+}
+
+.animate-slide-up {
+  animation: slideUp var(--transition-overlay) ease-out;
+}
+
+.animate-blur-in {
+  animation: blurIn var(--transition-overlay) ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes blurIn {
+  from {
+    filter: blur(10px);
+    opacity: 0;
+  }
+  to {
+    filter: blur(0px);
+    opacity: 1;
+  }
+}
+
+/* ===== ACCESSIBILITY ===== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Ensure focus is visible for keyboard navigation */
+*:focus-visible {
+  outline: 2px solid var(--dt-brand);
+  outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --dt-border: rgba(20, 22, 29, 0.3);
+    --glass-border: rgba(20, 22, 29, 0.3);
+  }
+
+  .app-dark {
+    --dt-border: rgba(255, 255, 255, 0.3);
+    --glass-border: rgba(255, 255, 255, 0.3);
+  }
+}
+
+/* Print styles */
+@media print {
+  .glass-surface,
+  .glass-strong {
+    background: white !important;
+    border: 1px solid #000 !important;
+    backdrop-filter: none !important;
+  }
+
+  .app-dark .glass-surface,
+  .app-dark .glass-strong {
+    background: white !important;
+    color: black !important;
+  }
+}
