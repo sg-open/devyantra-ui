@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../node_modules/@primevue/src/service/PrimeVueService.js"],
+  "sourcesContent": ["import { EventBus } from '@primeuix/utils/eventbus';\n\nexport default EventBus();\n"],
+  "mappings": ";;;;;AAEA,IAAA,kBAAeA,EAAQ;",
+  "names": ["EventBus"]
+}

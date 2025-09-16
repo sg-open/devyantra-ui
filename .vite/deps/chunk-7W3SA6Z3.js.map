@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../node_modules/src/toasteventbus/ToastEventBus.js"],
+  "sourcesContent": ["import { EventBus } from '@primeuix/utils/eventbus';\n\nexport default EventBus();\n"],
+  "mappings": ";;;;;AAEA,IAAA,gBAAeA,EAAQ;",
+  "names": ["EventBus"]
+}
