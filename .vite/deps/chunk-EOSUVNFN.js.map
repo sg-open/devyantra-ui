@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../node_modules/@primevue/src/base/Base.js"],
+  "sourcesContent": ["export default {\n    _loadedStyleNames: new Set(),\n    getLoadedStyleNames() {\n        return this._loadedStyleNames;\n    },\n    isStyleNameLoaded(name) {\n        return this._loadedStyleNames.has(name);\n    },\n    setLoadedStyleName(name) {\n        this._loadedStyleNames.add(name);\n    },\n    deleteLoadedStyleName(name) {\n        this._loadedStyleNames.delete(name);\n    },\n    clearLoadedStyleNames() {\n        this._loadedStyleNames.clear();\n    }\n};\n"],
+  "mappings": ";AAAA,IAAA,OAAe;EACXA,mBAAmB,oBAAIC,IAAG;EAC1BC,qBAAmB,SAAnBA,sBAAsB;AAClB,WAAO,KAAKF;EAChB;EACAG,mBAAiB,SAAjBA,kBAAkBC,MAAM;AACpB,WAAO,KAAKJ,kBAAkBK,IAAID,IAAI;EAC1C;EACAE,oBAAkB,SAAlBA,mBAAmBF,MAAM;AACrB,SAAKJ,kBAAkBO,IAAIH,IAAI;EACnC;EACAI,uBAAqB,SAArBA,sBAAsBJ,MAAM;AACxB,SAAKJ,kBAAiB,QAAA,EAAQI,IAAI;EACtC;EACAK,uBAAqB,SAArBA,wBAAwB;AACpB,SAAKT,kBAAkBU,MAAK;EAChC;AACJ;",
+  "names": ["_loadedStyleNames", "Set", "getLoadedStyleNames", "isStyleNameLoaded", "name", "has", "setLoadedStyleName", "add", "deleteLoadedStyleName", "clearLoadedStyleNames", "clear"]
+}

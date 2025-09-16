@@ -1,0 +1,93 @@
+{
+  "name": "devyantra-ui",
+  "version": "1.0.0",
+  "description": "A comprehensive suite of developer tools including text comparison, JSON formatting, encoding utilities, and more",
+  "private": false,
+  "type": "module",
+  "author": "DevYantra Team",
+  "license": "MIT",
+  "homepage": "https://github.com/sg-open/devyantra-ui#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sg-open/devyantra-ui.git"
+  },
+  "bugs": {
+    "url": "https://github.com/sg-open/devyantra-ui/issues"
+  },
+  "keywords": [
+    "developer-tools",
+    "text-comparison",
+    "diff-viewer",
+    "json-formatter",
+    "base64-encoder",
+    "hash-generator",
+    "jwt-decoder",
+    "vue3",
+    "typescript",
+    "vite"
+  ],
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "run-p type-check \"build-only {@}\" --",
+    "preview": "vite preview",
+    "build-only": "vite build",
+    "type-check": "vue-tsc --build",
+    "lint": "eslint . --fix",
+    "format": "prettier --write src/",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:debug": "playwright test --debug"
+  },
+  "dependencies": {
+    "@monaco-editor/loader": "^1.5.0",
+    "@primevue/themes": "^4.3.9",
+    "diff-match-patch": "^1.0.5",
+    "diff2html": "^3.4.52",
+    "highlight.js": "^11.11.1",
+    "jsdiff": "^1.1.1",
+    "lz-string": "^1.5.0",
+    "monaco-editor": "^0.53.0",
+    "pinia": "^3.0.3",
+    "primeicons": "^7.0.0",
+    "primevue": "^4.3.9",
+    "vue": "^3.5.18",
+    "vue-diff": "^1.2.4",
+    "vue-router": "^4.5.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "@tailwindcss/postcss": "^4.1.13",
+    "@tailwindcss/typography": "^0.5.16",
+    "@tsconfig/node22": "^22.0.2",
+    "@types/diff-match-patch": "^1.0.36",
+    "@types/lz-string": "^1.3.34",
+    "@types/node": "^22.16.5",
+    "@vitejs/plugin-vue": "^6.0.1",
+    "@vue/eslint-config-prettier": "^10.2.0",
+    "@vue/eslint-config-typescript": "^14.6.0",
+    "@vue/test-utils": "^2.4.6",
+    "@vue/tsconfig": "^0.7.0",
+    "autoprefixer": "^10.4.21",
+    "eslint": "^9.31.0",
+    "eslint-plugin-vue": "~10.3.0",
+    "jiti": "^2.4.2",
+    "jsdom": "^27.0.0",
+    "npm-run-all2": "^8.0.4",
+    "playwright": "^1.55.0",
+    "postcss": "^8.5.6",
+    "prettier": "3.6.2",
+    "tailwindcss": "^4.1.13",
+    "typescript": "~5.8.0",
+    "vite": "^7.0.6",
+    "vite-plugin-vue-devtools": "^8.0.0",
+    "vitest": "^3.2.4",
+    "vue-tsc": "^3.0.4"
+  }
+}

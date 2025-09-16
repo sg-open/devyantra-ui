@@ -1,0 +1,25 @@
+{
+  "name": "DevYantra - Free Developer Tools",
+  "short_name": "DevYantra",
+  "description": "Professional developer tools for text comparison, JSON formatting, encoding, hashing, and data manipulation. All processing done locally for privacy.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f0f23",
+  "theme_color": "#3b82f6",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.ico",
+      "sizes": "32x32",
+      "type": "image/x-icon"
+    }
+  ],
+  "categories": ["developer", "productivity", "utilities"],
+  "lang": "en",
+  "scope": "/"
+}
