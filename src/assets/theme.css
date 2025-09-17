@@ -884,30 +884,36 @@ label {
   border-color: var(--glass-border) !important;
 }
 
-/* Tooltip overrides - Light mode (default) */
-.p-tooltip.p-component {
+/* Force tooltip styling with maximum specificity - Light mode */
+html:not(.app-dark) .p-tooltip.p-component.p-tooltip,
+body:not(.app-dark) .p-tooltip.p-component.p-tooltip,
+:not(.app-dark) .p-tooltip.p-component {
   font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
   font-size: 12px !important;
   font-weight: 500 !important;
   line-height: 1.4 !important;
   letter-spacing: 0 !important;
-  background: #FFFFFF !important;
-  border: 1px solid #E6E9F0 !important;
+  background-color: #2D3748 !important;
+  background: #2D3748 !important;
+  border: 1px solid #4A5568 !important;
   backdrop-filter: blur(12px) !important;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
   border-radius: 8px !important;
   padding: 8px 12px !important;
-  color: #14161D !important;
+  color: #F7FAFC !important;
   max-width: 280px !important;
   z-index: 9999 !important;
 }
 
-/* Tooltip overrides - Dark mode */
+/* Force tooltip styling with maximum specificity - Dark mode */
+html.app-dark .p-tooltip.p-component.p-tooltip,
+body.app-dark .p-tooltip.p-component.p-tooltip,
 .app-dark .p-tooltip.p-component {
-  background: #2D3748 !important;
-  border: 1px solid #4A5568 !important;
-  color: #F7FAFC !important;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
+  background-color: #FFFFFF !important;
+  background: #FFFFFF !important;
+  border: 1px solid #E6E9F0 !important;
+  color: #14161D !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12) !important;
 }
 
 .p-tooltip .p-tooltip-text {
@@ -919,54 +925,91 @@ label {
   color: inherit !important;
   margin: 0 !important;
   padding: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: inherit !important;
 }
 
-/* Light mode tooltip arrows */
-.p-tooltip .p-tooltip-arrow {
-  border-top-color: #FFFFFF !important;
-  border-bottom-color: #FFFFFF !important;
-  border-left-color: #FFFFFF !important;
-  border-right-color: #FFFFFF !important;
+/* ===== CLEAN BUTTON TEXT CENTERING ===== */
+.p-button {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
-.p-tooltip[data-pc-position="top"] .p-tooltip-arrow::before {
-  border-bottom-color: #FFFFFF !important;
+.p-button .p-button-label {
+  line-height: 1 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: translateY(0.5px) !important;
 }
 
-.p-tooltip[data-pc-position="bottom"] .p-tooltip-arrow::before {
-  border-top-color: #FFFFFF !important;
+/* Light mode tooltip arrows - Maximum specificity */
+html:not(.app-dark) .p-tooltip.p-tooltip .p-tooltip-arrow,
+body:not(.app-dark) .p-tooltip.p-tooltip .p-tooltip-arrow,
+:not(.app-dark) .p-tooltip .p-tooltip-arrow {
+  border-top-color: #2D3748 !important;
+  border-bottom-color: #2D3748 !important;
+  border-left-color: #2D3748 !important;
+  border-right-color: #2D3748 !important;
 }
 
-.p-tooltip[data-pc-position="left"] .p-tooltip-arrow::before {
-  border-right-color: #FFFFFF !important;
+html:not(.app-dark) .p-tooltip.p-tooltip[data-pc-position="top"] .p-tooltip-arrow::before,
+body:not(.app-dark) .p-tooltip.p-tooltip[data-pc-position="top"] .p-tooltip-arrow::before,
+:not(.app-dark) .p-tooltip[data-pc-position="top"] .p-tooltip-arrow::before {
+  border-bottom-color: #2D3748 !important;
 }
 
-.p-tooltip[data-pc-position="right"] .p-tooltip-arrow::before {
-  border-left-color: #FFFFFF !important;
+html:not(.app-dark) .p-tooltip.p-tooltip[data-pc-position="bottom"] .p-tooltip-arrow::before,
+body:not(.app-dark) .p-tooltip.p-tooltip[data-pc-position="bottom"] .p-tooltip-arrow::before,
+:not(.app-dark) .p-tooltip[data-pc-position="bottom"] .p-tooltip-arrow::before {
+  border-top-color: #2D3748 !important;
 }
 
-/* Dark mode tooltip arrows */
+html:not(.app-dark) .p-tooltip.p-tooltip[data-pc-position="left"] .p-tooltip-arrow::before,
+body:not(.app-dark) .p-tooltip.p-tooltip[data-pc-position="left"] .p-tooltip-arrow::before,
+:not(.app-dark) .p-tooltip[data-pc-position="left"] .p-tooltip-arrow::before {
+  border-right-color: #2D3748 !important;
+}
+
+html:not(.app-dark) .p-tooltip.p-tooltip[data-pc-position="right"] .p-tooltip-arrow::before,
+body:not(.app-dark) .p-tooltip.p-tooltip[data-pc-position="right"] .p-tooltip-arrow::before,
+:not(.app-dark) .p-tooltip[data-pc-position="right"] .p-tooltip-arrow::before {
+  border-left-color: #2D3748 !important;
+}
+
+/* Dark mode tooltip arrows - Maximum specificity */
+html.app-dark .p-tooltip.p-tooltip .p-tooltip-arrow,
+body.app-dark .p-tooltip.p-tooltip .p-tooltip-arrow,
 .app-dark .p-tooltip .p-tooltip-arrow {
-  border-top-color: #2D3748 !important;
-  border-bottom-color: #2D3748 !important;
-  border-left-color: #2D3748 !important;
-  border-right-color: #2D3748 !important;
+  border-top-color: #FFFFFF !important;
+  border-bottom-color: #FFFFFF !important;
+  border-left-color: #FFFFFF !important;
+  border-right-color: #FFFFFF !important;
 }
 
+html.app-dark .p-tooltip.p-tooltip[data-pc-position="top"] .p-tooltip-arrow::before,
+body.app-dark .p-tooltip.p-tooltip[data-pc-position="top"] .p-tooltip-arrow::before,
 .app-dark .p-tooltip[data-pc-position="top"] .p-tooltip-arrow::before {
-  border-bottom-color: #2D3748 !important;
+  border-bottom-color: #FFFFFF !important;
 }
 
+html.app-dark .p-tooltip.p-tooltip[data-pc-position="bottom"] .p-tooltip-arrow::before,
+body.app-dark .p-tooltip.p-tooltip[data-pc-position="bottom"] .p-tooltip-arrow::before,
 .app-dark .p-tooltip[data-pc-position="bottom"] .p-tooltip-arrow::before {
-  border-top-color: #2D3748 !important;
+  border-top-color: #FFFFFF !important;
 }
 
+html.app-dark .p-tooltip.p-tooltip[data-pc-position="left"] .p-tooltip-arrow::before,
+body.app-dark .p-tooltip.p-tooltip[data-pc-position="left"] .p-tooltip-arrow::before,
 .app-dark .p-tooltip[data-pc-position="left"] .p-tooltip-arrow::before {
-  border-right-color: #2D3748 !important;
+  border-right-color: #FFFFFF !important;
 }
 
+html.app-dark .p-tooltip.p-tooltip[data-pc-position="right"] .p-tooltip-arrow::before,
+body.app-dark .p-tooltip.p-tooltip[data-pc-position="right"] .p-tooltip-arrow::before,
 .app-dark .p-tooltip[data-pc-position="right"] .p-tooltip-arrow::before {
-  border-left-color: #2D3748 !important;
+  border-left-color: #FFFFFF !important;
 }
 
 /* Tooltip animations and enhancements */
