@@ -153,9 +153,10 @@ storybook-static
 ehthumbs.db
 Thumbs.db
 
-# Temporary folders
+# Temporary folders and development files
 tmp/
 temp/
+tools/analyzers/
 
 # Vue.js specific
 # Local env files

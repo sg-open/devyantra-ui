@@ -126,6 +126,12 @@ const DevyantraPreset = definePreset(Aura, {
       letterSpacing: '0',
       transition: '180ms cubic-bezier(0.4, 0, 0.2, 1)',
       cursor: 'pointer',
+      // Perfect text centering
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      textAlign: 'center',
+      verticalAlign: 'middle',
       // Unified focus ring system
       focusRing: {
         width: '2px',
@@ -230,19 +236,24 @@ const DevyantraPreset = definePreset(Aura, {
       }
     },
     tooltip: {
-      borderRadius: '8px',
-      padding: '8px 12px',
-      fontSize: '12px',
-      fontWeight: '500',
-      lineHeight: '1.4',
-      maxWidth: '280px',
-      background: '{surface.100}',
-      color: '{surface.800}',
-      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
-      backdropFilter: 'blur(12px)',
-      border: '1px solid {surface.200}',
-      arrowOffset: '4px',
-      gutter: '4px'
+      background: {
+        colorScheme: {
+          light: '#2D3748',  // Dark background for light mode
+          dark: '#FFFFFF'    // Light background for dark mode
+        }
+      },
+      color: {
+        colorScheme: {
+          light: '#F7FAFC',  // Light text for light mode
+          dark: '#14161D'    // Dark text for dark mode
+        }
+      },
+      borderColor: {
+        colorScheme: {
+          light: '#4A5568',
+          dark: '#E6E9F0'
+        }
+      }
     }
   }
 })

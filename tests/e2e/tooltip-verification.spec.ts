@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test('Verify privacy tooltip styling in both light and dark modes', async ({ page }) => {
   // Navigate to the application
-  await page.goto('http://localhost:5173');
+  await page.goto('http://localhost:5175');
   await page.waitForLoadState('networkidle');
 
   // Test Light Mode Privacy Tooltip
@@ -19,7 +19,7 @@ test('Verify privacy tooltip styling in both light and dark modes', async ({ pag
 
   // Take screenshot of privacy tooltip in light mode
   await page.screenshot({
-    path: 'privacy-tooltip-light-mode.png',
+    path: './temp/screenshots/privacy-tooltip-light-mode.png',
     fullPage: false,
     clip: { x: 0, y: 0, width: 1200, height: 250 }
   });
@@ -44,7 +44,7 @@ test('Verify privacy tooltip styling in both light and dark modes', async ({ pag
 
   // Take screenshot of privacy tooltip in dark mode
   await page.screenshot({
-    path: 'privacy-tooltip-dark-mode.png',
+    path: './temp/screenshots/privacy-tooltip-dark-mode.png',
     fullPage: false,
     clip: { x: 0, y: 0, width: 1200, height: 250 }
   });
@@ -59,7 +59,7 @@ test('Verify privacy tooltip styling in both light and dark modes', async ({ pag
   await page.waitForTimeout(1000);
 
   await page.screenshot({
-    path: 'feedback-tooltip-dark-mode.png',
+    path: './temp/screenshots/feedback-tooltip-dark-mode.png',
     fullPage: false,
     clip: { x: 0, y: 0, width: 1200, height: 250 }
   });
