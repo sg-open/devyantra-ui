@@ -28,7 +28,7 @@ Security vulnerabilities should be reported privately to prevent potential explo
 ### 2. Contact us directly
 Please report security vulnerabilities via one of these methods:
 
-- **Email**: security@devyantra.dev (preferred)
+- **Email**: security@devyantra.app (preferred)
 - **GitHub Security Advisories**: Use the "Report a vulnerability" button in the Security tab
 
 ### 3. Include relevant information
@@ -124,7 +124,7 @@ We maintain strict security standards for dependencies:
 
 For security-related questions or concerns:
 
-- **Security Team**: security@devyantra.dev
+- **Security Team**: security@devyantra.app
 - **General Issues**: Create a GitHub issue (for non-security issues only)
 
 ---

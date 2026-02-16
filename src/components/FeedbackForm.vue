@@ -1,147 +1,96 @@
 <template>
-  <Card class="feedback-card">
-    <template #title>
-      <div class="card-header">
-        <i class="pi pi-comment text-2xl mr-2"></i>
-        Developer Feedback
+  <form @submit.prevent="submitFeedback" class="feedback-form">
+    <!-- Feedback Type -->
+    <div class="form-field">
+      <label class="field-label">Type</label>
+      <div class="type-track">
+        <button
+          v-for="type in feedbackTypes"
+          :key="type.value"
+          type="button"
+          @click="selectedType = type.value"
+          :class="['type-item', { active: selectedType === type.value }]"
+        >
+          <i :class="type.icon" aria-hidden="true"></i>
+          <span>{{ type.label }}</span>
+        </button>
       </div>
-    </template>
+    </div>
 
-    <template #subtitle>
-      Help us improve DevYantra with your thoughts
-    </template>
+    <!-- Message -->
+    <div class="form-field">
+      <label class="field-label" for="feedback-message">Message <span class="required">*</span></label>
+      <textarea
+        id="feedback-message"
+        v-model="message"
+        placeholder="What's on your mind?"
+        rows="5"
+        class="p-inputtextarea"
+        :class="{ 'p-invalid': submitted && !message.trim() }"
+        required
+      ></textarea>
+      <small v-if="submitted && !message.trim()" class="field-error">Message is required</small>
+    </div>
 
-    <template #content>
-      <form @submit.prevent="submitFeedback" class="feedback-form">
-        <!-- Feedback Type Quick Buttons -->
-        <div class="feedback-type-section">
-          <h4 class="type-title">
-            <i class="pi pi-tag"></i>
-            Feedback Type
-          </h4>
-          <div class="type-buttons">
-            <Button
-              v-for="type in feedbackTypes"
-              :key="type.value"
-              @click="selectedType = type.value"
-              :class="['type-btn', type.value, { active: selectedType === type.value }]"
-              size="small"
-              :variant="selectedType === type.value ? 'filled' : 'outlined'"
-            >
-              <i :class="type.icon"></i>
-              {{ type.label }}
-            </Button>
-          </div>
-        </div>
+    <!-- Email -->
+    <div class="form-field">
+      <label class="field-label" for="feedback-email">
+        Email <span class="optional">(optional — for follow-up)</span>
+      </label>
+      <input
+        id="feedback-email"
+        v-model="email"
+        placeholder="you@example.com"
+        type="email"
+        class="p-inputtext"
+      />
+    </div>
 
-        <Divider />
+    <!-- Actions -->
+    <div class="form-actions">
+      <button type="submit" class="p-button submit-btn" :disabled="!message.trim() || isSubmitting">
+        <i :class="isSubmitting ? 'pi pi-spin pi-spinner' : 'pi pi-send'"></i>
+        {{ isSubmitting ? 'Sending...' : 'Send Feedback' }}
+      </button>
+      <button type="button" class="p-button p-button-outlined clear-btn" :disabled="isSubmitting" @click="clearForm">
+        Clear
+      </button>
+    </div>
 
-        <!-- Message -->
-        <div class="message-section">
-          <label class="input-label">Message *</label>
-          <Textarea
-            v-model="message"
-            placeholder="What's on your mind? Bug reports, feature requests, or general feedback..."
-            rows="4"
-            class="message-textarea enhanced-textarea"
-            :class="{ 'error': submitted && !message.trim() }"
-            required
-          />
-          <div v-if="submitted && !message.trim()" class="error-text">
-            Message is required
-          </div>
-        </div>
+    <!-- Success -->
+    <div v-if="showSuccess" class="form-message success" role="alert">
+      <i class="pi pi-check-circle"></i>
+      Thanks for your feedback! We appreciate it.
+    </div>
 
-        <!-- Optional Contact -->
-        <div class="contact-section">
-          <label class="input-label">
-            Email (optional)
-            <span class="optional-text">- for follow-up</span>
-          </label>
-          <InputText
-            v-model="email"
-            placeholder="your.email@example.com"
-            type="email"
-            class="contact-input enhanced-input"
-          />
-        </div>
-
-        <!-- Submit Actions -->
-        <div class="submit-actions">
-          <Button
-            type="submit"
-            :loading="isSubmitting"
-            :disabled="!message.trim()"
-            class="submit-btn enhanced-submit-btn"
-          >
-            <i class="pi pi-send"></i>
-            {{ isSubmitting ? 'Sending...' : 'Send Feedback' }}
-          </Button>
-          <Button
-            @click="clearForm"
-            variant="outlined"
-            severity="secondary"
-            :disabled="isSubmitting"
-            class="clear-btn"
-          >
-            <i class="pi pi-refresh"></i>
-            Clear
-          </Button>
-        </div>
-
-        <!-- Success Message -->
-        <Message
-          v-if="showSuccess"
-          severity="success"
-          :closable="false"
-          class="success-message"
-        >
-          <i class="pi pi-check-circle"></i>
-          Thanks for your feedback! We appreciate you helping make DevYantra better.
-        </Message>
-
-        <!-- Error Message -->
-        <Message
-          v-if="showError"
-          severity="error"
-          :closable="false"
-          class="error-message"
-        >
-          <i class="pi pi-exclamation-triangle"></i>
-          {{ errorMessage }}
-        </Message>
-      </form>
-    </template>
-  </Card>
+    <!-- Error -->
+    <div v-if="showError" class="form-message error" role="alert">
+      <i class="pi pi-exclamation-triangle"></i>
+      {{ errorMessage }}
+    </div>
+  </form>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { useToast } from 'primevue/usetoast'
 
-const toast = useToast()
-
-// Form data
 const selectedType = ref('general')
 const message = ref('')
 const email = ref('')
 
-// Form state
 const isSubmitting = ref(false)
 const submitted = ref(false)
 const showSuccess = ref(false)
 const showError = ref(false)
 const errorMessage = ref('')
 
-// Feedback types
-const feedbackTypes = ref([
-  { value: 'bug', label: 'Bug Report', icon: 'pi pi-bug' },
-  { value: 'feature', label: 'Feature Request', icon: 'pi pi-plus-circle' },
+const feedbackTypes = [
+  { value: 'bug', label: 'Bug', icon: 'pi pi-exclamation-triangle' },
+  { value: 'feature', label: 'Feature', icon: 'pi pi-plus-circle' },
   { value: 'improvement', label: 'Improvement', icon: 'pi pi-cog' },
   { value: 'general', label: 'General', icon: 'pi pi-comment' }
-])
+]
 
-// Submit feedback
 const submitFeedback = async () => {
   submitted.value = true
 
@@ -172,37 +121,18 @@ const submitFeedback = async () => {
     if (response.ok) {
       showSuccess.value = true
       clearForm()
-
-      toast.add({
-        severity: 'success',
-        summary: 'Feedback Sent',
-        detail: 'Your feedback has been sent successfully!',
-        life: 3000
-      })
-
-      // Hide success message after 5 seconds
-      setTimeout(() => {
-        showSuccess.value = false
-      }, 5000)
+      setTimeout(() => { showSuccess.value = false }, 5000)
     } else {
       throw new Error('Failed to send feedback')
     }
-  } catch (error) {
+  } catch {
     showError.value = true
     errorMessage.value = 'Failed to send feedback. Please try again later.'
-
-    toast.add({
-      severity: 'error',
-      summary: 'Send Failed',
-      detail: 'Could not send feedback. Please try again.',
-      life: 5000
-    })
   } finally {
     isSubmitting.value = false
   }
 }
 
-// Clear form
 const clearForm = () => {
   selectedType.value = 'general'
   message.value = ''
@@ -212,28 +142,17 @@ const clearForm = () => {
   showError.value = false
 }
 
-// Keyboard shortcuts
 const handleKeyboardShortcuts = (event: KeyboardEvent) => {
-  if (event.metaKey || event.ctrlKey) {
-    if (event.shiftKey) {
-      switch (event.key) {
-        case 'Enter':
-          event.preventDefault()
-          if (message.value.trim() && !isSubmitting.value) {
-            submitFeedback()
-          }
-          break
-        case 'R':
-        case 'r':
-          event.preventDefault()
-          clearForm()
-          break
+  if ((event.metaKey || event.ctrlKey) && event.shiftKey) {
+    if (event.key === 'Enter') {
+      event.preventDefault()
+      if (message.value.trim() && !isSubmitting.value) {
+        submitFeedback()
       }
     }
   }
 }
 
-// Lifecycle hooks
 onMounted(() => {
   document.addEventListener('keydown', handleKeyboardShortcuts)
 })
@@ -244,249 +163,153 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.feedback-card {
-  width: 100%;
-  max-width: 600px;
-  margin: 0 auto;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-}
-
-.card-header {
-  display: flex;
-  align-items: center;
-  font-size: 1.5rem;
-  font-weight: 600;
-}
-
 .feedback-form {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: var(--space-xl, 1.5rem);
 }
 
-/* Feedback Type Section */
-.feedback-type-section {
-  padding: 1rem;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(168, 85, 247, 0.05));
-  border-radius: 12px;
-  border: 1px solid rgba(59, 130, 246, 0.1);
-}
-
-.type-title {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin: 0 0 1rem 0;
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--text-color);
-}
-
-.type-title i {
-  color: #3b82f6;
-}
-
-.type-buttons {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-  gap: 0.75rem;
-}
-
-.type-btn {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  font-weight: 500;
-  position: relative;
-  overflow: hidden;
-}
-
-.type-btn::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  transition: left 0.5s;
-}
-
-.type-btn:hover::before {
-  left: 100%;
-}
-
-.type-btn.bug.active,
-.type-btn.bug:hover {
-  background: linear-gradient(135deg, #ef4444, #dc2626) !important;
-  color: white !important;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
-}
-
-.type-btn.feature.active,
-.type-btn.feature:hover {
-  background: linear-gradient(135deg, #10b981, #059669) !important;
-  color: white !important;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-}
-
-.type-btn.improvement.active,
-.type-btn.improvement:hover {
-  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
-  color: white !important;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
-}
-
-.type-btn.general.active,
-.type-btn.general:hover {
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8) !important;
-  color: white !important;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-}
-
-/* Form Fields */
-.message-section,
-.contact-section {
+/* Form fields */
+.form-field {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-sm, 0.5rem);
 }
 
-.input-label {
+.field-label {
   font-weight: 600;
   font-size: 1rem;
-  color: var(--text-color);
-  margin: 0;
+  color: var(--dt-text-primary);
 }
 
-.optional-text {
+.required {
+  color: var(--dt-danger);
+}
+
+.optional {
   font-weight: 400;
-  font-size: 0.875rem;
-  color: var(--text-color-secondary);
+  font-size: 0.85rem;
+  color: var(--dt-text-secondary);
 }
 
-.enhanced-textarea,
-.enhanced-input {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 2px solid transparent;
-  font-family: 'JetBrains Mono', monospace;
+.field-error {
+  color: var(--dt-danger);
+  font-size: 0.85rem;
 }
 
-.enhanced-textarea:focus,
-.enhanced-input:focus {
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
-  transform: translateY(-1px);
-}
-
-.message-textarea {
-  min-height: 100px;
-  resize: vertical;
-}
-
-.enhanced-textarea.error {
-  border-color: #ef4444;
-  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.1);
-}
-
-.error-text {
-  color: #ef4444;
-  font-size: 0.875rem;
-  font-weight: 500;
-}
-
-/* Submit Actions */
-.submit-actions {
+/* Type selector — segmented control matching nav */
+.type-track {
   display: flex;
-  gap: 1rem;
-  justify-content: center;
-  margin-top: 1rem;
+  gap: 2px;
+  background: var(--dt-surface-2);
+  border: 1px solid var(--dt-border);
+  border-radius: var(--radius-lg, 10px);
+  padding: 3px;
 }
 
-.enhanced-submit-btn {
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8) !important;
-  border: none !important;
-  color: white !important;
-  font-weight: 600;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  overflow: hidden;
+.type-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   flex: 1;
-  max-width: 200px;
+  justify-content: center;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  color: var(--dt-text-secondary);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md, 8px);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
 }
 
-.enhanced-submit-btn::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 0;
-  height: 0;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.3);
-  transform: translate(-50%, -50%);
-  transition: width 0.6s, height 0.6s;
+.type-item i {
+  font-size: 14px;
 }
 
-.enhanced-submit-btn:hover::after {
-  width: 300px;
-  height: 300px;
+.type-item:hover {
+  color: var(--dt-text-primary);
+  background: var(--dt-surface-3);
 }
 
-.enhanced-submit-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+.type-item.active {
+  color: var(--dt-brand);
+  background: var(--dt-surface-1);
+  font-weight: 600;
+  border-color: var(--dt-border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* Actions */
+.form-actions {
+  display: flex;
+  gap: var(--space-sm, 0.5rem);
+}
+
+.submit-btn {
+  background: var(--dt-brand);
+  border-color: var(--dt-brand);
+  color: var(--button-primary-text);
+  font-weight: 600;
+  flex: 1;
+}
+
+.submit-btn:hover:not(:disabled) {
+  background: var(--dt-brand-hover);
+  border-color: var(--dt-brand-hover);
+}
+
+.submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .clear-btn {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.clear-btn:hover {
-  background: linear-gradient(135deg, #6b7280, #4b5563) !important;
-  color: white !important;
-  transform: translateY(-1px);
+  color: var(--dt-text-secondary);
 }
 
 /* Messages */
-.success-message,
-.error-message {
-  margin-top: 1rem;
-  animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+.form-message {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm, 0.5rem);
+  padding: var(--space-md, 0.75rem) var(--space-lg, 1rem);
+  border-radius: var(--radius-md, 8px);
+  font-size: 0.9rem;
+  font-weight: 500;
 }
 
-.success-message .pi,
-.error-message .pi {
-  margin-right: 0.5rem;
+.form-message.success {
+  background: var(--dt-success-light);
+  color: var(--dt-success);
+  border: 1px solid rgba(46, 125, 50, 0.2);
+}
+
+.form-message.error {
+  background: var(--dt-danger-light);
+  color: var(--dt-danger);
+  border: 1px solid rgba(198, 40, 40, 0.2);
 }
 
 /* Responsive */
-@media (max-width: 768px) {
-  .type-buttons {
-    grid-template-columns: repeat(2, 1fr);
+@media (max-width: 480px) {
+  .type-track {
+    flex-wrap: wrap;
   }
 
-  .submit-actions {
-    flex-direction: column;
+  .type-item {
+    flex: 1 1 calc(50% - 2px);
   }
 
-  .enhanced-submit-btn {
-    max-width: none;
+  .type-item span {
+    display: none;
   }
-}
 
-/* Animation keyframes */
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+  .type-item i {
+    font-size: 16px;
   }
 }
 </style>

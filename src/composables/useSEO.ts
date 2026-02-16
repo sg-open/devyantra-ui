@@ -49,8 +49,6 @@ interface BreadcrumbSchema {
 export function useSEO() {
   const route = useRoute()
 
-  const currentYear = new Date().getFullYear()
-
   // Base organization schema
   const organizationSchema: OrganizationSchema = {
     "@context": "https://schema.org",
@@ -74,9 +72,9 @@ export function useSEO() {
   }
 
   function setMetaTags(metadata: SEOMetadata) {
-    // Set title
+    // Set title — use as-is (route titles already include brand)
     if (metadata.title) {
-      document.title = `${metadata.title} | ${currentYear}`
+      document.title = metadata.title
     }
 
     // Set meta description
@@ -103,15 +101,7 @@ export function useSEO() {
     updateMetaTag('name', 'twitter:card', metadata.twitterCard || 'summary_large_image')
     updateMetaTag('name', 'twitter:title', metadata.twitterTitle || metadata.title)
     updateMetaTag('name', 'twitter:description', metadata.twitterDescription || metadata.description)
-    updateMetaTag('name', 'twitter:image', metadata.twitterImage || metadata.ogImage || `${window.location.origin}/twitter-image.png`)
-
-    // Additional SEO meta tags
-    updateMetaTag('name', 'author', 'DEVYANTRA Development Team')
-    updateMetaTag('name', 'generator', 'Vue.js')
-    updateMetaTag('name', 'language', 'English')
-    updateMetaTag('name', 'revisit-after', '7 days')
-    updateMetaTag('name', 'distribution', 'global')
-    updateMetaTag('name', 'rating', 'general')
+    updateMetaTag('name', 'twitter:image', metadata.twitterImage || metadata.ogImage || `${window.location.origin}/og-image.png`)
   }
 
   function updateMetaTag(attribute: string, name: string, content?: string) {
@@ -185,6 +175,7 @@ export function useSEO() {
     url: string
     category: string
     features: string[]
+    toolKey?: string
   }) {
     const toolSchema = {
       "@context": "https://schema.org",
@@ -214,14 +205,16 @@ export function useSEO() {
       datePublished: "2024-01-01",
       dateModified: new Date().toISOString().split('T')[0],
       inLanguage: "en-US",
-      isAccessibleForFree: true,
-      screenshot: `${window.location.origin}/screenshots/${toolData.name.toLowerCase().replace(/\s+/g, '-')}.png`
+      isAccessibleForFree: true
     }
 
-    addStructuredData(toolSchema, 'tool')
+    // Use tool key for unique schema ID, fall back to generic 'tool'
+    addStructuredData(toolSchema, `tool-${toolData.toolKey || 'default'}`)
   }
 
   function addFAQSchema(faqs: Array<{ question: string; answer: string }>) {
+    if (!faqs.length) return
+
     const faqSchema = {
       "@context": "https://schema.org",
       "@type": "FAQPage",
@@ -238,78 +231,50 @@ export function useSEO() {
     addStructuredData(faqSchema, 'faq')
   }
 
-  function generateSitemap() {
-    const routes = [
-      { url: '/', priority: '1.0', changefreq: 'weekly' },
-      { url: '/tools/text-compare', priority: '0.9', changefreq: 'monthly' },
-      { url: '/tools/format-text', priority: '0.9', changefreq: 'monthly' },
-      { url: '/tools/hash-generator', priority: '0.9', changefreq: 'monthly' },
-      { url: '/tools/base64-tools', priority: '0.9', changefreq: 'monthly' },
-      { url: '/tools/jwt-decoder', priority: '0.9', changefreq: 'monthly' },
-      { url: '/tools/timestamp-converter', priority: '0.9', changefreq: 'monthly' },
-      { url: '/tools/character-count', priority: '0.9', changefreq: 'monthly' }
-    ]
-
-    const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${routes.map(route => `  <url>
-    <loc>${window.location.origin}${route.url}</loc>
-    <lastmod>${new Date().toISOString().split('T')[0]}</lastmod>
-    <changefreq>${route.changefreq}</changefreq>
-    <priority>${route.priority}</priority>
-  </url>`).join('\n')}
-</urlset>`
-
-    return sitemap
-  }
-
-  function generateRobotsTxt() {
-    return `User-agent: *
-Allow: /
-
-Sitemap: ${window.location.origin}/sitemap.xml
-
-# Block access to admin areas (if any in future)
-Disallow: /admin/
-Disallow: /api/
-
-# Allow all content and tools
-Allow: /tools/`
-  }
-
-  // Track Core Web Vitals
-  function trackCoreWebVitals() {
-    if ('web-vital' in window) {
-      // This would integrate with web-vitals library
-      console.log('Core Web Vitals tracking initialized')
+  function addWebSiteSchema() {
+    const webSiteSchema = {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      name: "DEVYANTRA",
+      url: window.location.origin,
+      description: "Free online developer tools for text comparison, JSON formatting, hash generation, Base64 encoding, JWT decoding, and more.",
+      publisher: {
+        "@type": "Organization",
+        "@id": `${window.location.origin}/#organization`
+      },
+      potentialAction: {
+        "@type": "SearchAction",
+        target: {
+          "@type": "EntryPoint",
+          urlTemplate: `${window.location.origin}/tools/{search_term_string}`
+        },
+        "query-input": "required name=search_term_string"
+      }
     }
+
+    addStructuredData(webSiteSchema, 'website')
   }
 
-  // Preload critical resources
-  function preloadCriticalResources() {
-    // Preload fonts
-    const fontLink = document.createElement('link')
-    fontLink.rel = 'preload'
-    fontLink.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap'
-    fontLink.as = 'style'
-    fontLink.onload = () => {
-      fontLink.rel = 'stylesheet'
+  function addHowToSchema(data: {
+    name: string
+    description: string
+    steps: Array<{ name: string; text: string }>
+    toolKey?: string
+  }) {
+    const howToSchema = {
+      "@context": "https://schema.org",
+      "@type": "HowTo",
+      name: data.name,
+      description: data.description,
+      step: data.steps.map((step, index) => ({
+        "@type": "HowToStep",
+        position: index + 1,
+        name: step.name,
+        text: step.text
+      }))
     }
-    document.head.appendChild(fontLink)
 
-    // Preconnect to external domains
-    const preconnectLinks = [
-      'https://fonts.googleapis.com',
-      'https://fonts.gstatic.com'
-    ]
-
-    preconnectLinks.forEach(url => {
-      const link = document.createElement('link')
-      link.rel = 'preconnect'
-      link.href = url
-      link.crossOrigin = 'anonymous'
-      document.head.appendChild(link)
-    })
+    addStructuredData(howToSchema, `howto-${data.toolKey || 'default'}`)
   }
 
   return {
@@ -319,10 +284,8 @@ Allow: /tools/`
     addBreadcrumbSchema,
     addToolSchema,
     addFAQSchema,
-    generateSitemap,
-    generateRobotsTxt,
-    trackCoreWebVitals,
-    preloadCriticalResources
+    addHowToSchema,
+    addWebSiteSchema
   }
 }
 

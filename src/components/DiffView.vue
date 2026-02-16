@@ -16,24 +16,14 @@
       <div class="upload-section">
         <label class="upload-label">Upload Files (Optional)</label>
         <div class="upload-buttons">
-          <Button
-            @click="triggerFileUpload('left')"
-            size="small"
-            variant="outlined"
-            class="upload-btn"
-          >
+          <button class="p-button p-button-sm p-button-outlined upload-btn" @click="triggerFileUpload('left')">
             <i class="pi pi-upload"></i>
             Upload Original
-          </Button>
-          <Button
-            @click="triggerFileUpload('right')"
-            size="small"
-            variant="outlined"
-            class="upload-btn"
-          >
+          </button>
+          <button class="p-button p-button-sm p-button-outlined upload-btn" @click="triggerFileUpload('right')">
             <i class="pi pi-upload"></i>
             Upload Modified
-          </Button>
+          </button>
         </div>
         <input
           ref="fileInputLeft"
@@ -60,24 +50,12 @@
           <label class="input-label">Original Text</label>
           <div class="input-controls">
             <span class="language-indicator">{{ detectedLanguageLeft }}</span>
-            <Dropdown
-              v-model="selectedLanguageLeft"
-              :options="languageOptions"
-              option-label="label"
-              option-value="value"
-              placeholder="Auto-detect"
-              class="language-dropdown"
-              size="small"
-            />
-            <Button
-              @click="swapTexts"
-              size="small"
-              variant="outlined"
-              class="swap-btn"
-              title="Swap texts"
-            >
+            <select v-model="selectedLanguageLeft" class="language-select">
+              <option v-for="opt in languageOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+            </select>
+            <button class="p-button p-button-sm p-button-outlined swap-btn" @click="swapTexts" title="Swap texts">
               <i class="pi pi-refresh"></i>
-            </Button>
+            </button>
           </div>
         </div>
         <textarea
@@ -94,25 +72,13 @@
           <label class="input-label">Modified Text</label>
           <div class="input-controls">
             <span class="language-indicator">{{ detectedLanguageRight }}</span>
-            <Dropdown
-              v-model="selectedLanguageRight"
-              :options="languageOptions"
-              option-label="label"
-              option-value="value"
-              placeholder="Auto-detect"
-              class="language-dropdown"
-              size="small"
-            />
-            <Button
-              @click="clearAll"
-              size="small"
-              variant="outlined"
-              severity="secondary"
-              class="clear-btn"
-            >
+            <select v-model="selectedLanguageRight" class="language-select">
+              <option v-for="opt in languageOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+            </select>
+            <button class="p-button p-button-sm p-button-outlined p-button-secondary clear-btn" @click="clearAll">
               <i class="pi pi-trash"></i>
               Clear
-            </Button>
+            </button>
           </div>
         </div>
         <textarea
@@ -126,43 +92,28 @@
     </div>
 
     <!-- Action Toolbar -->
-    <Toolbar class="action-toolbar">
-      <template #start>
+    <div class="p-toolbar action-toolbar">
+      <div class="p-toolbar-start">
         <div class="action-group">
-          <Button
-            @click="showDiff = true"
-            :disabled="!leftText.trim() || !rightText.trim()"
-            class="compare-btn"
-          >
+          <button class="p-button compare-btn" :disabled="!leftText.trim() || !rightText.trim()" @click="showDiff = true">
             <i class="pi pi-search"></i>
             Find Differences
-          </Button>
+          </button>
         </div>
-      </template>
-
-      <template #end>
+      </div>
+      <div class="p-toolbar-end">
         <div class="export-group" v-if="showDiff">
-          <Button
-            @click="shareState.copyShareUrl()"
-            size="small"
-            variant="outlined"
-            class="share-btn"
-          >
+          <button class="p-button p-button-sm p-button-outlined share-btn" @click="shareState.copyShareUrl()">
             <i class="pi pi-share-alt"></i>
             Share
-          </Button>
-          <Button
-            @click="clearAll"
-            size="small"
-            variant="outlined"
-            class="clear-btn"
-          >
+          </button>
+          <button class="p-button p-button-sm p-button-outlined clear-btn" @click="clearAll">
             <i class="pi pi-trash"></i>
             Clear All
-          </Button>
+          </button>
         </div>
-      </template>
-    </Toolbar>
+      </div>
+    </div>
 
 
     <!-- Enhanced Diff Renderer -->
@@ -174,7 +125,6 @@
         :ignore-whitespace="diffOptions.ignoreWhitespace || false"
         :ignore-case="diffOptions.ignoreCase || false"
         :language="detectedLanguageLeft"
-        :virtual-scroll-enabled="virtualScrollEnabled"
         @diff-computed="onDiffRendererComputed"
         @mode-changed="viewMode = $event"
         @options-changed="onDiffOptionsChanged"
@@ -183,17 +133,19 @@
 
     <!-- Empty State -->
     <div v-else-if="showDiff" class="empty-state">
-      <Message severity="info" :closable="false">
-        <i class="pi pi-info-circle"></i>
-        No differences found - the texts are identical!
-      </Message>
+      <div class="p-message p-message-info" role="alert">
+        <div class="p-message-text">
+          <i class="pi pi-info-circle"></i>
+          No differences found - the texts are identical!
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
-import { useToast } from 'primevue/usetoast'
+import { ref, computed, onMounted } from 'vue'
+import { useToast } from '@/composables/useToast'
 import DiffRenderer from '@/components/DiffRenderer.vue'
 
 const toast = useToast()
@@ -205,16 +157,12 @@ const rightText = ref('')
 // Diff options for DiffRenderer compatibility
 const diffOptions = ref({
   ignoreCase: false,
-  ignoreWhitespace: false,
-  virtualScrollEnabled: false
+  ignoreWhitespace: false
 })
 
 // View mode and display control
 const viewMode = ref<'split' | 'unified'>('split')
 const showDiff = ref(false)
-
-// Virtual scroll state
-const virtualScrollEnabled = ref(false)
 
 // Language detection and selection
 const selectedLanguageLeft = ref('')
@@ -246,12 +194,6 @@ const shareState = {
   copyShareUrl: () => {
     const url = window.location.href
     navigator.clipboard.writeText(url)
-    toast.add({
-      severity: 'success',
-      summary: 'URL Copied',
-      detail: 'Page URL copied to clipboard',
-      life: 3000
-    })
   }
 }
 
@@ -313,13 +255,6 @@ const swapTexts = () => {
   const tempLang = selectedLanguageLeft.value
   selectedLanguageLeft.value = selectedLanguageRight.value
   selectedLanguageRight.value = tempLang
-
-  toast.add({
-    severity: 'info',
-    summary: 'Texts Swapped',
-    detail: 'Original and modified texts have been swapped',
-    life: 2000
-  })
 }
 
 const clearAll = () => {
@@ -327,13 +262,6 @@ const clearAll = () => {
   rightText.value = ''
   selectedLanguageLeft.value = ''
   selectedLanguageRight.value = ''
-
-  toast.add({
-    severity: 'info',
-    summary: 'Cleared',
-    detail: 'All content has been cleared',
-    life: 2000
-  })
 }
 
 const triggerFileUpload = (side: 'left' | 'right') => {
@@ -435,12 +363,6 @@ const handleFileUpload = async (event: Event, side: 'left' | 'right') => {
       selectedLanguageRight.value = detectedLang
     }
 
-    toast.add({
-      severity: 'success',
-      summary: 'File Uploaded',
-      detail: `${file.name} loaded successfully`,
-      life: 3000
-    })
   } catch (error) {
     console.error('Error reading file:', error)
     toast.add({
@@ -461,23 +383,10 @@ const onDiffRendererComputed = (stats: { additions: number; deletions: number; m
   console.log('Diff computed:', stats)
 }
 
-const onDiffOptionsChanged = (options: { ignoreWhitespace: boolean; ignoreCase: boolean; virtualScrollEnabled: boolean }) => {
-  // Update internal diff options when changed from DiffRenderer
+const onDiffOptionsChanged = (options: { ignoreWhitespace: boolean; ignoreCase: boolean }) => {
   Object.assign(diffOptions.value, options)
-  virtualScrollEnabled.value = options.virtualScrollEnabled
 }
 
-// Watch for share URL changes
-watch(() => shareState.shareUrl, (newUrl) => {
-  if (newUrl) {
-    toast.add({
-      severity: 'success',
-      summary: 'Share URL Generated',
-      detail: 'Share URL copied to clipboard',
-      life: 3000
-    })
-  }
-})
 
 onMounted(() => {
   // Any initialization code
@@ -619,8 +528,21 @@ onMounted(() => {
   font-weight: var(--font-weight-semibold);
 }
 
-.language-dropdown {
+.language-select {
   min-width: 120px;
+  padding: 4px 8px;
+  font-size: var(--text-xs);
+  background: var(--dt-surface-1);
+  border: 1px solid var(--dt-border);
+  border-radius: var(--radius-sm);
+  color: var(--dt-text-primary);
+  cursor: pointer;
+}
+
+.language-select:focus {
+  outline: none;
+  border-color: var(--dt-brand);
+  box-shadow: var(--focus-ring);
 }
 
 .text-area {
@@ -823,30 +745,4 @@ onMounted(() => {
   }
 }
 
-/* Vue-diff Styling Overrides — covers both unified (row-level) and split (cell-level) */
-:deep(.vue-diff-cell-added),
-:deep(.code.vue-diff-cell-added) {
-  background: var(--diff-added-bg);
-}
-
-:deep(.vue-diff-cell-removed),
-:deep(.code.vue-diff-cell-removed) {
-  background: var(--diff-removed-bg);
-}
-
-:deep(.lineNum.vue-diff-cell-added) {
-  background: var(--diff-added-gutter-bg);
-}
-
-:deep(.lineNum.vue-diff-cell-removed) {
-  background: var(--diff-removed-gutter-bg);
-}
-
-:deep(.vue-diff-cell-added span.modified) {
-  background: var(--diff-added-word-bg);
-}
-
-:deep(.vue-diff-cell-removed span.modified) {
-  background: var(--diff-removed-word-bg);
-}
 </style>

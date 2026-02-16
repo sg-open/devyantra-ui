@@ -1,38 +1,56 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 
+export type ThemeMode = 'dark' | 'light'
+
 export const useThemeStore = defineStore('theme', () => {
-  // Initialize theme from localStorage or system preference
-  const getInitialTheme = (): boolean => {
-    if (typeof window === 'undefined') return true
+  const getInitialTheme = (): ThemeMode => {
+    if (typeof window === 'undefined') return 'light'
 
     const stored = localStorage.getItem('devyantra-theme')
-    if (stored !== null) {
-      return stored === 'dark'
+    if (stored === 'dark' || stored === 'light') {
+      return stored
+    }
+
+    // Map removed themes to closest match
+    if (stored === 'terminal-green' || stored === 'terminal-amber' || stored === 'terminal-blue') {
+      return 'dark'
+    }
+    if (stored === 'retro-light') {
+      return 'light'
     }
 
     // Default to system preference, fallback to dark
-    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+    return prefersDark ? 'dark' : 'light'
   }
 
-  const isDark = ref(getInitialTheme())
-  const theme = computed(() => (isDark.value ? 'dark' : 'light'))
+  const mode = ref<ThemeMode>(getInitialTheme())
+
+  const isDark = computed(() => mode.value === 'dark')
+  const theme = computed(() => mode.value)
 
   const toggleTheme = () => {
-    isDark.value = !isDark.value
+    mode.value = mode.value === 'dark' ? 'light' : 'dark'
     persistTheme()
     updateDocumentClass()
   }
 
   const setTheme = (dark: boolean) => {
-    isDark.value = dark
+    mode.value = dark ? 'dark' : 'light'
+    persistTheme()
+    updateDocumentClass()
+  }
+
+  const setMode = (newMode: ThemeMode) => {
+    mode.value = newMode
     persistTheme()
     updateDocumentClass()
   }
 
   const persistTheme = () => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('devyantra-theme', isDark.value ? 'dark' : 'light')
+      localStorage.setItem('devyantra-theme', mode.value)
     }
   }
 
@@ -41,10 +59,10 @@ export const useThemeStore = defineStore('theme', () => {
 
     const html = document.documentElement
 
-    // Remove old classes
+    // Remove all theme classes
     html.classList.remove('p-dark', 'app-dark')
 
-    if (isDark.value) {
+    if (mode.value === 'dark') {
       html.classList.add('app-dark')
       html.setAttribute('data-theme', 'dark')
     } else {
@@ -53,7 +71,7 @@ export const useThemeStore = defineStore('theme', () => {
 
     // Dispatch custom event for components that need to react to theme changes
     window.dispatchEvent(new CustomEvent('theme-changed', {
-      detail: { theme: theme.value, isDark: isDark.value }
+      detail: { theme: theme.value, isDark: isDark.value, mode: mode.value }
     }))
   }
 
@@ -79,8 +97,10 @@ export const useThemeStore = defineStore('theme', () => {
   return {
     isDark,
     theme,
+    mode,
     toggleTheme,
     setTheme,
+    setMode,
     initializeTheme
   }
 })

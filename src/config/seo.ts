@@ -1,3 +1,22 @@
+export interface ToolFAQ {
+  question: string
+  answer: string
+}
+
+export interface HowToStep {
+  name: string
+  text: string
+}
+
+export interface ToolSEOConfig {
+  name: string
+  description: string
+  category: string
+  features: string[]
+  faqs: ToolFAQ[]
+  howToSteps: HowToStep[]
+}
+
 export const SEO_CONFIG = {
   site: {
     name: 'DEVYANTRA',
@@ -39,45 +58,205 @@ export const SEO_CONFIG = {
       name: 'Text Compare Online',
       description: 'Compare and format JSON, SQL, or text files online with intelligent diff highlighting.',
       category: 'Text Processing',
-      features: ['Text comparison', 'JSON/SQL formatting', 'Side-by-side diff view', 'Syntax highlighting']
+      features: ['Text comparison', 'JSON/SQL formatting', 'Side-by-side diff view', 'Syntax highlighting'],
+      howToSteps: [
+        { name: 'Enter original text', text: 'Paste or type your original text in the left panel.' },
+        { name: 'Enter modified text', text: 'Paste or type the modified text in the right panel.' },
+        { name: 'Review differences', text: 'Differences are highlighted automatically — green for additions, red for deletions.' },
+        { name: 'Switch view mode', text: 'Use the toggle to switch between side-by-side and inline diff views.' }
+      ],
+      faqs: [
+        {
+          question: 'How do I compare two text files online?',
+          answer: 'Paste or type your original text in the left panel and the modified text in the right panel. DevYantra instantly highlights additions, deletions, and modifications with color-coded diff markers. You can switch between side-by-side and inline views.'
+        },
+        {
+          question: 'What is a diff tool?',
+          answer: 'A diff tool compares two pieces of text and shows the differences between them. It highlights added lines in green, removed lines in red, and changed sections in yellow. Developers use diff tools to review code changes, compare configuration files, and track document revisions.'
+        },
+        {
+          question: 'Can I compare JSON or SQL files?',
+          answer: 'Yes. DevYantra automatically detects and formats JSON and SQL before comparing, so structural differences are clear. The tool also supports plain text, XML, and other formats.'
+        }
+      ]
     },
     'format-text': {
       name: 'JSON & SQL Formatter',
       description: 'Format and beautify JSON, SQL, XML, and other code online with syntax highlighting.',
       category: 'Code Formatting',
-      features: ['Multi-language formatting', 'Syntax highlighting', 'Error detection', 'Minify/beautify']
+      features: ['Multi-language formatting', 'Syntax highlighting', 'Error detection', 'Minify/beautify'],
+      howToSteps: [
+        { name: 'Paste your code', text: 'Paste your code into the input area — the language is detected automatically.' },
+        { name: 'Select format type', text: 'Select a different format type if auto-detection does not match.' },
+        { name: 'Format or minify', text: 'Click the format button to beautify, or the minify button to compress.' },
+        { name: 'Copy the result', text: 'Copy the result with the copy button or select and copy manually.' }
+      ],
+      faqs: [
+        {
+          question: 'How do I format JSON online?',
+          answer: 'Paste your JSON into the input area and click the JSON format button. DevYantra will beautify it with proper indentation, validate the syntax, and highlight any errors. You can also minify JSON to reduce its size.'
+        },
+        {
+          question: 'What is JSON beautification?',
+          answer: 'JSON beautification (or pretty-printing) adds proper indentation and line breaks to compressed JSON, making it human-readable. This is useful for debugging API responses, editing configuration files, and reviewing data structures.'
+        },
+        {
+          question: 'Which code languages can I format?',
+          answer: 'DevYantra supports formatting for JSON, SQL, XML, CSS, and more. Each formatter handles language-specific syntax rules, indentation styles, and common formatting conventions.'
+        }
+      ]
     },
     'hash-generator': {
       name: 'Hash Generator',
       description: 'Generate secure cryptographic hashes with MD5, SHA1, SHA256, SHA512 algorithms.',
       category: 'Security',
-      features: ['Multiple hash algorithms', 'Password hashing', 'Data integrity verification', 'Local processing']
+      features: ['Multiple hash algorithms', 'Password hashing', 'Data integrity verification', 'Local processing'],
+      howToSteps: [
+        { name: 'Enter your text', text: 'Type or paste the text you want to hash into the input field.' },
+        { name: 'View generated hashes', text: 'DevYantra instantly generates MD5, SHA-1, SHA-256, and SHA-512 hashes for your input.' },
+        { name: 'Copy the hash', text: 'Click the copy button next to the hash you need to copy it to your clipboard.' }
+      ],
+      faqs: [
+        {
+          question: 'What is SHA-256?',
+          answer: 'SHA-256 (Secure Hash Algorithm 256-bit) is a cryptographic hash function that produces a fixed 256-bit (32-byte) output for any input. It is widely used for data integrity verification, digital signatures, and blockchain technology. SHA-256 is considered secure and collision-resistant.'
+        },
+        {
+          question: 'How do I generate an MD5 hash?',
+          answer: 'Type or paste your text in the input field and DevYantra instantly generates the MD5 hash along with SHA-1, SHA-256, and SHA-512 hashes. All processing happens in your browser — your data never leaves your device.'
+        },
+        {
+          question: 'Is it safe to generate hashes online?',
+          answer: 'DevYantra processes all hashes locally in your browser using the Web Crypto API. Your data is never sent to any server, making it safe for sensitive information like passwords and API keys.'
+        }
+      ]
     },
     'base64-tools': {
       name: 'Base64 Encoder/Decoder',
       description: 'Encode and decode Base64 strings with support for text, URLs, and binary data.',
       category: 'Encoding',
-      features: ['Base64 encoding/decoding', 'URL-safe Base64', 'Real-time conversion', 'Multi-format support']
+      features: ['Base64 encoding/decoding', 'URL-safe Base64', 'Real-time conversion', 'Multi-format support'],
+      howToSteps: [
+        { name: 'Enter text or Base64', text: 'Paste plain text to encode, or a Base64 string to decode, into the input area.' },
+        { name: 'Choose encode or decode', text: 'Select the Encode or Decode mode depending on the direction of conversion.' },
+        { name: 'View and copy the result', text: 'The converted output appears instantly. Click the copy button to copy it to your clipboard.' }
+      ],
+      faqs: [
+        {
+          question: 'What is Base64 encoding?',
+          answer: 'Base64 is a binary-to-text encoding scheme that represents binary data as an ASCII string. It is commonly used to embed images in HTML/CSS, transmit binary data in JSON APIs, encode email attachments, and store binary data in text-based formats.'
+        },
+        {
+          question: 'How do I decode Base64?',
+          answer: 'Paste your Base64-encoded string into the input field and DevYantra will instantly decode it to readable text. The tool handles standard Base64 and URL-safe Base64 variants automatically.'
+        },
+        {
+          question: 'When should I use Base64 encoding?',
+          answer: 'Use Base64 when you need to include binary data in text-only contexts, such as embedding images in data URIs, sending attachments via email (MIME), transmitting data in JSON or XML, or storing binary blobs in databases that only support text.'
+        }
+      ]
     },
     'jwt-decoder': {
       name: 'JWT Decoder',
       description: 'Decode and analyze JWT tokens with header, payload, and signature verification.',
       category: 'Authentication',
-      features: ['JWT token decoding', 'Claims inspection', 'Expiration checking', 'Security analysis']
+      features: ['JWT token decoding', 'Claims inspection', 'Expiration checking', 'Security analysis'],
+      howToSteps: [
+        { name: 'Paste the JWT', text: 'Paste the full JWT string (header.payload.signature) into the input field.' },
+        { name: 'Review decoded sections', text: 'The header and payload are decoded and displayed automatically with syntax highlighting.' },
+        { name: 'Check token details', text: 'Review expiration times, issued-at dates, and other claims highlighted in the decoded output.' }
+      ],
+      faqs: [
+        {
+          question: 'What is a JWT token?',
+          answer: 'A JSON Web Token (JWT) is a compact, URL-safe token format used for securely transmitting information between parties. It consists of three parts: a header (algorithm and token type), a payload (claims like user ID and expiration), and a signature for verification.'
+        },
+        {
+          question: 'How do I decode a JWT?',
+          answer: 'Paste the full JWT string (including the dots) into the input field. DevYantra will instantly decode and display the header, payload, and signature sections. It also checks expiration times and highlights security-relevant claims.'
+        },
+        {
+          question: 'Is it safe to decode JWTs online?',
+          answer: 'DevYantra decodes JWTs entirely in your browser — the token is never sent to any server. This makes it safe for debugging authentication tokens from development and staging environments.'
+        }
+      ]
     },
     'timestamp-converter': {
       name: 'Timestamp Converter',
       description: 'Convert Unix timestamps to dates and vice versa with timezone support.',
       category: 'Date & Time',
-      features: ['Unix timestamp conversion', 'Multiple timezone support', 'Various date formats', 'Real-time conversion']
+      features: ['Unix timestamp conversion', 'Multiple timezone support', 'Various date formats', 'Real-time conversion'],
+      howToSteps: [
+        { name: 'Enter a timestamp or date', text: 'Type a Unix timestamp (seconds or milliseconds) or a human-readable date into the input field.' },
+        { name: 'View the conversion', text: 'The converted result appears instantly in both human-readable and Unix timestamp formats.' },
+        { name: 'Select timezone and format', text: 'Choose your preferred timezone and date format from the options to customize the output.' }
+      ],
+      faqs: [
+        {
+          question: 'How do I convert a Unix timestamp?',
+          answer: 'Enter a Unix timestamp (seconds or milliseconds since January 1, 1970) into the input field and DevYantra will instantly convert it to a human-readable date and time in your local timezone and UTC.'
+        },
+        {
+          question: 'What is epoch time?',
+          answer: 'Epoch time (also called Unix time or POSIX time) counts the number of seconds elapsed since January 1, 1970, 00:00:00 UTC. It is the standard way computers store and compare dates internally and is widely used in APIs, databases, and log files.'
+        },
+        {
+          question: 'Can I convert dates to timestamps?',
+          answer: 'Yes. Enter a human-readable date and time and DevYantra will convert it to a Unix timestamp in both seconds and milliseconds. You can also get the current timestamp with one click.'
+        }
+      ]
     },
     'character-count': {
       name: 'Character Counter',
       description: 'Count characters, words, lines, and paragraphs with detailed text analytics.',
       category: 'Text Analysis',
-      features: ['Character/word counting', 'Text analytics', 'Platform limits', 'Reading time estimation']
+      features: ['Character/word counting', 'Text analytics', 'Platform limits', 'Reading time estimation'],
+      howToSteps: [
+        { name: 'Enter your text', text: 'Paste or type your text into the input area.' },
+        { name: 'View live statistics', text: 'Character count, word count, line count, and paragraph count update instantly as you type.' },
+        { name: 'Check platform limits', text: 'Review the platform limit indicators to see if your text fits within Twitter, LinkedIn, or other character limits.' }
+      ],
+      faqs: [
+        {
+          question: 'How do I count characters in text?',
+          answer: 'Paste or type your text into the input area and DevYantra instantly displays the character count, word count, line count, and paragraph count. It also shows reading time estimates and checks against common platform character limits.'
+        },
+        {
+          question: 'What is a word counter?',
+          answer: 'A word counter is a tool that counts the number of words in a piece of text. It typically also provides character counts, sentence counts, and reading time estimates. Writers use word counters for meeting article length requirements, social media post limits, and academic paper constraints.'
+        },
+        {
+          question: 'Does it count characters with or without spaces?',
+          answer: 'DevYantra shows both: total characters (with spaces) and characters without spaces. This is useful for platforms like Twitter/X that count all characters, and services that only count non-space characters.'
+        }
+      ]
+    },
+    'delimiter': {
+      name: 'Delimiter Tool',
+      description: 'Convert between delimited and newline-separated text formats with smart delimiter detection.',
+      category: 'Text Processing',
+      features: ['Delimiter conversion', 'Smart detection', 'Custom delimiters', 'Trim and filter options'],
+      howToSteps: [
+        { name: 'Enter delimited text', text: 'Paste your comma-separated, pipe-separated, or other delimited text into the left panel.' },
+        { name: 'Select the delimiter', text: 'Choose the delimiter from the options or let DevYantra auto-detect it.' },
+        { name: 'Convert and copy', text: 'Click Split to Lines or Join with Delimiter to convert. Copy the result from the output panel.' }
+      ],
+      faqs: [
+        {
+          question: 'How do I split comma-separated values into lines?',
+          answer: 'Paste your comma-separated text into the left panel, select the comma delimiter (or let DevYantra auto-detect it), and click "Split to Lines". Each value will appear on its own line in the right panel.'
+        },
+        {
+          question: 'Can I use custom delimiters?',
+          answer: 'Yes. DevYantra supports comma, pipe, semicolon, colon, tab, and space as quick delimiters, plus a custom option where you can enter any character or string as the delimiter.'
+        },
+        {
+          question: 'How do I join lines into a delimited string?',
+          answer: 'Enter your text with one item per line in the right panel, choose your delimiter, and click "Join with Delimiter". The tool also offers options to trim whitespace and remove empty lines during conversion.'
+        }
+      ]
     }
-  },
+  } as Record<string, ToolSEOConfig>,
 
   meta: {
     robots: 'index,follow',
@@ -104,7 +283,7 @@ export const SEO_CONFIG = {
 }
 
 export const getToolSEO = (toolKey: string) => {
-  const tool = SEO_CONFIG.tools[toolKey as keyof typeof SEO_CONFIG.tools]
+  const tool = SEO_CONFIG.tools[toolKey]
   if (!tool) return null
 
   return {
@@ -116,6 +295,8 @@ export const getToolSEO = (toolKey: string) => {
     breadcrumb: [
       { name: 'Home', url: '/' },
       { name: tool.name, url: `/tools/${toolKey}` }
-    ]
+    ],
+    faqs: tool.faqs,
+    howToSteps: tool.howToSteps
   }
 }

@@ -128,8 +128,8 @@ const router = createRouter({
       children: toolRoutes,
       redirect: '/tools/text-compare',
       meta: {
-        title: 'DevYantra - free dev tools',
-        description: 'Free online developer tools for text comparison, JSON formatting, hash generation, Base64 encoding, JWT decoding, and more. Professional-grade web tools.',
+        title: 'DevYantra - Free Online Developer Tools | DEVYANTRA',
+        description: 'Free browser-based developer tools: text diff, JSON formatter, hash generator, Base64, JWT decoder, timestamps, and more. No signup, no data sent to servers.',
         keywords: 'developer tools, online tools, json formatter, text compare, hash generator, base64',
         canonical: '/'
       }
@@ -145,10 +145,16 @@ const router = createRouter({
         canonical: '/feedback'
       }
     },
-    // Redirect old hash-based routes to clean URLs
+    // 404 page for unmatched routes
     {
       path: '/:pathMatch(.*)*',
-      redirect: '/tools/text-compare'
+      name: 'not-found',
+      component: () => import('../views/NotFoundView.vue'),
+      meta: {
+        title: 'Page Not Found | DEVYANTRA',
+        description: 'The page you are looking for does not exist.',
+        canonical: '/404'
+      }
     }
   ],
   scrollBehavior(to, from, savedPosition) {
@@ -160,24 +166,65 @@ const router = createRouter({
   }
 })
 
+// Helper to update or create a meta tag
+function updateMeta(attribute: string, name: string, content: string) {
+  let tag = document.querySelector(`meta[${attribute}="${name}"]`)
+  if (!tag) {
+    tag = document.createElement('meta')
+    tag.setAttribute(attribute, name)
+    document.head.appendChild(tag)
+  }
+  tag.setAttribute('content', content)
+}
+
 // Global navigation guard for SEO meta updates
 router.beforeEach((to, from, next) => {
+  const title = to.meta?.title as string | undefined
+  const description = to.meta?.description as string | undefined
+  const canonical = to.meta?.canonical as string | undefined
+
   // Update document title
-  if (to.meta?.title) {
-    document.title = to.meta.title as string
+  if (title) {
+    document.title = title
   }
 
   // Update meta description
-  const metaDescription = document.querySelector('meta[name="description"]')
-  if (metaDescription && to.meta?.description) {
-    metaDescription.setAttribute('content', to.meta.description as string)
+  if (description) {
+    updateMeta('name', 'description', description)
   }
 
   // Update canonical link
-  const canonicalLink = document.querySelector('link[rel="canonical"]')
-  if (canonicalLink && to.meta?.canonical) {
-    canonicalLink.setAttribute('href', `${window.location.origin}${to.meta.canonical}`)
+  if (canonical) {
+    let link = document.querySelector('link[rel="canonical"]')
+    if (!link) {
+      link = document.createElement('link')
+      link.setAttribute('rel', 'canonical')
+      document.head.appendChild(link)
+    }
+    link.setAttribute('href', `${window.location.origin}${canonical}`)
   }
+
+  // Update Open Graph tags
+  if (title) {
+    updateMeta('property', 'og:title', title)
+  }
+  if (description) {
+    updateMeta('property', 'og:description', description)
+  }
+  if (canonical) {
+    updateMeta('property', 'og:url', `${window.location.origin}${canonical}`)
+  }
+
+  // Update Twitter Card tags
+  if (title) {
+    updateMeta('name', 'twitter:title', title)
+  }
+  if (description) {
+    updateMeta('name', 'twitter:description', description)
+  }
+
+  // Ensure robots meta is present
+  updateMeta('name', 'robots', 'index,follow,max-snippet:-1,max-image-preview:large')
 
   next()
 })

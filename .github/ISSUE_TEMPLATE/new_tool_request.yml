@@ -1,0 +1,48 @@
+name: New Tool Request
+description: Suggest a new developer tool for DevYantra
+title: "[New Tool]: "
+labels: ["new-tool", "enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have an idea for a new developer tool? We'd love to hear it. Remember: all tools must process data entirely in the browser — no server-side processing.
+
+  - type: input
+    id: name
+    attributes:
+      label: Tool Name
+      description: A short name for the tool.
+      placeholder: "e.g., URL Encoder/Decoder"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What would this tool do? Who is it for?
+      placeholder: Describe the tool and its purpose...
+    validations:
+      required: true
+
+  - type: textarea
+    id: example
+    attributes:
+      label: Example Input / Output
+      description: Show a concrete example of what the tool would accept and produce.
+      placeholder: |
+        Input: ...
+        Output: ...
+
+  - type: textarea
+    id: references
+    attributes:
+      label: Similar Tools
+      description: Links to similar tools online for reference.
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Anything else — mockups, edge cases, related tools in DevYantra.

@@ -1,325 +1,621 @@
-# Contributing to DevYantra UI
+# Contributing to DevYantra
 
-Thank you for your interest in contributing to DevYantra UI! We welcome contributions from the community and are pleased to have you join us.
+First off, thank you for considering contributing to DevYantra! Every contribution matters -- whether it's fixing a typo, reporting a bug, suggesting a feature, or building an entirely new tool. This project thrives because of people like you.
 
-## 📋 Table of Contents
+DevYantra is a collection of browser-based developer tools where **all processing happens client-side**. No data ever leaves the user's browser. This privacy-first principle is non-negotiable and applies to every contribution.
 
-- [Code of Conduct](#code-of-conduct)
-- [Getting Started](#getting-started)
-- [How to Contribute](#how-to-contribute)
-- [Development Guidelines](#development-guidelines)
-- [Coding Standards](#coding-standards)
-- [Testing](#testing)
+---
+
+## Table of Contents
+
+- [Ways to Contribute](#ways-to-contribute)
+- [Development Setup](#development-setup)
+- [Project Architecture](#project-architecture)
+- [Adding a New Tool](#adding-a-new-tool)
+- [Branch Naming](#branch-naming)
+- [Commit Conventions](#commit-conventions)
 - [Pull Request Process](#pull-request-process)
-- [Issue Reporting](#issue-reporting)
+- [Code Style & Linting](#code-style--linting)
+- [Testing Guidelines](#testing-guidelines)
+- [Reporting Bugs](#reporting-bugs)
+- [Requesting Features](#requesting-features)
+- [Code of Conduct](#code-of-conduct)
 
-## Code of Conduct
+---
 
-This project and everyone participating in it is governed by our [Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code.
+## Ways to Contribute
 
-## Getting Started
+There is no contribution too small. Here are some ways you can help:
+
+- **Report bugs** -- Found something broken? [Open an issue](#reporting-bugs).
+- **Suggest features** -- Have an idea for a new tool or improvement? [Let us know](#requesting-features).
+- **Fix bugs** -- Browse [open issues](https://github.com/sg-open/devyantra-ui/issues) labeled `bug`.
+- **Build a new tool** -- This is the most common contribution. See the [detailed guide below](#adding-a-new-tool).
+- **Improve documentation** -- Clarify instructions, fix typos, add examples.
+- **Write tests** -- Increase coverage with unit or E2E tests.
+- **Improve accessibility** -- Help make tools usable for everyone.
+- **Optimize performance** -- Faster is always better.
+
+If this is your first time contributing to open source, look for issues labeled [`good first issue`](https://github.com/sg-open/devyantra-ui/issues?q=label%3A%22good+first+issue%22). We are happy to help you through the process.
+
+---
+
+## Development Setup
 
 ### Prerequisites
 
-- Node.js 20.19.0 or higher
-- npm or yarn package manager
-- Git
+| Tool | Version |
+|------|---------|
+| **Node.js** | `^20.19.0` or `>=22.12.0` (see `.nvmrc` for the pinned version) |
+| **npm** | Bundled with Node.js |
+| **Git** | Any recent version |
 
-### Development Setup
+### Getting Started
 
-1. **Fork the repository** on GitHub
+1. **Fork the repository** on GitHub:
+
+   ```
+   https://github.com/sg-open/devyantra-ui
+   ```
+
 2. **Clone your fork** locally:
+
    ```bash
-   git clone https://github.com/your-username/devyantra-ui.git
+   git clone https://github.com/<your-username>/devyantra-ui.git
    cd devyantra-ui
    ```
 
-3. **Add the upstream repository**:
+3. **Add the upstream remote** (for keeping your fork in sync):
+
    ```bash
    git remote add upstream https://github.com/sg-open/devyantra-ui.git
    ```
 
-4. **Install dependencies**:
+4. **Set the correct Node version** (if you use nvm):
+
+   ```bash
+   nvm use
+   ```
+
+5. **Install dependencies**:
+
    ```bash
    npm install
    ```
 
-5. **Start the development server**:
+6. **Start the dev server**:
+
    ```bash
    npm run dev
    ```
 
-6. **Open your browser** and navigate to `http://localhost:5173`
+   The app will be available at [http://localhost:5173](http://localhost:5173).
 
-## How to Contribute
+7. **Verify everything works**:
 
-### Types of Contributions
+   ```bash
+   npm run type-check   # TypeScript -- must pass with zero errors
+   npm run lint          # ESLint with auto-fix
+   npm run test:run      # Vitest unit tests (single run)
+   npm run build         # Production build
+   ```
 
-We welcome various types of contributions:
+### Available Scripts
 
-- 🐛 **Bug fixes**
-- ✨ **New features**
-- 📚 **Documentation improvements**
-- 🎨 **UI/UX enhancements**
-- ⚡ **Performance optimizations**
-- 🧪 **Test coverage improvements**
-- 🔧 **Developer experience improvements**
+| Command | What it does |
+|---------|-------------|
+| `npm run dev` | Start dev server at localhost:5173 |
+| `npm run build` | Run type-check, then production build |
+| `npm run type-check` | Run `vue-tsc --build` -- **must pass with zero errors** |
+| `npm run lint` | ESLint with auto-fix |
+| `npm run format` | Prettier formatting on `src/` |
+| `npm run test:run` | Vitest unit tests (single run, no watch) |
+| `npm run test` | Vitest unit tests (watch mode) |
+| `npm run test:e2e` | Playwright E2E tests (all browsers) |
+| `npm run test:e2e -- --project=chromium` | Playwright E2E tests (Chromium only) |
+| `npm run test:e2e -- tests/e2e/core.spec.ts` | Run a single E2E test file |
 
-### Before You Start
+---
 
-1. **Check existing issues** to see if your bug report or feature request already exists
-2. **Create an issue** for major changes to discuss the approach before implementation
-3. **Look for "good first issue"** labels if you're new to the project
+## Project Architecture
 
-## Development Guidelines
-
-### Branch Naming Convention
-
-- `feature/description` - New features
-- `fix/description` - Bug fixes
-- `docs/description` - Documentation changes
-- `refactor/description` - Code refactoring
-- `test/description` - Test improvements
-
-Example: `feature/add-xml-formatter` or `fix/diff-performance-issue`
-
-### Commit Message Format
-
-We follow [Conventional Commits](https://conventionalcommits.org/) specification:
-
-```
-type(scope): description
-
-[optional body]
-
-[optional footer]
-```
-
-**Types:**
-- `feat` - New features
-- `fix` - Bug fixes
-- `docs` - Documentation changes
-- `style` - Code style changes (formatting, etc.)
-- `refactor` - Code refactoring
-- `test` - Test additions or modifications
-- `chore` - Build process or auxiliary tool changes
-
-**Examples:**
-```bash
-feat(diff): add monaco editor integration
-fix(json): handle malformed json gracefully
-docs: update contributing guidelines
-test: add unit tests for hash generator
-```
-
-## Coding Standards
-
-### TypeScript & Vue.js
-
-- **TypeScript**: Use strict TypeScript with proper type definitions
-- **Vue 3**: Use Composition API with `<script setup>` syntax
-- **Reactivity**: Prefer `ref()` and `computed()` over reactive objects when possible
-
-### Code Style
-
-We use automated tools to maintain consistent code style:
-
-```bash
-# Format code
-npm run format
-
-# Lint and fix
-npm run lint
-
-# Type checking
-npm run type-check
-```
-
-### Component Guidelines
-
-1. **Single Responsibility**: Each component should have a single, well-defined purpose
-2. **Props Interface**: Always define TypeScript interfaces for props
-3. **Emits Declaration**: Declare all emitted events with proper types
-4. **Composables**: Extract reusable logic into composables
-5. **Error Handling**: Implement proper error boundaries and user feedback
-
-### File Organization
+DevYantra is a **single-page app** built with Vue 3 Composition API, TypeScript, and Vite.
 
 ```
 src/
-├── components/          # Reusable UI components
-│   ├── ui/             # Basic UI primitives
-│   └── tools/          # Tool-specific components
-├── composables/        # Reusable composition functions
-├── views/             # Page-level components
-├── stores/           # Pinia stores
-├── utils/           # Utility functions
-└── types/          # TypeScript type definitions
+├── assets/
+│   └── theme.css                # Design tokens & CSS custom properties
+├── components/
+│   ├── CompareText.vue          # Tool implementations (logic + UI)
+│   ├── FormatText.vue
+│   ├── HashGenerator.vue
+│   ├── Base64Tools.vue
+│   ├── JwtDecoder.vue
+│   ├── TimestampTools.vue
+│   ├── CharacterCount.vue
+│   └── __tests__/               # Unit tests for components
+├── composables/
+│   ├── useDiff.ts               # Diff computation (jsdiff + diff2html)
+│   ├── useDiffEngine.ts         # Low-level diff engine
+│   ├── useDiffNavigation.ts     # Diff navigation controls
+│   ├── useShareState.ts         # URL/localStorage state sharing (LZ-string)
+│   ├── useTextProcessor.ts      # Text formatting (JSON, SQL, CSS, XML)
+│   ├── useSEO.ts                # Meta tags & structured data
+│   └── __tests__/               # Unit tests for composables
+├── config/
+│   └── seo.ts                   # SEO configuration per tool
+├── router/
+│   └── index.ts                 # Route definitions (tools are child routes)
+├── stores/
+│   └── theme.ts                 # Pinia store for dark/light theme
+├── views/
+│   ├── HomeView.vue             # Tab navigation + <router-view>
+│   └── tools/
+│       ├── TextCompareView.vue  # Thin view wrappers (SEO + component import)
+│       ├── FormatTextView.vue
+│       └── ...
+├── main.ts                      # App entry, PrimeVue setup, DevyantraPreset
+└── App.vue                      # Root component
+tests/
+└── e2e/                         # Playwright E2E tests (all E2E tests go here)
 ```
 
-## Testing
+### Key Architectural Concepts
 
-### Running Tests
+- **All tools are child routes** of `HomeView.vue`. The home view renders a tab navigation bar and a `<router-view>` for the active tool. The root path `/` redirects to `/tools/text-compare`.
+
+- **Views are thin wrappers.** They import the tool component and call `useSEO()` on mount. All real logic lives in the component, not the view.
+
+- **Components are the tool implementations.** Each tool is a self-contained `.vue` file using `<script setup lang="ts">`.
+
+- **Composables hold shared logic.** Text processing, diff computation, state sharing, and SEO are extracted into reusable composables in `src/composables/`.
+
+- **PrimeVue 4** provides UI components, registered globally via a custom Aura-based preset (`DevyantraPreset` in `src/main.ts`).
+
+- **TailwindCSS 4** handles utility styling. Design tokens live in `src/assets/theme.css` (8px baseline grid, spacing scale, color tokens).
+
+- **Dark mode** uses the `.app-dark` class on `<html>`, managed by the Pinia theme store (`src/stores/theme.ts`), persisted to localStorage as `devyantra-theme`.
+
+- **Path alias:** `@` maps to `src/` (e.g., `import Foo from '@/components/Foo.vue'`).
+
+---
+
+## Adding a New Tool
+
+This is the number-one contributor activity. Follow these steps carefully -- each one is required.
+
+### Step 1: Create the component
+
+**File:** `src/components/NewTool.vue`
+
+This is where all the logic and UI lives. Use Vue 3 `<script setup lang="ts">`, PrimeVue components, and design tokens from `theme.css`.
+
+```vue
+<script setup lang="ts">
+import { ref, computed } from 'vue'
+
+// Your tool logic here
+// ALL processing must happen client-side -- no external API calls
+const input = ref('')
+const output = computed(() => {
+  // Transform input
+  return input.value
+})
+</script>
+
+<template>
+  <div class="tool-container">
+    <!-- Use PrimeVue components: InputText, Button, Textarea, Select, etc. -->
+    <!-- Use CSS custom properties from theme.css for spacing and colors -->
+  </div>
+</template>
+
+<style scoped>
+/* Use design tokens from src/assets/theme.css for consistency */
+/* Example: var(--surface-card), var(--text-color), var(--spacing-md) */
+</style>
+```
+
+Guidelines:
+- No `any` types without strong justification.
+- Handle edge cases: empty input, malformed data, very large input.
+- Provide clear user feedback for errors (use PrimeVue's Toast or inline messages).
+
+### Step 2: Create the view wrapper
+
+**File:** `src/views/tools/NewToolView.vue`
+
+This is a thin wrapper that imports the component and initializes SEO.
+
+```vue
+<script setup lang="ts">
+import { onMounted } from 'vue'
+import NewTool from '@/components/NewTool.vue'
+import { useSEO } from '@/composables/useSEO'
+
+onMounted(() => {
+  useSEO('new-tool') // Must match the key you add in seo.ts (Step 4)
+})
+</script>
+
+<template>
+  <NewTool />
+</template>
+```
+
+### Step 3: Add the route
+
+**File:** `src/router/index.ts`
+
+Add a new child route under the home route:
+
+```ts
+{
+  path: 'new-tool',
+  name: 'new-tool',
+  component: () => import('@/views/tools/NewToolView.vue'),
+  meta: {
+    title: 'New Tool - DevYantra',
+    description: 'A concise description of what the tool does.',
+    canonical: '/tools/new-tool'
+  }
+}
+```
+
+### Step 4: Add SEO configuration
+
+**File:** `src/config/seo.ts`
+
+Add an entry for your tool including:
+- Tool name and description
+- Key features list
+- FAQs (at least 2--3 question-answer pairs)
+- How-to steps for structured data
+
+### Step 5: Add to navigation
+
+**File:** `src/views/HomeView.vue`
+
+Add your tool to the tools array that renders the tab navigation bar. Match the existing pattern for label, icon, and route.
+
+### Step 6: Add to the footer
+
+**File:** `src/components/AppFooter.vue`
+
+Add a link to your tool in the appropriate category.
+
+### Step 7: Run quality gates
+
+Before opening a PR, all of these must pass:
 
 ```bash
-# Run all tests
-npm run test
-
-# Run tests with coverage
-npm run test:coverage
-
-# Run tests in watch mode
-npm test -- --watch
+npm run type-check    # Zero TypeScript errors -- non-negotiable
+npm run lint          # ESLint must pass
+npm run build         # Production build must succeed
+npm run test:run      # All unit tests must pass
 ```
 
-### Test Guidelines
+### Step 8: Write tests
 
-- Write unit tests for utility functions and composables
-- Test components with user interaction scenarios
-- Aim for >80% test coverage on new code
-- Use descriptive test names that explain the scenario
+- Add **unit tests** in `src/components/__tests__/` for any non-trivial logic.
+- Add **E2E tests** in `tests/e2e/` for user-facing workflows (navigation, input/output, edge cases).
 
-### Test Structure
+### Checklist for new tools
 
-```typescript
-describe('ComponentName', () => {
-  it('should handle user input correctly', () => {
-    // Test implementation
+Use this checklist to make sure you have not missed anything:
+
+- [ ] Component created in `src/components/`
+- [ ] View wrapper created in `src/views/tools/`
+- [ ] Route added in `src/router/index.ts` with meta (title, description, canonical)
+- [ ] SEO config added in `src/config/seo.ts`
+- [ ] Tab added in `src/views/HomeView.vue`
+- [ ] Footer link added in `src/components/AppFooter.vue`
+- [ ] All processing is client-side (no external API calls)
+- [ ] `npm run type-check` passes with zero errors
+- [ ] `npm run lint` passes
+- [ ] `npm run build` succeeds
+- [ ] Tests written and passing
+
+---
+
+## Branch Naming
+
+Create your branch from `main` using one of these prefixes:
+
+| Prefix | Use for |
+|--------|---------|
+| `feat/` | New features or tools |
+| `fix/` | Bug fixes |
+| `docs/` | Documentation changes |
+| `refactor/` | Code restructuring (no behavior change) |
+| `test/` | Adding or updating tests |
+
+Examples:
+
+```
+feat/url-encoder-tool
+fix/diff-view-scroll-sync
+docs/update-contributing-guide
+refactor/extract-format-composable
+test/add-hash-generator-e2e
+```
+
+---
+
+## Commit Conventions
+
+We follow the [Conventional Commits](https://www.conventionalcommits.org/) standard. Every commit message must use this format:
+
+```
+<type>(<optional scope>): <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+### Types
+
+| Type | When to use |
+|------|------------|
+| `feat` | A new feature or tool |
+| `fix` | A bug fix |
+| `docs` | Documentation only |
+| `style` | Formatting, whitespace, semicolons (no logic change) |
+| `refactor` | Code change that neither fixes a bug nor adds a feature |
+| `test` | Adding or correcting tests |
+| `chore` | Build process, dependencies, CI/CD, tooling |
+
+### Examples
+
+```
+feat(tools): add URL encoder/decoder tool
+fix(diff-view): resolve scroll sync issue in side-by-side mode
+docs: update development setup instructions
+refactor(composables): extract shared text processing logic
+test(hash-generator): add unit tests for SHA-256 output
+chore(deps): upgrade PrimeVue to 4.3.0
+```
+
+### Rules
+
+- Use the **imperative mood** in the description: "add feature", not "added feature" or "adds feature".
+- Keep the first line under **72 characters**.
+- Reference related issues in the footer: `Closes #42` or `Fixes #42`.
+
+---
+
+## Pull Request Process
+
+### 1. Sync your fork
+
+Before starting work, make sure your fork is up to date:
+
+```bash
+git fetch upstream
+git checkout main
+git merge upstream/main
+```
+
+### 2. Create a branch
+
+```bash
+git checkout -b feat/your-feature-name
+```
+
+### 3. Make your changes
+
+Follow the coding standards and architecture patterns described in this guide.
+
+### 4. Run all quality gates locally
+
+Every one of these must pass before you open a PR:
+
+```bash
+npm run type-check    # Zero TypeScript errors
+npm run lint          # ESLint passes
+npm run test:run      # All unit tests pass
+npm run build         # Production build succeeds
+```
+
+If any of these fail, fix the issues first. Do not open a PR with failing checks.
+
+### 5. Push and open a PR
+
+```bash
+git push origin feat/your-feature-name
+```
+
+Open a pull request against the `main` branch of [sg-open/devyantra-ui](https://github.com/sg-open/devyantra-ui).
+
+### PR description
+
+Your PR description should include:
+
+- **What changed**: A clear summary of the changes.
+- **Why**: The motivation or issue being addressed.
+- **Type of change**: Bug fix, new feature, refactor, docs, etc.
+- **How it was tested**: Steps you took to verify correctness.
+- **Screenshots**: Required for any UI changes.
+
+### PR checklist
+
+Before requesting review, confirm all of the following:
+
+- [ ] Description clearly explains the changes and motivation
+- [ ] Type of change is identified (bug fix / feature / refactor / docs)
+- [ ] Changes have been tested locally
+- [ ] `npm run type-check` passes with zero errors
+- [ ] `npm run lint` passes
+- [ ] `npm run build` succeeds
+- [ ] `npm run test:run` -- all unit tests pass
+- [ ] No breaking changes (or they are clearly documented in the PR)
+- [ ] Screenshots attached for any UI changes
+- [ ] All data processing is client-side (no external API calls)
+
+### What happens after you open a PR
+
+- A maintainer will review your PR, usually within a few days.
+- You may be asked to make changes -- this is normal and collaborative, not a criticism of your work.
+- Once approved, a maintainer will merge your PR.
+- If your PR goes stale (no activity for 2 weeks), it may be closed. You can always reopen it.
+
+---
+
+## Code Style & Linting
+
+### Automated tools
+
+The project uses three automated tools to enforce consistency:
+
+| Tool | Command | Purpose |
+|------|---------|---------|
+| **ESLint** | `npm run lint` | Code quality rules with auto-fix |
+| **Prettier** | `npm run format` | Code formatting on `src/` |
+| **vue-tsc** | `npm run type-check` | TypeScript type checking -- **must pass with zero errors** |
+
+Run all three before committing. If you are unsure, `npm run build` runs type-check as part of the build.
+
+### Style guidelines
+
+**Vue components:**
+- Always use `<script setup lang="ts">` with the Composition API. Do not use the Options API.
+- Define TypeScript interfaces for props and emitted events.
+- Extract reusable logic into composables.
+
+**TypeScript:**
+- No `any` types without a clear, documented justification.
+- Prefer `ref()` and `computed()` for reactive state.
+- Use proper type annotations for function parameters and return types.
+
+**CSS:**
+- Use design tokens from `src/assets/theme.css` (CSS custom properties) rather than hardcoded color or spacing values.
+- Use scoped styles in components (`<style scoped>`).
+- Follow the 8px baseline grid defined in the theme.
+
+**UI components:**
+- Use PrimeVue components for interactive elements (Button, InputText, Textarea, Select, Dialog, Toast, etc.).
+- This ensures visual consistency across all tools.
+
+**Imports:**
+- Always use the `@/` path alias for imports from `src/` (e.g., `import Foo from '@/components/Foo.vue'`).
+
+**Naming conventions:**
+
+| Kind | Convention | Example |
+|------|-----------|---------|
+| Components | PascalCase | `HashGenerator.vue` |
+| Views | PascalCase + View suffix | `TextCompareView.vue` |
+| Composables | camelCase with `use` prefix | `useDiff.ts` |
+| Stores | camelCase | `theme.ts` |
+| Test files | mirror source file + `.spec.ts` | `DiffView.spec.ts` |
+
+---
+
+## Testing Guidelines
+
+### Unit Tests (Vitest)
+
+- **Location:** Colocated `__tests__/` directories (e.g., `src/components/__tests__/`, `src/composables/__tests__/`).
+- **Run:** `npm run test:run` (single run) or `npm run test` (watch mode).
+- **What to test:** Logic, computed values, edge cases, error handling.
+
+```ts
+import { describe, it, expect } from 'vitest'
+
+describe('MyTool', () => {
+  it('should handle empty input gracefully', () => {
+    // Arrange
+    const input = ''
+
+    // Act
+    const result = processInput(input)
+
+    // Assert
+    expect(result).toBe('')
   })
 
-  it('should emit events when action occurs', () => {
-    // Test implementation
+  it('should correctly transform valid input', () => {
+    // ...
   })
 })
 ```
 
-## Pull Request Process
+### E2E Tests (Playwright)
 
-### Before Submitting
+- **Location:** `tests/e2e/` -- all E2E tests must go here (not in the root or an `e2e/` folder).
+- **Run:** `npm run test:e2e` (all browsers) or `npm run test:e2e -- --project=chromium` (Chromium only).
+- **What to test:** User-facing workflows -- navigation, input, output, error states.
+- **Artifacts:** Screenshots go in `temp/screenshots/`, reports in `temp/reports/` (both git-ignored).
 
-1. **Sync your fork** with the upstream repository:
-   ```bash
-   git fetch upstream
-   git checkout main
-   git merge upstream/main
-   ```
+### What to test for each type of contribution
 
-2. **Create a feature branch**:
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
+| Contribution | Minimum testing |
+|-------------|----------------|
+| New tool | Unit tests for core logic + E2E test for the primary workflow |
+| Bug fix | A test that reproduces the bug, then verifies the fix |
+| Refactor | Existing tests still pass; add tests if coverage gaps are found |
+| UI change | E2E test verifying the visual/behavioral change |
 
-3. **Make your changes** following the guidelines above
+### Edge cases to always consider
 
-4. **Test your changes**:
-   ```bash
-   npm run test
-   npm run type-check
-   npm run lint
-   npm run build
-   ```
+- Empty input
+- Very large input
+- Special characters and Unicode
+- Malformed or invalid data
+- Rapid repeated interactions (debouncing)
 
-5. **Commit your changes** with conventional commit messages
+---
 
-6. **Push to your fork**:
-   ```bash
-   git push origin feature/your-feature-name
-   ```
+## Reporting Bugs
 
-### Pull Request Checklist
+Found a bug? Please [open an issue](https://github.com/sg-open/devyantra-ui/issues/new) with the following information:
 
-- [ ] Code follows the project's style guidelines
-- [ ] Self-review of the code completed
-- [ ] Comments added for complex logic
-- [ ] Tests added/updated for new functionality
-- [ ] All tests pass (`npm run test`)
-- [ ] TypeScript compilation succeeds (`npm run type-check`)
-- [ ] Linting passes (`npm run lint`)
-- [ ] Build succeeds (`npm run build`)
-- [ ] Documentation updated if needed
+1. **Title:** A short, descriptive summary (e.g., "JSON formatter crashes on deeply nested objects").
+2. **Environment:** Browser name and version, OS, screen size (if relevant).
+3. **Steps to reproduce:** Numbered steps someone else can follow to see the bug.
+4. **Expected behavior:** What should happen.
+5. **Actual behavior:** What actually happens.
+6. **Screenshots or recordings:** If the bug is visual, a screenshot or screen recording helps enormously.
+7. **Console errors:** Open your browser's developer console and include any error messages.
 
-### Pull Request Template
+A good bug report saves everyone time. The more specific you are, the faster we can fix it.
 
-When creating a pull request, please include:
+---
 
-```markdown
-## Description
-Brief description of changes made.
+## Requesting Features
 
-## Type of Change
-- [ ] Bug fix
-- [ ] New feature
-- [ ] Documentation update
-- [ ] Performance improvement
-- [ ] Refactoring
+Have an idea? [Open an issue](https://github.com/sg-open/devyantra-ui/issues/new) with:
 
-## Testing
-- [ ] Unit tests added/updated
-- [ ] Manual testing completed
-- [ ] All tests pass
+1. **Title:** A concise name for the feature (e.g., "Add URL encoder/decoder tool").
+2. **Problem:** What problem does this solve? Who benefits?
+3. **Proposed solution:** How should it work? Include mockups, examples, or references to similar tools if you can.
+4. **Alternatives considered:** Other approaches you thought about and why you prefer this one.
 
-## Screenshots (if applicable)
-Add screenshots to demonstrate UI changes.
+Feature requests for **new developer tools** are especially welcome. Remember: all tools must process data entirely in the browser -- no server-side processing, no external API calls.
 
-## Checklist
-- [ ] Code follows style guidelines
-- [ ] Self-review completed
-- [ ] Tests added/updated
-- [ ] Documentation updated
-```
+For major features, please open an issue to discuss the approach **before** starting implementation. This helps avoid wasted effort and ensures the feature aligns with the project's direction.
 
-## Issue Reporting
+---
 
-### Bug Reports
+## Code of Conduct
 
-When reporting bugs, please include:
+We are committed to providing a welcoming and inclusive experience for everyone. By participating in this project, you agree to abide by our [Code of Conduct](https://github.com/sg-open/devyantra-ui/blob/main/CODE_OF_CONDUCT.md).
 
-1. **Clear title** describing the issue
-2. **Step-by-step reproduction** instructions
-3. **Expected behavior** vs actual behavior
-4. **Environment details** (OS, browser, Node.js version)
-5. **Screenshots/videos** if applicable
-6. **Console errors** or relevant logs
+In short: be kind, be respectful, assume good intentions, and help make this a community where everyone feels welcome.
 
-### Feature Requests
-
-For feature requests, please provide:
-
-1. **Problem statement** - What problem does this solve?
-2. **Proposed solution** - How would you like it to work?
-3. **Alternatives considered** - What other approaches did you consider?
-4. **Use cases** - When would this feature be useful?
-
-## Development Tips
-
-### Debugging
-
-- Use Vue DevTools browser extension
-- Enable source maps in development
-- Use `console.log` or debugger statements temporarily
-- Check browser console for TypeScript errors
-
-### Performance
-
-- Use Vue DevTools Profiler to identify performance bottlenecks
-- Implement virtual scrolling for large datasets
-- Use `computed()` for expensive calculations
-- Lazy load components when appropriate
-
-### Accessibility
-
-- Test with screen readers
-- Ensure proper keyboard navigation
-- Use semantic HTML elements
-- Provide alt text for images
-- Test color contrast ratios
+---
 
 ## Questions?
 
-If you have questions or need help, please:
+If something in this guide is unclear, or you need help with your contribution, feel free to:
 
-1. Check existing [GitHub Issues](https://github.com/sg-open/devyantra-ui/issues)
-2. Create a new issue with the "question" label
-3. Join our community discussions
+- [Open a discussion](https://github.com/sg-open/devyantra-ui/discussions) for general questions.
+- Comment on the relevant issue if your question is about a specific task.
+- Tag a maintainer in your PR if you are stuck on a review comment.
 
-Thank you for contributing to DevYantra UI! 🚀
+We would rather answer a question than have you struggle in silence. Do not hesitate to ask.
+
+---
+
+Thank you for helping make DevYantra better for developers everywhere.

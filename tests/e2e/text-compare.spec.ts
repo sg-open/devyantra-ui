@@ -17,11 +17,11 @@ test.describe('Text Comparison Tool', () => {
     await expect(page.locator('text=Original Text:')).toBeVisible()
     await expect(page.locator('text=Changed Text:')).toBeVisible()
 
-    // No "Compare" button — diff is live
-    await expect(page.locator('button', { hasText: /^compare$/i })).not.toBeVisible()
+    // Compare button should be visible (disabled when inputs are empty)
+    await expect(page.locator('.compare-btn')).toBeVisible()
   })
 
-  test('should show live diff when both textareas have content', async ({ page }) => {
+  test('should show diff when Compare is clicked', async ({ page }) => {
     const text1 = 'Hello World\nThis is a test\nLine 3'
     const text2 = 'Hello Universe\nThis is a test\nLine 4'
 
@@ -29,12 +29,15 @@ test.describe('Text Comparison Tool', () => {
     await page.locator('textarea').first().fill(text1)
     await page.locator('textarea').nth(1).fill(text2)
 
-    // Diff should appear automatically (live) — wait for vue-diff to render
+    // Click Compare
+    await page.locator('.compare-btn').click()
+
+    // Wait for diff2html to render
     const diffContainer = page.locator('.diff-renderer')
     await expect(diffContainer).toBeVisible({ timeout: 5000 })
 
-    // vue-diff renders rows with these classes for changes
-    const changedCells = page.locator('.vue-diff-cell-removed, .vue-diff-cell-added')
+    // diff2html renders rows with these classes for changes
+    const changedCells = page.locator('.d2h-del, .d2h-ins')
     await expect(changedCells.first()).toBeVisible({ timeout: 5000 })
   })
 
@@ -44,10 +47,11 @@ test.describe('Text Comparison Tool', () => {
     await page.locator('textarea').first().fill(sampleText)
     await page.locator('textarea').nth(1).fill(sampleText)
 
-    // Wait for diff to render
+    // Click Compare
+    await page.locator('.compare-btn').click()
     await page.waitForTimeout(500)
 
-    // Should show "no differences found" or "texts are identical"
+    // Should show "No differences found" or "texts are identical"
     const noDiffMessage = page.locator('text=No differences found')
       .or(page.locator('text=texts are identical'))
     await expect(noDiffMessage.first()).toBeVisible({ timeout: 5000 })
@@ -67,13 +71,16 @@ test.describe('Text Comparison Tool', () => {
     await page.locator('textarea').first().fill('Line 1\nLine 2\nLine 3')
     await page.locator('textarea').nth(1).fill('Line 1\nModified Line 2\nLine 3')
 
+    // Click Compare
+    await page.locator('.compare-btn').click()
+
     // Wait for diff to render
     const diffRenderer = page.locator('.diff-renderer')
     await expect(diffRenderer).toBeVisible({ timeout: 5000 })
 
-    // Should have split and unified buttons in the options panel
-    const splitButton = page.locator('.diff-option-button', { hasText: /split/i })
-    const unifiedButton = page.locator('.diff-option-button', { hasText: /unified/i })
+    // Should have split and unified buttons (segmented control)
+    const splitButton = page.locator('.diff-segment', { hasText: /split/i })
+    const unifiedButton = page.locator('.diff-segment', { hasText: /unified/i })
 
     await expect(splitButton).toBeVisible()
     await expect(unifiedButton).toBeVisible()
@@ -96,13 +103,16 @@ test.describe('Text Comparison Tool', () => {
     await page.locator('textarea').first().fill('Line 1\nLine 2\nLine 3')
     await page.locator('textarea').nth(1).fill('Line 1\nModified Line 2\nLine 3\nLine 4')
 
-    // Wait for stats panel to appear
-    const statsPanel = page.locator('.diff-stats-panel')
-    await expect(statsPanel).toBeVisible({ timeout: 5000 })
+    // Click Compare
+    await page.locator('.compare-btn').click()
 
-    // Check for stat labels
-    await expect(page.locator('.diff-stats-label', { hasText: 'Added:' })).toBeVisible()
-    await expect(page.locator('.diff-stats-label', { hasText: 'Removed:' })).toBeVisible()
+    // Wait for stats bar to appear
+    const statsBar = page.locator('.diff-stats-bar')
+    await expect(statsBar).toBeVisible({ timeout: 5000 })
+
+    // Check for stat chips (added and modified — no removals for this input)
+    await expect(page.locator('.diff-stat-chip--added')).toBeVisible()
+    await expect(page.locator('.diff-stat-chip--modified')).toBeVisible()
   })
 
   test('should handle file upload via hidden input', async ({ page }) => {
@@ -128,7 +138,8 @@ test.describe('Text Comparison Tool', () => {
       await page.waitForTimeout(500)
       await expect(page.locator('textarea').nth(1)).toHaveValue('File 1 content\nModified Line 2\nLine 3')
 
-      // Diff should appear automatically
+      // Click Compare then diff should appear
+      await page.locator('.compare-btn').click()
       await expect(page.locator('.diff-renderer')).toBeVisible({ timeout: 5000 })
     } finally {
       // Cleanup temp files
@@ -151,42 +162,47 @@ test.describe('Text Comparison Tool', () => {
     await page.locator('textarea').first().fill(text1)
     await page.locator('textarea').nth(1).fill(text2)
 
+    // Click Compare
+    await page.locator('.compare-btn').click()
+
     // Wait for diff and navigation to be ready
     const diffRenderer = page.locator('.diff-renderer')
     await expect(diffRenderer).toBeVisible({ timeout: 5000 })
 
     // Navigation controls should appear when there are changes
-    const navIndicator = page.locator('.diff-nav-indicator')
-    // Wait for navigation to scan (may need the MutationObserver to fire)
+    const navCounter = page.locator('.diff-nav-counter')
+    // Wait for navigation to scan (MutationObserver needs to fire)
     await page.waitForTimeout(1000)
 
-    if (await navIndicator.isVisible()) {
-      // Should show "X of Y changes"
-      const navText = await navIndicator.textContent()
-      expect(navText).toContain('of')
-      expect(navText).toContain('changes')
+    if (await navCounter.isVisible()) {
+      // Should show something like "1/3"
+      const navText = await navCounter.textContent()
+      expect(navText).toContain('/')
 
       // Click next change button
-      const nextButton = page.locator('.diff-nav-button').last()
+      const nextButton = page.locator('.diff-nav-btn').last()
       await nextButton.click()
       await page.waitForTimeout(300)
     }
   })
 
-  test('should have export buttons (Copy Diff and .patch)', async ({ page }) => {
+  test('should have export buttons (Copy and Export)', async ({ page }) => {
     await page.locator('textarea').first().fill('original')
     await page.locator('textarea').nth(1).fill('modified')
+
+    // Click Compare
+    await page.locator('.compare-btn').click()
 
     // Wait for diff to render
     await expect(page.locator('.diff-renderer')).toBeVisible({ timeout: 5000 })
 
-    // Check for copy diff button
-    const copyDiffButton = page.locator('.diff-option-button', { hasText: /copy diff/i })
-    await expect(copyDiffButton).toBeVisible()
+    // Check for copy button
+    const copyButton = page.locator('.diff-action-btn', { hasText: /copy/i })
+    await expect(copyButton).toBeVisible()
 
-    // Check for .patch button
-    const patchButton = page.locator('.diff-option-button', { hasText: /\.patch/i })
-    await expect(patchButton).toBeVisible()
+    // Check for export button
+    const exportButton = page.locator('.diff-action-btn', { hasText: /export/i })
+    await expect(exportButton).toBeVisible()
   })
 
   test('should swap texts when swap button is clicked', async ({ page }) => {
@@ -243,7 +259,8 @@ test.describe('Text Comparison Tool', () => {
     await textareas.first().fill('mobile test 1')
     await textareas.nth(1).fill('mobile test 2')
 
-    // Diff should render on mobile too
+    // Click Compare then diff should render on mobile too
+    await page.locator('.compare-btn').click()
     await expect(page.locator('.diff-renderer')).toBeVisible({ timeout: 5000 })
   })
 
@@ -251,19 +268,24 @@ test.describe('Text Comparison Tool', () => {
     await page.locator('textarea').first().fill('Hello World')
     await page.locator('textarea').nth(1).fill('hello world')
 
+    // Click Compare
+    await page.locator('.compare-btn').click()
+
     // Wait for diff to render
     await expect(page.locator('.diff-renderer')).toBeVisible({ timeout: 5000 })
 
-    // Find the ignore case toggle
-    const ignoreCaseToggle = page.locator('.diff-toggle', { hasText: /ignore case/i })
-    await expect(ignoreCaseToggle).toBeVisible()
+    // Find the ignore case toggle (label says "Case")
+    const caseToggle = page.locator('.diff-toggle', { hasText: /case/i })
+    await expect(caseToggle).toBeVisible()
 
     // Click it
-    await ignoreCaseToggle.locator('input[type="checkbox"]').click()
+    await caseToggle.locator('input[type="checkbox"]').click()
     await page.waitForTimeout(500)
 
-    // Diff should still be visible
-    await expect(page.locator('.diff-renderer')).toBeVisible()
+    // After ignoring case, texts become identical — diff renderer hides or shows "No differences"
+    // The diff-renderer container still exists but may show empty state
+    const diffRenderer = page.locator('.diff-renderer')
+    await expect(diffRenderer).toBeVisible()
   })
 
   test('should have share button', async ({ page }) => {

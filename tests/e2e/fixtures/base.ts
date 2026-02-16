@@ -14,7 +14,7 @@ export interface DevYantraPageObjects {
 
   /** Theme testing */
   toggleTheme(): Promise<void>
-  getCurrentTheme(): Promise<'light' | 'dark'>
+  getCurrentTheme(): Promise<string>
 }
 
 class DevYantraPage implements DevYantraPageObjects {
@@ -23,13 +23,14 @@ class DevYantraPage implements DevYantraPageObjects {
   async navigateToTool(toolName: string): Promise<void> {
     // Map tool names to routes
     const toolRoutes: Record<string, string> = {
-      'text-compare': '/',
-      'format-text': '/format-text',
-      'hash-generator': '/hash-generator',
-      'base64-tools': '/base64-tools',
-      'timestamp-converter': '/timestamp-converter',
-      'character-count': '/character-count',
-      'jwt-decoder': '/jwt-decoder'
+      'text-compare': '/tools/text-compare',
+      'format-text': '/tools/format-text',
+      'hash-generator': '/tools/hash-generator',
+      'base64-tools': '/tools/base64-tools',
+      'timestamp-converter': '/tools/timestamp-converter',
+      'character-count': '/tools/character-count',
+      'jwt-decoder': '/tools/jwt-decoder',
+      'delimiter': '/tools/delimiter'
     }
 
     const route = toolRoutes[toolName]
@@ -95,12 +96,10 @@ class DevYantraPage implements DevYantraPageObjects {
     await this.page.waitForTimeout(300)
   }
 
-  async getCurrentTheme(): Promise<'light' | 'dark'> {
-    const isDark = await this.page.evaluate(() => {
-      return document.documentElement.classList.contains('app-dark') ||
-             document.documentElement.getAttribute('data-theme') === 'dark'
+  async getCurrentTheme(): Promise<string> {
+    return await this.page.evaluate(() => {
+      return document.documentElement.getAttribute('data-theme') || 'light'
     })
-    return isDark ? 'dark' : 'light'
   }
 }
 

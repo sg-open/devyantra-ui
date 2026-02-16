@@ -1,272 +1,132 @@
 <template>
   <footer
-    class="footer surface-1"
+    class="footer"
     role="contentinfo"
     aria-label="Site footer"
   >
     <div class="footer-container">
-      <!-- Left: Brand mark and credit -->
-      <div class="footer-brand">
-        <div class="brand-mark" aria-hidden="true">
-          <svg width="20" height="20" viewBox="0 0 100 100" class="footer-logo">
-            <!-- Outer Protection Circle -->
-            <circle cx="50" cy="50" r="42" stroke="var(--logo-primary)" stroke-width="1.5" fill="none" opacity="0.6"/>
-
-            <!-- Inner Sacred Hexagon (represents balance) -->
-            <path d="M50,15 L72,30 L72,55 L50,70 L28,55 L28,30 Z" stroke="var(--logo-primary)" stroke-width="1" fill="var(--logo-primary)" opacity="0.08"/>
-
-            <!-- Central Yantra Star -->
-            <g transform="translate(50,50)">
-              <!-- Main 6-pointed star (Shatkona - represents perfect balance) -->
-              <path d="M0,-18 L12,9 L-12,9 Z" fill="var(--logo-primary)" opacity="0.7"/>
-              <path d="M0,18 L-12,-9 L12,-9 Z" fill="var(--logo-primary)" opacity="0.7"/>
-
-              <!-- Inner sacred circle -->
-              <circle cx="0" cy="0" r="8" fill="none" stroke="var(--logo-accent)" stroke-width="1.5" opacity="0.6"/>
-
-              <!-- Central bindu (source point) -->
-              <circle cx="0" cy="0" r="2" fill="var(--logo-accent)" opacity="0.8"/>
-
-              <!-- Tech nodes at cardinal points -->
-              <g opacity="0.5">
-                <rect x="-0.5" y="-15" width="1" height="3" fill="var(--logo-accent)"/>
-                <rect x="-0.5" y="12" width="1" height="3" fill="var(--logo-accent)"/>
-                <rect x="12" y="-0.5" width="3" height="1" fill="var(--logo-accent)"/>
-                <rect x="-15" y="-0.5" width="3" height="1" fill="var(--logo-accent)"/>
-              </g>
-            </g>
-
-            <!-- Corner Code Brackets -->
-            <g opacity="0.4" stroke="var(--logo-primary)" stroke-width="1" fill="none">
-              <path d="M20,20 L15,20 L15,25"/>
-              <path d="M80,20 L85,20 L85,25"/>
-              <path d="M20,80 L15,80 L15,75"/>
-              <path d="M80,80 L85,80 L85,75"/>
-            </g>
-          </svg>
+      <div class="footer-grid">
+        <div class="footer-section">
+          <h2 class="footer-heading">Text Tools</h2>
+          <nav aria-label="Text tools">
+            <router-link to="/tools/text-compare">Text Compare</router-link>
+            <router-link to="/tools/format-text">Code Formatter</router-link>
+            <router-link to="/tools/delimiter">Delimiter Tool</router-link>
+            <router-link to="/tools/character-count">Character Counter</router-link>
+          </nav>
         </div>
-        <span class="footer-credit">Made with <span class="heart-icon" aria-label="love">❤️</span> for all devs</span>
+        <div class="footer-section">
+          <h2 class="footer-heading">Encoding & Security</h2>
+          <nav aria-label="Encoding and security tools">
+            <router-link to="/tools/hash-generator">Hash Generator</router-link>
+            <router-link to="/tools/base64-tools">Base64 Tools</router-link>
+            <router-link to="/tools/jwt-decoder">JWT Decoder</router-link>
+            <router-link to="/tools/timestamp-converter">Timestamp Converter</router-link>
+          </nav>
+        </div>
+        <div class="footer-section">
+          <h2 class="footer-heading">DevYantra</h2>
+          <nav aria-label="Site links">
+            <router-link to="/feedback">Feedback</router-link>
+            <a href="https://github.com/sg-open/devyantra-ui" target="_blank" rel="noopener">GitHub</a>
+          </nav>
+          <p class="footer-privacy">All tools process data locally in your browser. Nothing is sent to any server.</p>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span class="footer-credit">DevYantra &mdash; Free developer tools</span>
       </div>
     </div>
   </footer>
 </template>
 
 <script setup lang="ts">
-// Simple footer component with no navigation handlers needed
 </script>
 
 <style scoped>
-/* ===== FOOTER STRUCTURE - BASELINE GRID ALIGNED ===== */
 .footer {
   background: var(--dt-surface-1);
   border-top: 1px solid var(--dt-border);
-  padding: var(--space-md) 0; /* 12px = 1.5 baseline */
   margin-top: auto;
-  transition: all var(--transition-normal);
+  padding: var(--space-xl, 2rem) 0 var(--space-md, 0.75rem);
 }
 
 .footer-container {
-  max-width: var(--container-max-width); /* 1200px */
+  max-width: var(--container-max-width);
   margin: 0 auto;
-  padding: 0 var(--space-md); /* 12px = 1.5 baseline */
+  padding: 0 var(--space-lg);
+}
+
+.footer-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-xl, 2rem);
+  margin-bottom: var(--space-lg, 1rem);
+}
+
+.footer-heading {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--dt-text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 var(--space-sm, 0.5rem);
+}
+
+.footer-section nav {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-md); /* 12px = 1.5 baseline */
+  flex-direction: column;
+  gap: 4px;
 }
 
-/* ===== BRAND SECTION ===== */
-.footer-brand {
-  display: flex;
-  align-items: center;
-  gap: var(--space-md); /* 12px = 1.5 baseline */
-  flex-shrink: 0;
+.footer-section nav a {
+  font-size: var(--text-sm, 0.85rem);
+  color: var(--dt-text-secondary);
+  text-decoration: none;
+  transition: color var(--transition-fast, 150ms);
+  line-height: 1.6;
 }
 
-.brand-mark {
-  display: flex;
-  align-items: center;
-  opacity: 0.8;
-  transition: opacity var(--transition-normal);
+.footer-section nav a:hover {
+  color: var(--dt-brand);
 }
 
-.footer-brand:hover .brand-mark {
-  opacity: 1;
+.footer-privacy {
+  margin-top: var(--space-sm, 0.5rem);
+  font-size: 0.75rem;
+  color: var(--dt-text-secondary);
+  opacity: 0.7;
+  line-height: 1.4;
 }
 
-.footer-logo {
-  width: 20px; /* 2.5 baseline */
-  height: 20px; /* 2.5 baseline */
-  flex-shrink: 0;
+.footer-bottom {
+  border-top: 1px solid var(--dt-border);
+  padding-top: var(--space-sm, 0.5rem);
+  text-align: center;
 }
 
 .footer-credit {
-  font-size: var(--text-sm); /* 14px */
-  line-height: var(--leading-normal); /* 24px = 3 baseline */
-  letter-spacing: var(--letter-spacing-base);
+  font-size: var(--text-sm, 0.85rem);
   color: var(--dt-text-secondary);
-  font-weight: var(--font-weight-normal);
-  white-space: nowrap;
-  transition: color var(--transition-normal);
+  font-weight: 400;
 }
 
-.heart-icon {
-  color: var(--dt-danger);
-  font-size: var(--text-sm); /* 14px */
-  display: inline-block;
-  animation: heartbeat 2s ease-in-out infinite;
-}
-
-@keyframes heartbeat {
-  0%, 50%, 100% {
-    transform: scale(1);
-  }
-  25% {
-    transform: scale(1.1);
-  }
-}
-
-/* Disable heartbeat animation for reduced motion */
-@media (prefers-reduced-motion: reduce) {
-  .heart-icon {
-    animation: none;
-  }
-}
-
-/* ===== NAVIGATION SECTION ===== */
-.footer-nav {
-  display: flex;
-  align-items: center;
-  gap: var(--space-lg); /* 16px = 2 baseline */
-  flex-shrink: 0;
-}
-
-.footer-link {
-  font-size: var(--text-sm); /* 14px */
-  line-height: var(--leading-normal); /* 24px = 3 baseline */
-  letter-spacing: var(--letter-spacing-base);
-  color: var(--dt-text-secondary);
-  text-decoration: none;
-  font-weight: var(--font-weight-semibold);
-  padding: var(--space-sm) var(--space-md); /* 8px 12px = 1 baseline x 1.5 baseline */
-  border-radius: var(--radius-sm);
-  position: relative;
-  transition: all var(--transition-normal);
-  white-space: nowrap;
-}
-
-.footer-link:hover {
-  color: var(--dt-text-primary);
-  text-decoration: underline;
-  text-decoration-thickness: 1px;
-  text-underline-offset: var(--space-xs); /* 4px = 0.5 baseline */
-}
-
-.footer-link:focus {
-  outline: none;
-  box-shadow: var(--focus-ring);
-  color: var(--dt-text-primary);
-}
-
-.footer-link:focus:not(:focus-visible) {
-  box-shadow: none;
-}
-
-.footer-link:focus-visible {
-  box-shadow: var(--focus-ring);
-  color: var(--dt-text-primary);
-}
-
-/* ===== RESPONSIVE DESIGN ===== */
 @media (max-width: 640px) {
-  .footer {
-    padding: var(--space-lg) 0; /* 16px = 2 baseline */
-  }
-
-  .footer-container {
-    flex-direction: column;
-    gap: var(--space-md); /* 12px = 1.5 baseline */
-    text-align: center;
-  }
-
-  .footer-brand {
-    order: 1;
-  }
-
-  .footer-nav {
-    order: 2;
-    gap: var(--space-md); /* 12px = 1.5 baseline */
-  }
-
-  .footer-credit {
-    font-size: var(--text-sm); /* 14px */
-  }
-
-  .footer-link {
-    font-size: var(--text-sm); /* 14px */
-    padding: var(--space-xs) var(--space-sm); /* 4px 8px */
+  .footer-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-lg, 1rem);
   }
 }
 
-@media (max-width: 480px) {
-  .footer-container {
-    padding: 0 var(--space-lg); /* 16px = 2 baseline */
-  }
-
-  .footer-nav {
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: var(--space-sm); /* 8px = 1 baseline */
+@media (max-width: 400px) {
+  .footer-grid {
+    grid-template-columns: 1fr;
   }
 }
 
-/* ===== ACCESSIBILITY ENHANCEMENTS ===== */
 @media (prefers-reduced-motion: reduce) {
-  .footer,
-  .footer-link,
-  .brand-mark,
-  .footer-credit {
+  .footer {
     transition: none;
-  }
-}
-
-/* High contrast mode support */
-@media (prefers-contrast: high) {
-  .footer {
-    border-top-width: 2px;
-  }
-
-  .footer-link:focus {
-    outline: 2px solid var(--dt-brand);
-    outline-offset: 2px;
-  }
-}
-
-/* Ensure minimum touch target size - 44px = 5.5 baseline */
-@media (pointer: coarse) {
-  .footer-link {
-    min-height: 44px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-}
-
-/* ===== PRINT STYLES ===== */
-@media print {
-  .footer {
-    border-top: 1px solid #000;
-    background: white !important;
-    color: black !important;
-  }
-
-  .footer-credit,
-  .footer-link {
-    color: black !important;
-  }
-
-  .footer-nav {
-    display: none;
   }
 }
 </style>

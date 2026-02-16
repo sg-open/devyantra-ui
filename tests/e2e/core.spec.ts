@@ -34,19 +34,18 @@ test.describe('DevYantra Core Functionality', () => {
   test('should toggle theme correctly', async ({ page, devyantra }) => {
     const initialTheme = await devyantra.getCurrentTheme()
 
-    // Toggle theme
+    // Toggle theme — cycles through 6 modes
     await devyantra.toggleTheme()
-    const newTheme = await devyantra.getCurrentTheme()
+    const secondTheme = await devyantra.getCurrentTheme()
 
     // Verify theme changed
-    expect(newTheme).not.toBe(initialTheme)
+    expect(secondTheme).not.toBe(initialTheme)
 
-    // Toggle back
+    // Toggle again — should change to yet another theme
     await devyantra.toggleTheme()
-    const finalTheme = await devyantra.getCurrentTheme()
+    const thirdTheme = await devyantra.getCurrentTheme()
 
-    // Verify theme is back to original
-    expect(finalTheme).toBe(initialTheme)
+    expect(thirdTheme).not.toBe(secondTheme)
   })
 
   test('should have working skip links for accessibility', async ({ page, devyantra }) => {

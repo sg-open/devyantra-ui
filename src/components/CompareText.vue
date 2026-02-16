@@ -1,17 +1,9 @@
 <template>
-  <Card class="compare-text">
-    <template #title>
-      <div class="card-header">
-        <i class="pi pi-sync text-2xl mr-2"></i>
-        Text Compare
-      </div>
-    </template>
-
-    <template #subtitle>
-      Spot the differences between your text, JSON, or SQL
-    </template>
-
-    <template #content>
+  <div class="tool-panel compare-text">
+    <header class="tool-hero">
+      <h1>Text Compare Online</h1>
+      <p>Compare two texts side by side and instantly see every difference. Supports JSON, SQL, and plain text with syntax-aware formatting.</p>
+    </header>
       <div class="comparison-container">
         <!-- Left Text Area -->
         <div class="text-input-section">
@@ -23,16 +15,10 @@
               >
                 {{ text1Type.toUpperCase() }}
               </div>
-              <Button
-                @click="formatText1"
-                :disabled="!text1Content.trim() || isFormatting1"
-                size="small"
-                variant="outlined"
-                class="format-btn"
-              >
+              <button class="p-button p-button-sm p-button-outlined format-btn" :disabled="!text1Content.trim() || isFormatting1" @click="formatText1">
                 <i class="pi pi-refresh" :class="{ 'pi-spin': isFormatting1 }"></i>
                 {{ isFormatting1 ? 'Formatting...' : 'Format' }}
-              </Button>
+              </button>
             </div>
           </div>
 
@@ -41,21 +27,12 @@
             <div class="suggestion-content">
               <i class="pi pi-lightbulb"></i>
               <span>{{ smartSuggestion1.message }}</span>
-              <Button
-                @click="applySuggestion1"
-                size="small"
-                class="use-suggestion-btn"
-              >
+              <button class="p-button p-button-sm use-suggestion-btn" @click="applySuggestion1">
                 Apply
-              </Button>
-              <Button
-                @click="smartSuggestion1 = null"
-                size="small"
-                variant="text"
-                class="dismiss-btn"
-              >
+              </button>
+              <button class="p-button p-button-sm p-button-text dismiss-btn" @click="smartSuggestion1 = null">
                 <i class="pi pi-times"></i>
-              </Button>
+              </button>
             </div>
           </div>
 
@@ -66,14 +43,14 @@
             @dragleave="isDragging1 = false"
             @drop.prevent="handleDrop($event, 'left')"
           >
-            <Textarea
+            <textarea
               v-model="text1Content"
               placeholder="Paste your original text here, or drag & drop a file..."
               rows="12"
-              class="text-area enhanced-textarea"
+              class="p-inputtextarea text-area enhanced-textarea"
               @input="onText1Input"
               @paste="onText1Paste"
-            />
+            ></textarea>
             <div v-if="isDragging1" class="drop-overlay">
               <i class="pi pi-upload"></i>
               <span>Drop file here</span>
@@ -89,50 +66,26 @@
 
           <!-- Quick Actions for Left -->
           <div class="quick-actions left-actions">
-            <Button
-              @click="fileInput1?.click()"
-              size="small"
-              variant="outlined"
-              class="quick-btn upload-btn"
-              v-tooltip="'Upload file'"
-            >
+            <button class="p-button p-button-sm p-button-outlined quick-btn upload-btn" @click="fileInput1?.click()" v-tooltip="'Upload file'">
               <i class="pi pi-upload"></i>
               Upload
-            </Button>
-            <Button
-              @click="copyText1"
-              :disabled="!text1Content.trim()"
-              size="small"
-              variant="outlined"
-              class="quick-btn copy-btn"
-              v-tooltip="'Copy (Cmd+Shift+1)'"
-            >
+            </button>
+            <button class="p-button p-button-sm p-button-outlined quick-btn copy-btn" :disabled="!text1Content.trim()" @click="copyText1" v-tooltip="'Copy (Cmd+Shift+1)'">
               <i class="pi pi-copy"></i>
               Copy
-            </Button>
-            <Button
-              @click="clearText1"
-              :disabled="!text1Content.trim()"
-              size="small"
-              variant="outlined"
-              severity="secondary"
-              class="quick-btn clear-btn"
-              v-tooltip="'Clear (Cmd+Shift+R)'"
-            >
+            </button>
+            <button class="p-button p-button-sm p-button-outlined p-button-secondary quick-btn clear-btn" :disabled="!text1Content.trim()" @click="clearText1" v-tooltip="'Clear (Cmd+Shift+R)'">
               <i class="pi pi-trash"></i>
               Clear
-            </Button>
-            <Button
-              @click="swapTexts"
-              :disabled="!text1Content.trim() && !text2Content.trim()"
-              size="small"
-              variant="outlined"
-              class="quick-btn swap-btn"
-              v-tooltip="'Swap Sides (Cmd+Shift+S)'"
-            >
-              <i class="pi pi-refresh"></i>
+            </button>
+            <button class="p-button p-button-sm p-button-outlined quick-btn sample-btn" @click="loadSampleData" v-tooltip="'Load Sample (Cmd+Shift+L)'">
+              <i class="pi pi-file"></i>
+              Sample
+            </button>
+            <button class="p-button p-button-sm p-button-outlined quick-btn swap-btn" :disabled="!text1Content.trim() && !text2Content.trim()" @click="swapTexts" v-tooltip="'Swap Sides (Cmd+Shift+S)'">
+              <i class="pi pi-arrow-right-arrow-left"></i>
               Swap
-            </Button>
+            </button>
           </div>
         </div>
 
@@ -146,16 +99,10 @@
               >
                 {{ text2Type.toUpperCase() }}
               </div>
-              <Button
-                @click="formatText2"
-                :disabled="!text2Content.trim() || isFormatting2"
-                size="small"
-                variant="outlined"
-                class="format-btn"
-              >
+              <button class="p-button p-button-sm p-button-outlined format-btn" :disabled="!text2Content.trim() || isFormatting2" @click="formatText2">
                 <i class="pi pi-refresh" :class="{ 'pi-spin': isFormatting2 }"></i>
                 {{ isFormatting2 ? 'Formatting...' : 'Format' }}
-              </Button>
+              </button>
             </div>
           </div>
 
@@ -164,21 +111,12 @@
             <div class="suggestion-content">
               <i class="pi pi-lightbulb"></i>
               <span>{{ smartSuggestion2.message }}</span>
-              <Button
-                @click="applySuggestion2"
-                size="small"
-                class="use-suggestion-btn"
-              >
+              <button class="p-button p-button-sm use-suggestion-btn" @click="applySuggestion2">
                 Apply
-              </Button>
-              <Button
-                @click="smartSuggestion2 = null"
-                size="small"
-                variant="text"
-                class="dismiss-btn"
-              >
+              </button>
+              <button class="p-button p-button-sm p-button-text dismiss-btn" @click="smartSuggestion2 = null">
                 <i class="pi pi-times"></i>
-              </Button>
+              </button>
             </div>
           </div>
 
@@ -189,14 +127,14 @@
             @dragleave="isDragging2 = false"
             @drop.prevent="handleDrop($event, 'right')"
           >
-            <Textarea
+            <textarea
               v-model="text2Content"
               placeholder="Paste your changed text here, or drag & drop a file..."
               rows="12"
-              class="text-area enhanced-textarea"
+              class="p-inputtextarea text-area enhanced-textarea"
               @input="onText2Input"
               @paste="onText2Paste"
-            />
+            ></textarea>
             <div v-if="isDragging2" class="drop-overlay">
               <i class="pi pi-upload"></i>
               <span>Drop file here</span>
@@ -212,102 +150,46 @@
 
           <!-- Quick Actions for Right -->
           <div class="quick-actions right-actions">
-            <Button
-              @click="fileInput2?.click()"
-              size="small"
-              variant="outlined"
-              class="quick-btn upload-btn"
-              v-tooltip="'Upload file'"
-            >
+            <button class="p-button p-button-sm p-button-outlined quick-btn upload-btn" @click="fileInput2?.click()" v-tooltip="'Upload file'">
               <i class="pi pi-upload"></i>
               Upload
-            </Button>
-            <Button
-              @click="copyText2"
-              :disabled="!text2Content.trim()"
-              size="small"
-              variant="outlined"
-              class="quick-btn copy-btn"
-              v-tooltip="'Copy (Cmd+Shift+2)'"
-            >
+            </button>
+            <button class="p-button p-button-sm p-button-outlined quick-btn copy-btn" :disabled="!text2Content.trim()" @click="copyText2" v-tooltip="'Copy (Cmd+Shift+2)'">
               <i class="pi pi-copy"></i>
               Copy
-            </Button>
-            <Button
-              @click="clearText2"
-              :disabled="!text2Content.trim()"
-              size="small"
-              variant="outlined"
-              severity="secondary"
-              class="quick-btn clear-btn"
-              v-tooltip="'Clear (Cmd+Shift+E)'"
-            >
+            </button>
+            <button class="p-button p-button-sm p-button-outlined p-button-secondary quick-btn clear-btn" :disabled="!text2Content.trim()" @click="clearText2" v-tooltip="'Clear (Cmd+Shift+E)'">
               <i class="pi pi-trash"></i>
               Clear
-            </Button>
-            <Button
-              @click="loadSampleData"
-              size="small"
-              variant="outlined"
-              class="quick-btn sample-btn"
-              v-tooltip="'Load Sample (Cmd+Shift+L)'"
-            >
-              <i class="pi pi-file"></i>
-              Sample
-            </Button>
-            <Button
-              @click="onShareClick"
-              :disabled="!text1Content.trim() && !text2Content.trim()"
-              size="small"
-              variant="outlined"
-              class="quick-btn share-btn"
-              v-tooltip="'Share comparison'"
-            >
+            </button>
+            <button class="p-button p-button-sm p-button-outlined quick-btn share-btn" :disabled="!text1Content.trim() && !text2Content.trim()" @click="onShareClick" v-tooltip="'Share comparison'">
               <i class="pi pi-share-alt"></i>
               Share
-            </Button>
-            <Button
-              @click="clearAll"
-              :disabled="!text1Content.trim() && !text2Content.trim()"
-              size="small"
-              variant="outlined"
-              severity="secondary"
-              class="quick-btn clear-btn"
-              v-tooltip="'Clear All'"
-            >
+            </button>
+            <button class="p-button p-button-sm p-button-outlined p-button-secondary quick-btn clear-btn" :disabled="!text1Content.trim() && !text2Content.trim()" @click="clearAll" v-tooltip="'Clear All'">
               <i class="pi pi-trash"></i>
               Clear All
-            </Button>
+            </button>
           </div>
         </div>
       </div>
 
       <!-- Compare Button -->
       <div class="compare-action">
-        <Button
-          @click="onCompare"
-          :disabled="!text1Content.trim() || !text2Content.trim()"
-          class="compare-btn"
-          severity="primary"
-        >
-          <i class="pi pi-sync"></i>
+        <button class="p-button compare-btn" :disabled="!text1Content.trim() || !text2Content.trim()" @click="onCompare">
+          <i class="pi pi-search"></i>
           Compare
-        </Button>
+        </button>
       </div>
 
       <!-- Error Message -->
-      <Message
-        v-if="textProcessor.error.value"
-        severity="error"
-        :closable="false"
-        class="error-message"
-      >
-        {{ textProcessor.error.value }}
-      </Message>
+      <div v-if="textProcessor.error.value" class="p-message p-message-error error-message" role="alert">
+        <div class="p-message-text">{{ textProcessor.error.value }}</div>
+      </div>
 
       <!-- Diff Renderer (shown after clicking Compare) -->
-      <div v-if="showDiff && diffEngine.hasBothInputs.value" class="comparison-results">
-        <Divider />
+      <div v-if="showDiff && hasBothInputs" class="comparison-results">
+        <hr class="p-divider" />
         <DiffRenderer
           :left-text="text1Content"
           :right-text="text2Content"
@@ -315,24 +197,61 @@
           :ignore-whitespace="false"
           :ignore-case="false"
           :language="detectedLanguage"
-          :virtual-scroll-enabled="false"
-          :diff-stats="diffEngine.stats.value"
-          @diff-computed="onDiffRendererComputed"
           @mode-changed="diffViewMode = $event"
-          @copy-diff="onCopyDiff"
-          @download-patch="onDownloadPatch"
           class="enhanced-diff"
         />
       </div>
-    </template>
-  </Card>
+
+    <!-- SEO Content Section -->
+    <section class="tool-info" aria-label="About this tool">
+      <h2>What is a Diff Tool?</h2>
+      <p>A diff tool (short for "difference") compares two versions of text and highlights what changed between them. Additions appear in green, deletions in red, and modifications are marked so you can spot every change at a glance. Diff tools are essential for code reviews, document revision tracking, and configuration file comparison.</p>
+      <p>DevYantra's Text Compare works entirely in your browser — your data never leaves your device. It supports plain text, JSON, SQL, XML, and automatically formats structured data before comparing so you can see meaningful structural differences, not just whitespace changes.</p>
+
+      <h2>Key Features</h2>
+      <ul class="feature-list">
+        <li>Side-by-side and inline diff views with color-coded highlighting</li>
+        <li>Smart JSON and SQL detection with auto-formatting before comparison</li>
+        <li>File upload and drag-and-drop support for comparing documents</li>
+        <li>Line-by-line navigation with keyboard shortcuts</li>
+        <li>Copy diff output or download as a patch file</li>
+      </ul>
+
+      <h2>How to Use Text Compare</h2>
+      <ol>
+        <li>Paste or type your original text in the left panel.</li>
+        <li>Paste or type the modified text in the right panel.</li>
+        <li>Differences are highlighted automatically — green for additions, red for deletions.</li>
+        <li>Use the toggle to switch between side-by-side and inline views.</li>
+        <li>Navigate between changes using the arrow buttons or keyboard shortcuts.</li>
+      </ol>
+
+      <h2>Frequently Asked Questions</h2>
+      <div class="faq-section">
+        <h3>How do I compare two text files online?</h3>
+        <p>Paste or type your original text in the left panel and the modified text in the right panel. DevYantra instantly highlights additions, deletions, and modifications with color-coded diff markers. You can switch between side-by-side and inline views.</p>
+
+        <h3>What is a diff tool?</h3>
+        <p>A diff tool compares two pieces of text and shows the differences between them. It highlights added lines in green, removed lines in red, and changed sections in yellow. Developers use diff tools to review code changes, compare configuration files, and track document revisions.</p>
+
+        <h3>Can I compare JSON or SQL files?</h3>
+        <p>Yes. DevYantra automatically detects and formats JSON and SQL before comparing, so structural differences are clear. The tool also supports plain text, XML, and other formats.</p>
+      </div>
+
+      <h2>Related Tools</h2>
+      <nav class="related-tools" aria-label="Related developer tools">
+        <router-link to="/tools/format-text">Code Formatter</router-link>
+        <router-link to="/tools/delimiter">Delimiter Tool</router-link>
+        <router-link to="/tools/character-count">Character Counter</router-link>
+      </nav>
+    </section>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useToast } from 'primevue/usetoast'
+import { useToast } from '@/composables/useToast'
 import { useTextProcessor, type TextType } from '@/composables/useTextProcessor'
-import { useDiffEngine } from '@/composables/useDiffEngine'
 import { useShareState } from '@/composables/useShareState'
 import DiffRenderer from '@/components/DiffRenderer.vue'
 
@@ -356,9 +275,6 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
 const ALLOWED_EXTENSIONS = ['txt', 'json', 'js', 'ts', 'html', 'css', 'xml', 'sql', 'py', 'java', 'cpp', 'c', 'vue', 'md', 'csv', 'log']
 const ALLOWED_MIME_PREFIXES = ['text/', 'application/json', 'application/javascript', 'application/xml', 'application/sql']
 
-// Diff engine for accurate stats
-const diffEngine = useDiffEngine(text1Content, text2Content)
-
 // Share state for URL/localStorage persistence
 const shareOptions = ref<{ ignoreWhitespace: boolean; ignoreCase: boolean }>({
   ignoreWhitespace: false,
@@ -368,6 +284,8 @@ const shareState = useShareState(text1Content, text2Content, shareOptions, {
   autoSave: true,
   autoLoad: true
 })
+
+const hasBothInputs = computed(() => text1Content.value.trim().length > 0 && text2Content.value.trim().length > 0)
 
 // Text types
 const text1Type = ref<TextType>('text')
@@ -418,65 +336,13 @@ const detectedLanguage = computed(() => {
 })
 
 // Compare button handler
-let lastToastStatsKey = ''
 const onCompare = () => {
-  lastToastStatsKey = '' // Reset so next diff-computed fires a fresh toast
   showDiff.value = true
-}
-
-// DiffRenderer event handler — deduplicated to avoid double toasts
-const onDiffRendererComputed = (stats: { additions: number; deletions: number; modifications: number; totalLines: number; computeTime: number }) => {
-  const key = `${stats.additions}-${stats.deletions}-${stats.modifications}`
-  if (key === lastToastStatsKey) return // Already shown for this result
-  lastToastStatsKey = key
-
-  if (stats.additions > 0 || stats.deletions > 0 || stats.modifications > 0) {
-    toast.add({
-      severity: 'info',
-      summary: 'Differences Found',
-      detail: `${stats.additions} additions, ${stats.deletions} deletions, ${stats.modifications} modifications`,
-      life: 3000
-    })
-  } else {
-    toast.add({
-      severity: 'success',
-      summary: 'No Differences',
-      detail: 'The texts are identical',
-      life: 3000
-    })
-  }
 }
 
 // Share handler
 const onShareClick = async () => {
-  const success = await shareState.copyShareUrl()
-  toast.add({
-    severity: success ? 'success' : 'error',
-    summary: success ? 'Link Copied' : 'Share Failed',
-    detail: success ? 'Shareable link copied to clipboard' : 'URL too long to share. Try shorter text.',
-    life: 3000
-  })
-}
-
-// Export handlers
-const onCopyDiff = async () => {
-  const success = await diffEngine.copyDiffToClipboard()
-  toast.add({
-    severity: success ? 'success' : 'error',
-    summary: success ? 'Copied' : 'Copy Failed',
-    detail: success ? 'Diff copied to clipboard' : 'Could not copy diff',
-    life: 2000
-  })
-}
-
-const onDownloadPatch = () => {
-  diffEngine.downloadPatch()
-  toast.add({
-    severity: 'success',
-    summary: 'Downloaded',
-    detail: 'Patch file downloaded',
-    life: 2000
-  })
+  await shareState.copyShareUrl()
 }
 
 const onText1Input = () => {
@@ -504,19 +370,6 @@ const formatText1 = async () => {
     if (result.success && result.formatted) {
       text1Content.value = result.formatted
       text1Type.value = result.type
-      toast.add({
-        severity: 'success',
-        summary: 'Success',
-        detail: 'Text formatted successfully',
-        life: 3000
-      })
-    } else if (result.error) {
-      toast.add({
-        severity: 'error',
-        summary: 'Format Error',
-        detail: result.error,
-        life: 5000
-      })
     }
   } finally {
     isFormatting1.value = false
@@ -532,19 +385,6 @@ const formatText2 = async () => {
     if (result.success && result.formatted) {
       text2Content.value = result.formatted
       text2Type.value = result.type
-      toast.add({
-        severity: 'success',
-        summary: 'Success',
-        detail: 'Text formatted successfully',
-        life: 3000
-      })
-    } else if (result.error) {
-      toast.add({
-        severity: 'error',
-        summary: 'Format Error',
-        detail: result.error,
-        life: 5000
-      })
     }
   } finally {
     isFormatting2.value = false
@@ -638,19 +478,8 @@ const copyText1 = async () => {
 
   try {
     await navigator.clipboard.writeText(text1Content.value)
-    toast.add({
-      severity: 'success',
-      summary: 'Copied',
-      detail: 'Original text copied to clipboard',
-      life: 2000
-    })
-  } catch {
-    toast.add({
-      severity: 'error',
-      summary: 'Copy Failed',
-      detail: 'Could not copy to clipboard',
-      life: 3000
-    })
+  } catch (err) {
+    console.error('Copy failed:', err)
   }
 }
 
@@ -659,19 +488,8 @@ const copyText2 = async () => {
 
   try {
     await navigator.clipboard.writeText(text2Content.value)
-    toast.add({
-      severity: 'success',
-      summary: 'Copied',
-      detail: 'Changed text copied to clipboard',
-      life: 2000
-    })
-  } catch {
-    toast.add({
-      severity: 'error',
-      summary: 'Copy Failed',
-      detail: 'Could not copy to clipboard',
-      life: 3000
-    })
+  } catch (err) {
+    console.error('Copy failed:', err)
   }
 }
 
@@ -679,26 +497,12 @@ const clearText1 = () => {
   text1Content.value = ''
   text1Type.value = 'text'
   smartSuggestion1.value = null
-
-  toast.add({
-    severity: 'info',
-    summary: 'Cleared',
-    detail: 'Original text cleared',
-    life: 2000
-  })
 }
 
 const clearText2 = () => {
   text2Content.value = ''
   text2Type.value = 'text'
   smartSuggestion2.value = null
-
-  toast.add({
-    severity: 'info',
-    summary: 'Cleared',
-    detail: 'Changed text cleared',
-    life: 2000
-  })
 }
 
 const swapTexts = () => {
@@ -713,13 +517,6 @@ const swapTexts = () => {
   // Clear suggestions when swapping
   smartSuggestion1.value = null
   smartSuggestion2.value = null
-
-  toast.add({
-    severity: 'info',
-    summary: 'Swapped',
-    detail: 'Text content swapped between sides',
-    life: 2000
-  })
 }
 
 const loadSampleData = () => {
@@ -738,20 +535,13 @@ const loadSampleData = () => {
     }
   ]
 
-  const sample = sampleData[Math.floor(Math.random() * sampleData.length)]
+  const sample = sampleData[Math.floor(Math.random() * sampleData.length)]!
   text1Content.value = sample.original
   text2Content.value = sample.changed
 
   // Trigger type detection
   onText1Input()
   onText2Input()
-
-  toast.add({
-    severity: 'info',
-    summary: 'Sample Loaded',
-    detail: 'Sample data loaded for comparison',
-    life: 2000
-  })
 }
 
 // Keyboard shortcut handler
@@ -860,12 +650,6 @@ const loadFile = async (file: File, side: 'left' | 'right') => {
       onText2Input()
     }
 
-    toast.add({
-      severity: 'success',
-      summary: 'File Loaded',
-      detail: `${file.name} loaded successfully`,
-      life: 3000
-    })
   } catch {
     toast.add({
       severity: 'error',
@@ -902,23 +686,10 @@ const clearAll = () => {
 
   if (text1Timer) clearTimeout(text1Timer)
   if (text2Timer) clearTimeout(text2Timer)
-
-  toast.add({
-    severity: 'info',
-    summary: 'Cleared',
-    detail: 'All content has been cleared',
-    life: 2000
-  })
 }
 </script>
 
 <style scoped>
-.card-header {
-  display: flex;
-  align-items: center;
-  font-weight: 600;
-}
-
 .comparison-container {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -942,12 +713,12 @@ const clearAll = () => {
 .input-label {
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--text-color);
+  color: var(--dt-text-primary);
   margin: 0;
 }
 
 .text-area {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 0.875rem;
   width: 100%;
 }
@@ -965,21 +736,21 @@ const clearAll = () => {
   letter-spacing: 0.025em;
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
-  background: var(--surface-card);
-  color: var(--text-color-secondary);
-  border: 1px solid var(--surface-border);
+  background: var(--dt-surface-1);
+  color: var(--dt-text-secondary);
+  border: 1px solid var(--dt-border);
 }
 
 .status-indicator.json {
-  background: var(--green-200);
-  color: var(--green-300);
-  border-color: var(--green-300);
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--dt-success);
+  border-color: var(--dt-success);
 }
 
 .status-indicator.sql {
-  background: var(--blue-200);
-  color: var(--blue-300);
-  border-color: var(--blue-300);
+  background: rgba(var(--dt-brand-rgb), 0.15);
+  color: var(--dt-brand);
+  border-color: var(--dt-brand);
 }
 
 .comparison-results {
@@ -1012,24 +783,22 @@ const clearAll = () => {
 
 /* Enhanced text areas */
 .enhanced-textarea {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all var(--transition-fast);
   border: 2px solid transparent;
 }
 
 .enhanced-textarea:focus {
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
-  transform: translateY(-1px);
+  border-color: var(--dt-brand);
+  box-shadow: var(--focus-ring);
 }
 
 /* Smart suggestions */
 .smart-suggestion {
   margin-bottom: 0.75rem;
   padding: 0.75rem;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(168, 85, 247, 0.1));
-  border: 1px solid rgba(59, 130, 246, 0.2);
-  border-radius: 8px;
-  animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: var(--dt-brand-light);
+  border: 1px solid rgba(var(--dt-brand-rgb), 0.2);
+  border-radius: var(--radius-md);
 }
 
 .suggestion-content {
@@ -1037,7 +806,7 @@ const clearAll = () => {
   align-items: center;
   gap: 0.75rem;
   font-size: 0.875rem;
-  color: var(--text-color);
+  color: var(--dt-text-primary);
 }
 
 .suggestion-content i {
@@ -1046,27 +815,26 @@ const clearAll = () => {
 }
 
 .use-suggestion-btn {
-  background: linear-gradient(135deg, #3b82f6, #8b5cf6) !important;
-  border: none !important;
-  color: white !important;
+  background: var(--dt-brand);
+  border: none;
+  color: white;
   font-weight: 500;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all var(--transition-fast);
 }
 
 .use-suggestion-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  opacity: 0.9;
 }
 
 .dismiss-btn {
   opacity: 0.7;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all var(--transition-fast);
 }
 
 .dismiss-btn:hover {
   opacity: 1;
-  background: rgba(239, 68, 68, 0.1) !important;
-  color: #ef4444 !important;
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
 }
 
 /* Quick actions */
@@ -1089,75 +857,21 @@ const clearAll = () => {
   gap: 0.5rem;
   margin-top: 0.75rem;
   padding: 0.75rem;
-  background: rgba(var(--surface-ground), 0.5);
+  background: var(--dt-surface-2);
   border-radius: 8px;
-  border: 1px solid var(--surface-border);
+  border: 1px solid var(--dt-border);
 }
 
 .quick-btn {
   flex: 1;
   font-size: 0.8rem;
   font-weight: 500;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  overflow: hidden;
+  transition: all var(--transition-fast);
 }
 
-.quick-btn::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  transition: left 0.5s;
-}
-
-.quick-btn:hover::before {
-  left: 100%;
-}
-
-.copy-btn:hover {
-  background: linear-gradient(135deg, #10b981, #059669) !important;
-  color: white !important;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-}
-
-.clear-btn:hover {
-  background: linear-gradient(135deg, #ef4444, #dc2626) !important;
-  color: white !important;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
-}
-
-.swap-btn:hover {
-  background: linear-gradient(135deg, #8b5cf6, #7c3aed) !important;
-  color: white !important;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
-}
-
-.sample-btn:hover {
-  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
-  color: white !important;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
-}
-
-.share-btn:hover {
-  background: linear-gradient(135deg, #06b6d4, #0891b2) !important;
-  color: white !important;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
-}
-
-.upload-btn:hover {
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8) !important;
-  color: white !important;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+.quick-btn:hover {
+  background: var(--dt-surface-3);
+  border-color: var(--dt-border-strong);
 }
 
 /* Drop zone */
@@ -1167,7 +881,7 @@ const clearAll = () => {
 
 .drop-zone--active {
   border-radius: 8px;
-  outline: 2px dashed var(--primary-color);
+  outline: 2px dashed var(--dt-brand);
   outline-offset: 2px;
 }
 
@@ -1179,46 +893,42 @@ const clearAll = () => {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  background: rgba(59, 130, 246, 0.1);
+  background: rgba(var(--dt-brand-rgb), 0.1);
   border-radius: 8px;
   pointer-events: none;
   z-index: 10;
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--primary-color);
+  color: var(--dt-brand);
 }
 
 .drop-overlay i {
   font-size: 1.5rem;
 }
 
-/* Animation keyframes */
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 /* Mobile responsive */
 @media (max-width: 768px) {
   .quick-actions {
-    flex-direction: column;
-    gap: 0.5rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    flex-wrap: nowrap;
+  }
+
+  .quick-actions::-webkit-scrollbar {
+    display: none;
   }
 
   .quick-btn {
-    flex: none;
+    flex: 0 0 auto;
+    white-space: nowrap;
   }
 
   .suggestion-content {
-    flex-direction: column;
-    align-items: flex-start;
+    flex-wrap: wrap;
     gap: 0.5rem;
   }
 }
+
+
 </style>

@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test('Verify privacy tooltip styling in both light and dark modes', async ({ page }) => {
   // Navigate to the application
-  await page.goto('http://localhost:5175');
+  await page.goto('/');
   await page.waitForLoadState('networkidle');
 
   // Test Light Mode Privacy Tooltip

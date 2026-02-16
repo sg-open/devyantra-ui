@@ -1,37 +1,25 @@
 <template>
-  <Card class="delimiter-tool">
-    <template #title>
-      <div class="card-header">
-        <i class="pi pi-arrows-h text-2xl mr-2"></i>
-        Delimiter
-      </div>
-    </template>
-
-    <template #subtitle>
-      Convert between delimited and newline-separated text formats
-    </template>
-
-    <template #content>
+  <div class="tool-panel delimiter-tool">
+    <header class="tool-hero">
+      <h1>Delimiter Tool</h1>
+      <p>Split comma-separated values into lines or join lines with any delimiter. Smart detection auto-selects the right separator for your data.</p>
+    </header>
       <div class="delimiter-container">
       <!-- Left Panel - Delimited Text -->
       <div class="editor-panel">
-        <div class="panel-header">
-          <h3>Delimited Text</h3>
-        </div>
-
-        <div class="editor-wrapper">
+        <label class="input-label">Delimited Text</label>
           <textarea
             v-model="delimitedText"
             placeholder="Enter delimited text here... (e.g., apple,banana,cherry)"
-            class="p-inputtextarea p-component editor-textarea"
-            rows="15"
+            class="p-inputtextarea text-area enhanced-textarea"
+            rows="12"
             @input="onDelimitedTextChange"
           ></textarea>
 
           <div class="editor-actions">
             <button
               @click="clearDelimited"
-              class="p-button p-component p-button-secondary p-button-outlined clear-btn"
+              class="p-button p-button-secondary p-button-outlined clear-btn"
               title="Clear delimited text"
             >
               <i class="pi pi-times"></i>
@@ -39,7 +27,7 @@
             </button>
             <button
               @click="copyDelimited"
-              class="p-button p-component p-button-outlined copy-btn"
+              class="p-button p-button-outlined copy-btn"
               title="Copy delimited text"
             >
               <i class="pi pi-copy"></i>
@@ -76,7 +64,7 @@
                   v-model="customDelimiter"
                   type="text"
                   placeholder="Enter custom delimiter"
-                  class="p-inputtext p-component custom-delimiter-input"
+                  class="p-inputtext custom-delimiter-input"
                   maxlength="10"
                   @input="detectFromCustom"
                 />
@@ -89,7 +77,6 @@
               </div>
             </div>
           </div>
-        </div>
       </div>
 
       <!-- Center Controls -->
@@ -97,7 +84,7 @@
         <div class="control-buttons">
           <button
             @click="convertToNewlines"
-            class="p-button p-component convert-btn"
+            class="p-button convert-btn"
             title="Convert delimited text to newlines"
             :disabled="!delimitedText.trim()"
           >
@@ -107,7 +94,7 @@
 
           <button
             @click="convertToDelimited"
-            class="p-button p-component convert-btn"
+            class="p-button convert-btn"
             title="Convert newline text to delimited"
             :disabled="!newlineText.trim()"
           >
@@ -125,26 +112,22 @@
 
       <!-- Right Panel - Newline Text -->
       <div class="editor-panel">
-        <div class="panel-header">
-          <h3>Newline Separated</h3>
-        </div>
-
-        <div class="editor-wrapper">
+        <label class="input-label">Newline Separated</label>
           <textarea
             v-model="newlineText"
             placeholder="Enter newline-separated text here...
 apple
 banana
 cherry"
-            class="p-inputtextarea p-component editor-textarea"
-            rows="15"
+            class="p-inputtextarea text-area enhanced-textarea"
+            rows="12"
             @input="onNewlineTextChange"
           ></textarea>
 
           <div class="editor-actions">
             <button
               @click="clearNewlines"
-              class="p-button p-component p-button-secondary p-button-outlined clear-btn"
+              class="p-button p-button-secondary p-button-outlined clear-btn"
               title="Clear newline text"
             >
               <i class="pi pi-times"></i>
@@ -152,7 +135,7 @@ cherry"
             </button>
             <button
               @click="copyNewlines"
-              class="p-button p-component p-button-outlined copy-btn"
+              class="p-button p-button-outlined copy-btn"
               title="Copy newline text"
             >
               <i class="pi pi-copy"></i>
@@ -172,19 +155,56 @@ cherry"
               </label>
             </div>
           </div>
-        </div>
       </div>
       </div>
-    </template>
-  </Card>
+
+    <!-- SEO Content Section -->
+    <section class="tool-info" aria-label="About this tool">
+      <h2>What is a Delimiter?</h2>
+      <p>A delimiter is a character or sequence of characters that separates individual values in a data string. Common delimiters include commas (CSV files), pipes (log files), tabs (TSV files), semicolons (European CSV), and colons (configuration files). Converting between delimited formats and line-separated lists is a frequent task when working with data from spreadsheets, databases, APIs, and command-line tools.</p>
+      <p>DevYantra's Delimiter Tool auto-detects your delimiter, supports custom separators, and offers options to trim whitespace and filter empty values. Like all DevYantra tools, processing happens entirely in your browser.</p>
+
+      <h2>Key Features</h2>
+      <ul class="feature-list">
+        <li>Split delimited text into individual lines or join lines with any delimiter</li>
+        <li>Smart delimiter auto-detection for comma, pipe, semicolon, tab, and more</li>
+        <li>Custom delimiter support for any character or string</li>
+        <li>Options to trim whitespace and remove empty lines during conversion</li>
+        <li>Keyboard shortcuts for quick delimiter switching</li>
+      </ul>
+
+      <h2>How to Use the Delimiter Tool</h2>
+      <ol>
+        <li>Paste comma-separated (or other delimited) text in the left panel.</li>
+        <li>Select a delimiter or let auto-detection choose the right one.</li>
+        <li>Click "Split to Lines" to convert, or use "Join with Delimiter" to go the other way.</li>
+        <li>Enable "Trim whitespace" and "Remove empty lines" for cleaner output.</li>
+      </ol>
+
+      <h2>Frequently Asked Questions</h2>
+      <div class="faq-section">
+        <h3>How do I split comma-separated values into lines?</h3>
+        <p>Paste your comma-separated text into the left panel, select the comma delimiter (or let DevYantra auto-detect it), and click "Split to Lines". Each value will appear on its own line in the right panel.</p>
+
+        <h3>Can I use custom delimiters?</h3>
+        <p>Yes. DevYantra supports comma, pipe, semicolon, colon, tab, and space as quick delimiters, plus a custom option where you can enter any character or string as the delimiter.</p>
+
+        <h3>How do I join lines into a delimited string?</h3>
+        <p>Enter your text with one item per line in the right panel, choose your delimiter, and click "Join with Delimiter". The tool also offers options to trim whitespace and remove empty lines during conversion.</p>
+      </div>
+
+      <h2>Related Tools</h2>
+      <nav class="related-tools" aria-label="Related developer tools">
+        <router-link to="/tools/text-compare">Text Compare</router-link>
+        <router-link to="/tools/format-text">Code Formatter</router-link>
+        <router-link to="/tools/character-count">Character Counter</router-link>
+      </nav>
+    </section>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import { useToast } from 'primevue/usetoast'
-import Card from 'primevue/card'
-
-const toast = useToast()
 
 // Reactive state
 const delimitedText = ref('')
@@ -234,28 +254,9 @@ watch([selectedDelimiter, customDelimiter], () => {
 
 // Conversion functions
 const convertToNewlines = () => {
-  if (!delimitedText.value.trim()) {
-    toast.add({
-      severity: 'warn',
-      summary: 'No Input',
-      detail: 'Please enter some delimited text to convert',
-      life: 3000
-    })
-    return
-  }
+  if (!delimitedText.value.trim() || !currentDelimiter.value) return
 
-  const delimiter = currentDelimiter.value
-  if (!delimiter) {
-    toast.add({
-      severity: 'warn',
-      summary: 'No Delimiter',
-      detail: 'Please specify a delimiter',
-      life: 3000
-    })
-    return
-  }
-
-  let items = delimitedText.value.split(delimiter)
+  let items = delimitedText.value.split(currentDelimiter.value)
 
   if (trimWhitespace.value) {
     items = items.map(item => item.trim())
@@ -266,36 +267,10 @@ const convertToNewlines = () => {
   }
 
   newlineText.value = items.join('\n')
-
-  toast.add({
-    severity: 'success',
-    summary: 'Converted',
-    detail: `Converted ${items.length} items to newlines`,
-    life: 2000
-  })
 }
 
 const convertToDelimited = () => {
-  if (!newlineText.value.trim()) {
-    toast.add({
-      severity: 'warn',
-      summary: 'No Input',
-      detail: 'Please enter some newline-separated text to convert',
-      life: 3000
-    })
-    return
-  }
-
-  const delimiter = currentDelimiter.value
-  if (!delimiter) {
-    toast.add({
-      severity: 'warn',
-      summary: 'No Delimiter',
-      detail: 'Please specify a delimiter',
-      life: 3000
-    })
-    return
-  }
+  if (!newlineText.value.trim() || !currentDelimiter.value) return
 
   let lines = newlineText.value.split('\n')
 
@@ -307,14 +282,7 @@ const convertToDelimited = () => {
     lines = lines.filter(line => line.length > 0)
   }
 
-  delimitedText.value = lines.join(delimiter)
-
-  toast.add({
-    severity: 'success',
-    summary: 'Converted',
-    detail: `Converted ${lines.length} lines to delimited text`,
-    life: 2000
-  })
+  delimitedText.value = lines.join(currentDelimiter.value)
 }
 
 // Smart detection functions
@@ -333,7 +301,7 @@ const detectDelimiter = (text: string): string => {
 
   const maxScore = Math.max(...scores)
   if (maxScore > 3) { // Minimum threshold
-    return delimiters[scores.indexOf(maxScore)]
+    return delimiters[scores.indexOf(maxScore)] ?? ''
   }
   return ''
 }
@@ -343,13 +311,6 @@ const setDelimiter = (value: string) => {
   if (value !== 'custom') {
     customDelimiter.value = ''
   }
-
-  toast.add({
-    severity: 'info',
-    summary: 'Delimiter Changed',
-    detail: `Now using ${getDelimiterLabel(value)} delimiter`,
-    life: 1500
-  })
 }
 
 const getDelimiterLabel = (delim: string): string => {
@@ -383,9 +344,9 @@ const handleKeyboardShortcuts = (event: KeyboardEvent) => {
       '6': ' '
     }
 
-    if (shortcuts[event.key]) {
+    if (shortcuts[event.key] !== undefined) {
       event.preventDefault()
-      setDelimiter(shortcuts[event.key])
+      setDelimiter(shortcuts[event.key]!)
     }
   }
 }
@@ -423,79 +384,29 @@ const onOptionsChange = () => {
 // Utility functions
 const clearDelimited = () => {
   delimitedText.value = ''
-  toast.add({
-    severity: 'info',
-    summary: 'Cleared',
-    detail: 'Delimited text cleared',
-    life: 1500
-  })
 }
 
 const clearNewlines = () => {
   newlineText.value = ''
-  toast.add({
-    severity: 'info',
-    summary: 'Cleared',
-    detail: 'Newline text cleared',
-    life: 1500
-  })
 }
 
 const copyDelimited = async () => {
-  if (!delimitedText.value.trim()) {
-    toast.add({
-      severity: 'warn',
-      summary: 'Nothing to Copy',
-      detail: 'Delimited text is empty',
-      life: 2000
-    })
-    return
-  }
+  if (!delimitedText.value.trim()) return
 
   try {
     await navigator.clipboard.writeText(delimitedText.value)
-    toast.add({
-      severity: 'success',
-      summary: 'Copied',
-      detail: 'Delimited text copied to clipboard',
-      life: 2000
-    })
   } catch (error) {
-    toast.add({
-      severity: 'error',
-      summary: 'Copy Failed',
-      detail: 'Failed to copy to clipboard',
-      life: 3000
-    })
+    console.error('Copy failed:', error)
   }
 }
 
 const copyNewlines = async () => {
-  if (!newlineText.value.trim()) {
-    toast.add({
-      severity: 'warn',
-      summary: 'Nothing to Copy',
-      detail: 'Newline text is empty',
-      life: 2000
-    })
-    return
-  }
+  if (!newlineText.value.trim()) return
 
   try {
     await navigator.clipboard.writeText(newlineText.value)
-    toast.add({
-      severity: 'success',
-      summary: 'Copied',
-      detail: 'Newline text copied to clipboard',
-      life: 2000
-    })
   } catch (error) {
-    toast.add({
-      severity: 'error',
-      summary: 'Copy Failed',
-      detail: 'Failed to copy to clipboard',
-      life: 3000
-    })
+    console.error('Copy failed:', error)
   }
 }
 
@@ -510,19 +421,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.delimiter-tool {
-  margin: 2rem;
-  max-width: 1400px;
-  margin: 2rem auto;
-}
-
-.card-header {
-  display: flex;
-  align-items: center;
-  color: var(--dt-brand);
-  font-weight: 600;
-}
-
 .delimiter-container {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
@@ -533,23 +431,22 @@ onUnmounted(() => {
 .editor-panel {
   display: flex;
   flex-direction: column;
-  background: var(--dt-surface-card);
-  border-radius: 12px;
-  border: 1px solid var(--dt-border-color);
-  overflow: hidden;
 }
 
-.panel-header {
-  padding: 1rem 1.5rem;
-  background: var(--dt-surface-section);
-  border-bottom: 1px solid var(--dt-border-color);
-}
-
-.panel-header h3 {
-  font-size: 1.25rem;
+.input-label {
   font-weight: 600;
+  font-size: 1.1rem;
   color: var(--dt-text-primary);
-  margin: 0;
+  margin-bottom: 0.75rem;
+  display: block;
+}
+
+.enhanced-textarea {
+  transition: border-color var(--transition-fast);
+}
+
+.enhanced-textarea:focus {
+  border-color: var(--dt-brand);
 }
 
 .delimiter-selector {
@@ -579,10 +476,10 @@ onUnmounted(() => {
 .newline-settings {
   padding: 1rem;
   margin-top: 1rem;
-  background: var(--dt-surface-section);
+  background: var(--dt-surface-2);
   border-radius: 8px;
-  border: 1px solid var(--dt-border-color);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid var(--dt-border);
+  transition: all var(--transition-normal);
 }
 
 .settings-label {
@@ -605,52 +502,33 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   padding: 0.75rem 0.5rem;
-  border: 2px solid var(--dt-border-color);
-  border-radius: 8px;
-  background: var(--dt-surface-ground);
+  border: 2px solid var(--dt-border);
+  border-radius: var(--radius-md);
+  background: var(--dt-surface-2);
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all var(--transition-fast);
   min-height: 60px;
-  position: relative;
-  overflow: hidden;
-}
-
-.delimiter-btn::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-  transition: left 0.3s ease;
-}
-
-.delimiter-btn:hover::before {
-  left: 100%;
 }
 
 .delimiter-btn:hover {
   border-color: var(--dt-brand);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(var(--dt-brand-rgb), 0.25);
+  background: var(--dt-surface-2);
 }
 
 .delimiter-btn.active {
   border-color: var(--dt-brand);
   background: var(--dt-brand);
-  color: white;
-  transform: scale(1.05);
+  color: var(--button-primary-text);
 }
 
 .delimiter-btn.active .delimiter-label {
-  color: white;
+  color: var(--button-primary-text);
 }
 
 .delimiter-display {
   font-size: 1.25rem;
   font-weight: 700;
-  font-family: 'Fira Code', monospace;
+  font-family: var(--font-mono);
   margin-bottom: 0.25rem;
   min-height: 20px;
   display: flex;
@@ -664,7 +542,7 @@ onUnmounted(() => {
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  transition: color 0.2s ease;
+  transition: color var(--transition-fast);
 }
 
 .custom-btn .pi {
@@ -674,7 +552,6 @@ onUnmounted(() => {
 
 .custom-delimiter-row {
   margin-top: 0.75rem;
-  animation: slideDown 0.3s ease-out;
 }
 
 .smart-suggestion {
@@ -682,11 +559,10 @@ onUnmounted(() => {
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem;
-  background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
-  border: 1px solid #64b5f6;
-  border-radius: 8px;
+  background: var(--dt-surface-2);
+  border: 1px solid var(--dt-border);
+  border-radius: var(--radius-md);
   margin-top: 0.75rem;
-  animation: fadeInUp 0.4s ease-out;
 }
 
 .smart-suggestion i {
@@ -703,66 +579,12 @@ onUnmounted(() => {
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--transition-fast);
 }
 
 .use-suggestion-btn:hover {
   background: var(--dt-brand-hover);
-  transform: scale(1.05);
-}
-
-/* Enhanced animations */
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Enhanced conversion buttons */
-.convert-btn {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  overflow: hidden;
-}
-
-.convert-btn::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-  transition: left 0.5s ease;
-}
-
-.convert-btn:hover::before {
-  left: 100%;
-}
-
-.convert-btn:hover:not(:disabled) {
-  transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 8px 25px rgba(var(--dt-brand-rgb), 0.3);
-}
-
-.convert-btn:active {
-  transform: translateY(0) scale(0.98);
+  opacity: 0.9;
 }
 
 .options {
@@ -781,31 +603,6 @@ onUnmounted(() => {
   cursor: pointer;
 }
 
-.editor-wrapper {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  padding: 1.5rem;
-}
-
-.editor-textarea {
-  flex: 1;
-  resize: none;
-  font-family: 'Fira Code', 'Monaco', monospace;
-  font-size: 0.9rem;
-  line-height: 1.5;
-  padding: 1rem;
-  border-radius: 8px;
-  border: 1px solid var(--dt-border-color);
-  background: var(--dt-surface-ground);
-}
-
-.editor-textarea:focus {
-  outline: none;
-  border-color: var(--dt-brand);
-  box-shadow: 0 0 0 1px var(--dt-brand);
-}
-
 .editor-actions {
   display: flex;
   gap: 0.5rem;
@@ -820,9 +617,9 @@ onUnmounted(() => {
   align-items: center;
   gap: 2rem;
   padding: 2rem 1rem;
-  background: var(--dt-surface-card);
+  background: var(--dt-surface-1);
   border-radius: 12px;
-  border: 1px solid var(--dt-border-color);
+  border: 1px solid var(--dt-border);
   min-width: 200px;
 }
 
@@ -848,7 +645,6 @@ onUnmounted(() => {
 .convert-btn:hover:not(:disabled) {
   background: var(--dt-brand-hover);
   border-color: var(--dt-brand-hover);
-  transform: translateY(-1px);
 }
 
 .convert-btn:disabled {
@@ -859,9 +655,9 @@ onUnmounted(() => {
 .conversion-info {
   text-align: center;
   padding: 1rem;
-  background: var(--dt-surface-section);
+  background: var(--dt-surface-2);
   border-radius: 8px;
-  border: 1px solid var(--dt-border-color);
+  border: 1px solid var(--dt-border);
 }
 
 .item-count {
@@ -912,28 +708,9 @@ onUnmounted(() => {
     padding: 0.5rem 1rem;
   }
 
-  .delimiter-view {
-    padding: 1rem;
-  }
-
-  .editor-textarea {
-    rows: 10;
-  }
 }
 
 @media (max-width: 480px) {
-  .tool-header h1 {
-    font-size: 2rem;
-  }
-
-  .panel-header {
-    padding: 1rem;
-  }
-
-  .editor-wrapper {
-    padding: 1rem;
-  }
-
   .editor-actions {
     flex-direction: column;
   }

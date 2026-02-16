@@ -21,35 +21,48 @@ export function useDiffNavigation(containerRef: Ref<HTMLElement | undefined>) {
       return
     }
 
-    const elements = containerRef.value.querySelectorAll(
-      '.vue-diff-cell-removed, .vue-diff-cell-added'
-    )
+    // In split mode, diff2html creates two .d2h-file-side-diff tables.
+    // We scan only the FIRST side (left/original) to avoid double-counting.
+    // In unified mode, there's a single table — scan all rows.
+    const sidePanel = containerRef.value.querySelector('.d2h-file-side-diff')
+    const scanRoot = sidePanel || containerRef.value
 
-    // Group consecutive change elements into hunks (take the first element of each group)
+    // Target <tr> rows that contain change cells, not individual <td>s
+    const rows = scanRoot.querySelectorAll('tr')
+    const changedRows: Element[] = []
+
+    rows.forEach((tr) => {
+      // A row is a "change" if it has a td with d2h-del or d2h-ins (but not d2h-info)
+      const hasChange = tr.querySelector('td.d2h-del, td.d2h-ins')
+      const isInfo = tr.querySelector('td.d2h-info')
+      if (hasChange && !isInfo) {
+        changedRows.push(tr)
+      }
+    })
+
+    // Group consecutive changed rows into hunks
     const newHunks: NavigationHunk[] = []
-    let lastElement: Element | null = null
     let hunkIndex = 0
 
-    elements.forEach((el) => {
-      // Check if this element is adjacent to the previous one
-      const isAdjacent = lastElement &&
-        (lastElement.nextElementSibling === el ||
-         lastElement.parentElement?.nextElementSibling?.firstElementChild === el)
+    for (let i = 0; i < changedRows.length; i++) {
+      const row = changedRows[i]!
+      const prevRow = i > 0 ? changedRows[i - 1] : null
 
-      if (!isAdjacent) {
+      // Check if this row immediately follows the previous one in the DOM
+      const isConsecutive = prevRow && prevRow.nextElementSibling === row
+
+      if (!isConsecutive) {
+        // Start of a new hunk — use this row as the navigation target
         newHunks.push({
           index: hunkIndex++,
-          element: el
+          element: row
         })
       }
-
-      lastElement = el
-    })
+    }
 
     hunks.value = newHunks
 
-    // Reset index if it's out of bounds
-    if (currentIndex.value >= newHunks.length) {
+    if (currentIndex.value < 0 || currentIndex.value >= newHunks.length) {
       currentIndex.value = newHunks.length > 0 ? 0 : -1
     }
   }
@@ -66,10 +79,10 @@ export function useDiffNavigation(containerRef: Ref<HTMLElement | undefined>) {
     })
 
     // Add highlight to current hunk
-    hunk.element.classList.add('diff-nav-highlight')
+    hunk?.element.classList.add('diff-nav-highlight')
 
     // Scroll into view
-    hunk.element.scrollIntoView({
+    hunk?.element.scrollIntoView({
       behavior: 'smooth',
       block: 'center'
     })
@@ -99,7 +112,7 @@ export function useDiffNavigation(containerRef: Ref<HTMLElement | undefined>) {
     // Initial scan
     scanForChanges()
 
-    // Observe DOM changes to re-scan when vue-diff re-renders
+    // Observe DOM changes to re-scan when diff2html re-renders
     observer = new MutationObserver(() => {
       scanForChanges()
     })

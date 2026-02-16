@@ -1,5 +1,5 @@
 <!--
-  DiffRenderer.vue - World-class side-by-side diff renderer
+  DiffRenderer.vue - Diff renderer powered by diff2html
 
   Props:
   - leftText: string - Original text content
@@ -8,12 +8,9 @@
   - ignoreWhitespace: boolean - Ignore whitespace differences
   - ignoreCase: boolean - Ignore case differences
   - language: string - Programming language for syntax highlighting
-  - virtualScrollEnabled: boolean - Enable virtual scrolling for large files
-  - diffStats: DiffStats | null - Pre-computed diff stats from useDiffEngine
 
   Events:
   - @diff-computed: Emitted when diff computation is complete
-  - @scroll-sync: Emitted when scroll synchronization occurs
   - @mode-changed: Emitted when display mode changes
   - @options-changed: Emitted when diff options change
 -->
@@ -30,9 +27,6 @@
       </span>
       <span v-if="displayStats.modifications > 0" class="diff-stat-chip diff-stat-chip--modified">
         ~{{ displayStats.modifications }} modified
-      </span>
-      <span class="diff-stat-chip diff-stat-chip--info">
-        {{ displayStats.totalLines }} lines
       </span>
       <span class="diff-stat-chip diff-stat-chip--time">
         {{ displayStats.computeTime }}ms
@@ -68,11 +62,23 @@
         </label>
       </div>
 
+      <!-- Context Line Control -->
+      <div class="diff-context-control">
+        <span class="diff-context-label">Context:</span>
+        <select v-model.number="contextLines" class="diff-context-select">
+          <option :value="0">0</option>
+          <option :value="3">3</option>
+          <option :value="5">5</option>
+          <option :value="10">10</option>
+          <option :value="Infinity">All</option>
+        </select>
+      </div>
+
       <!-- Action Buttons -->
       <div class="diff-actions">
         <button
           class="diff-action-btn"
-          @click="$emit('copy-diff')"
+          @click="copyDiffToClipboard"
           title="Copy diff to clipboard"
         >
           <span class="diff-action-icon">&#x2398;</span>
@@ -80,7 +86,7 @@
         </button>
         <button
           class="diff-action-btn"
-          @click="$emit('download-patch')"
+          @click="downloadPatch"
           title="Download as .patch file"
         >
           <span class="diff-action-icon">&#x21E9;</span>
@@ -114,21 +120,13 @@
         <span class="diff-loading-text">Computing differences...</span>
       </div>
 
-      <!-- Vue-diff Renderer -->
-      <div v-else-if="shouldShowDiff" class="diff-container" ref="diffContainerRef">
-        <Diff
-          :prev="processedLeftText"
-          :current="processedRightText"
-          :mode="mode"
-          :language="detectedLanguage"
-          :input-delay="120"
-          :virtual-scroll="virtualScrollConfig"
-          :folding="true"
-          :chk-words="true"
-          @diff="onDiffComputed"
-          class="diff-viewer"
-        />
-      </div>
+      <!-- diff2html Renderer -->
+      <div
+        v-else-if="shouldShowDiff"
+        class="diff-container"
+        ref="diffContainerRef"
+        v-html="diffOutputHtml"
+      />
 
       <!-- Empty State -->
       <div v-else class="diff-empty-state">
@@ -146,10 +144,19 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
-import { Diff } from 'vue-diff'
-import 'vue-diff/dist/index.css'
-import type { DiffStats } from '@/composables/useDiffEngine'
+import { createTwoFilesPatch } from 'diff'
+import { html as diff2htmlHtml, parse as diff2htmlParse } from 'diff2html'
+import 'diff2html/bundles/css/diff2html.min.css'
 import { useDiffNavigation } from '@/composables/useDiffNavigation'
+import type { DiffFile } from 'diff2html/lib/types'
+
+export interface DiffStats {
+  additions: number
+  deletions: number
+  modifications: number
+  totalLines: number
+  computeTime: number
+}
 
 // Props
 interface Props {
@@ -159,42 +166,35 @@ interface Props {
   ignoreWhitespace?: boolean
   ignoreCase?: boolean
   language?: string
-  virtualScrollEnabled?: boolean
-  diffStats?: DiffStats | null
 }
 
 const props = withDefaults(defineProps<Props>(), {
   mode: 'split',
   ignoreWhitespace: false,
   ignoreCase: false,
-  language: 'plaintext',
-  virtualScrollEnabled: false,
-  diffStats: null
+  language: 'plaintext'
 })
 
 // Emits
 interface DiffOptions {
   ignoreWhitespace: boolean
   ignoreCase: boolean
-  virtualScrollEnabled: boolean
 }
 
 interface Emits {
   'diff-computed': [stats: DiffStats]
-  'scroll-sync': [scrollTop: number]
   'mode-changed': [mode: 'split' | 'unified']
   'options-changed': [options: DiffOptions]
-  'copy-diff': []
-  'download-patch': []
 }
 
 const emit = defineEmits<Emits>()
 
 // State
 const isLoading = ref(false)
-const processedLeftText = ref('')
-const processedRightText = ref('')
+const diffOutputHtml = ref('')
 const diffContainerRef = ref<HTMLElement>()
+const contextLines = ref(3)
+const lastPatch = ref('')
 
 // Navigation
 const navigation = useDiffNavigation(diffContainerRef)
@@ -205,7 +205,7 @@ const viewModes = [
   { value: 'unified', label: 'Unified', icon: '\u2261', title: 'Unified diff view' }
 ]
 
-// Toggle options computed for cleaner template
+// Toggle options
 const toggleOptions = computed(() => [
   {
     key: 'whitespace',
@@ -218,93 +218,59 @@ const toggleOptions = computed(() => [
     label: 'Case',
     checked: props.ignoreCase,
     onChange: updateIgnoreCase
-  },
-  {
-    key: 'virtualScroll',
-    label: 'V-Scroll',
-    checked: props.virtualScrollEnabled,
-    onChange: updateVirtualScroll
   }
 ])
 
-// Computed
-const detectedLanguage = computed(() => {
-  if (props.language && props.language !== 'plaintext') {
-    return props.language
-  }
-  return detectLanguageFromContent(props.leftText || props.rightText)
-})
-
-const virtualScrollConfig = computed(() => {
-  if (!props.virtualScrollEnabled) return false
-
-  return {
-    height: 600,
-    lineMinHeight: 22,
-    delay: 100
-  }
-})
+const renderedStats = ref<DiffStats | null>(null)
 
 const shouldShowDiff = computed(() => {
-  return (props.leftText.trim() || props.rightText.trim()) &&
-         processedLeftText.value !== processedRightText.value
+  return diffOutputHtml.value.length > 0
 })
 
-const displayStats = computed(() => props.diffStats)
+const displayStats = computed(() => renderedStats.value)
 
-const shouldAutoEnableVirtualScroll = computed(() => {
-  const totalLength = (props.leftText?.length || 0) + (props.rightText?.length || 0)
-  const totalLines = (props.leftText?.split('\n').length || 0) + (props.rightText?.split('\n').length || 0)
-  return totalLength > 1024 * 1024 || totalLines > 5000
-})
+// Compute stats from the diff2html parsed output (same source as the rendered diff)
+const computeStatsFromParsed = (diffJson: DiffFile[], computeTime: number): DiffStats => {
+  let additions = 0
+  let deletions = 0
+  let modifications = 0
+  let contextLines = 0
 
-// Methods
-const detectLanguageFromContent = (text: string): string => {
-  if (!text) return 'plaintext'
+  for (const file of diffJson) {
+    for (const block of file.blocks) {
+      let pendingDels = 0
 
-  const trimmed = text.trim()
+      for (const line of block.lines) {
+        if (line.type === 'delete') {
+          pendingDels++
+        } else if (line.type === 'insert') {
+          if (pendingDels > 0) {
+            // Paired delete+insert = modification
+            modifications++
+            pendingDels--
+          } else {
+            additions++
+          }
+        } else {
+          // context line — flush pending deletes as pure deletions
+          deletions += pendingDels
+          pendingDels = 0
+          contextLines++
+        }
+      }
 
-  // JSON detection
-  if ((trimmed.startsWith('{') && trimmed.endsWith('}')) ||
-      (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
-    try {
-      JSON.parse(trimmed)
-      return 'json'
-    } catch {
-      // Continue with other detections
+      // Flush remaining deletes at end of block
+      deletions += pendingDels
     }
   }
 
-  // SQL detection
-  if (/^\s*(SELECT|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP|WITH)\b/im.test(trimmed)) {
-    return 'sql'
-  }
+  // totalLines = original file's line count (unchanged + deleted + modified)
+  const totalLines = contextLines + deletions + modifications
 
-  // HTML/XML detection
-  if (trimmed.startsWith('<') && trimmed.includes('>')) {
-    return trimmed.includes('<!DOCTYPE html') || trimmed.includes('<html') ? 'html' : 'xml'
-  }
-
-  // JavaScript/TypeScript
-  if (trimmed.includes('function') || trimmed.includes('=>') ||
-      /\b(const|let|var)\s+\w+/.test(trimmed)) {
-    return trimmed.includes('interface ') || trimmed.includes('type ') ? 'typescript' : 'javascript'
-  }
-
-  // CSS
-  if (trimmed.includes('{') && trimmed.includes('}') &&
-      trimmed.includes(':') && trimmed.includes(';')) {
-    return 'css'
-  }
-
-  // Python
-  if (/\b(def|import|from|class)\s+/.test(trimmed) || trimmed.includes('print(')) {
-    return 'python'
-  }
-
-  return 'plaintext'
+  return { additions, deletions, modifications, totalLines, computeTime }
 }
 
+// Methods
 const preprocessText = (text: string): string => {
   if (!text) return ''
 
@@ -327,24 +293,66 @@ const preprocessText = (text: string): string => {
 
 const computeDiff = async () => {
   if (!props.leftText && !props.rightText) {
-    processedLeftText.value = ''
-    processedRightText.value = ''
+    diffOutputHtml.value = ''
     return
   }
 
   isLoading.value = true
+  renderedStats.value = null
 
   try {
     await nextTick()
 
-    // Apply standard preprocessing (ignore whitespace / ignore case)
-    processedLeftText.value = preprocessText(props.leftText)
-    processedRightText.value = preprocessText(props.rightText)
+    const startTime = performance.now()
+    const left = preprocessText(props.leftText)
+    const right = preprocessText(props.rightText)
 
-    // Emit stats from the parent's diffEngine
-    if (props.diffStats) {
-      emit('diff-computed', props.diffStats)
+    if (left === right) {
+      diffOutputHtml.value = ''
+      return
     }
+
+    // Generate unified diff with ALL context so stats cover every line
+    const leftLineCount = left.split('\n').length
+    const rightLineCount = right.split('\n').length
+    const fullCtx = Math.max(leftLineCount, rightLineCount)
+
+    const fullPatch = createTwoFilesPatch(
+      'original', 'modified',
+      left, right,
+      '', '',
+      { context: fullCtx }
+    )
+
+    // Parse the full diff for accurate stats
+    const fullDiffJson = diff2htmlParse(fullPatch)
+    const computeTime = Math.round(performance.now() - startTime)
+    renderedStats.value = computeStatsFromParsed(fullDiffJson, computeTime)
+
+    // Now render with the user-chosen context lines
+    const renderCtx = contextLines.value === Infinity ? fullCtx : contextLines.value
+    let renderPatch = fullPatch
+    if (renderCtx !== fullCtx) {
+      renderPatch = createTwoFilesPatch(
+        'original', 'modified',
+        left, right,
+        '', '',
+        { context: renderCtx }
+      )
+    }
+
+    const renderDiffJson = diff2htmlParse(renderPatch)
+    diffOutputHtml.value = diff2htmlHtml(renderDiffJson, {
+      outputFormat: props.mode === 'split' ? 'side-by-side' : 'line-by-line',
+      drawFileList: false,
+      matching: 'lines',
+      renderNothingWhenEmpty: true
+    })
+
+    // Store the full patch for copy/export
+    lastPatch.value = fullPatch
+
+    emit('diff-computed', renderedStats.value)
   } catch (error) {
     console.error('Error computing diff:', error)
   } finally {
@@ -367,24 +375,36 @@ const updateIgnoreCase = (value: boolean) => {
   computeDiff()
 }
 
-const updateVirtualScroll = (value: boolean) => {
-  emitOptionsChanged({ virtualScrollEnabled: value })
-}
-
 const emitOptionsChanged = (partialOptions?: Partial<DiffOptions>) => {
   const options: DiffOptions = {
     ignoreWhitespace: props.ignoreWhitespace,
     ignoreCase: props.ignoreCase,
-    virtualScrollEnabled: props.virtualScrollEnabled,
     ...partialOptions
   }
   emit('options-changed', options)
 }
 
-const onDiffComputed = (event: { scrollTop?: number }) => {
-  if (event.scrollTop !== undefined) {
-    emit('scroll-sync', event.scrollTop)
+// Copy & Export — uses the same patch that was rendered
+const copyDiffToClipboard = async () => {
+  if (!lastPatch.value) return
+  try {
+    await navigator.clipboard.writeText(lastPatch.value)
+  } catch (err) {
+    console.error('Copy failed:', err)
   }
+}
+
+const downloadPatch = () => {
+  if (!lastPatch.value) return
+  const blob = new Blob([lastPatch.value], { type: 'text/plain' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = 'diff.patch'
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
 }
 
 // Watchers
@@ -393,26 +413,21 @@ watch([() => props.leftText, () => props.rightText], () => {
 }, { immediate: true })
 
 watch(
-  [() => props.ignoreWhitespace, () => props.ignoreCase],
+  [() => props.ignoreWhitespace, () => props.ignoreCase, () => props.mode, contextLines],
   () => {
     computeDiff()
   }
 )
 
-// Start navigation observation when diff container appears
-watch(shouldShowDiff, async (show) => {
-  if (show) {
+// Restart navigation observation whenever the diff container element changes.
+// When mode switches or text changes, computeDiff() sets isLoading=true which
+// destroys the old diff-container div. The old MutationObserver dies with it.
+// Watching the template ref ensures we start a fresh observer on the new element.
+watch(diffContainerRef, async (newEl) => {
+  navigation.stopObserving()
+  if (newEl) {
     await nextTick()
     navigation.startObserving()
-  } else {
-    navigation.stopObserving()
-  }
-})
-
-// Auto-enable virtual scroll for large files
-watch(shouldAutoEnableVirtualScroll, (shouldEnable) => {
-  if (shouldEnable && !props.virtualScrollEnabled) {
-    updateVirtualScroll(true)
   }
 })
 
@@ -525,7 +540,6 @@ onUnmounted(() => {
   position: sticky;
   top: 0;
   z-index: 10;
-  backdrop-filter: blur(8px);
 }
 
 /* ===== SEGMENTED CONTROL ===== */
@@ -553,6 +567,7 @@ onUnmounted(() => {
   transition: all var(--transition-fast);
   white-space: nowrap;
   line-height: 1.4;
+  text-transform: none;
 }
 
 .diff-segment:hover:not(.diff-segment--active) {
@@ -597,6 +612,38 @@ onUnmounted(() => {
   color: var(--dt-text-secondary);
   cursor: pointer;
   white-space: nowrap;
+  text-transform: none;
+}
+
+/* ===== CONTEXT LINE CONTROL ===== */
+.diff-context-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.diff-context-label {
+  font-size: var(--text-xs);
+  color: var(--dt-text-secondary);
+  white-space: nowrap;
+  text-transform: none;
+}
+
+.diff-context-select {
+  padding: 2px 6px;
+  font-size: var(--text-xs);
+  font-family: var(--font-mono);
+  background: var(--dt-surface-2);
+  border: 1px solid var(--dt-border);
+  border-radius: var(--radius-sm);
+  color: var(--dt-text-primary);
+  cursor: pointer;
+  text-transform: none;
+}
+
+.diff-context-select:focus {
+  outline: none;
+  border-color: var(--dt-brand);
 }
 
 /* ===== ACTION BUTTONS ===== */
@@ -621,6 +668,7 @@ onUnmounted(() => {
   font-weight: var(--font-weight-medium);
   white-space: nowrap;
   line-height: 1.4;
+  text-transform: none;
 }
 
 .diff-action-icon {
@@ -724,13 +772,7 @@ onUnmounted(() => {
 .diff-container {
   flex: 1;
   position: relative;
-}
-
-.diff-viewer {
-  width: 100%;
-  height: 100%;
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
+  background: var(--diff-code-bg);
 }
 
 /* ===== EMPTY STATE ===== */
@@ -807,6 +849,10 @@ onUnmounted(() => {
     display: none;
   }
 
+  .diff-context-label {
+    display: none;
+  }
+
   .diff-stats-bar {
     gap: 4px;
   }
@@ -818,138 +864,228 @@ onUnmounted(() => {
 }
 </style>
 
-<!-- Theme-agnostic vue-diff styling overrides -->
+<!-- diff2html theme integration — override CSS variables, not layout -->
 <style>
-/* ===== VUE-DIFF THEME INTEGRATION ===== */
+/* ===== DIFF2HTML THEME OVERRIDES ===== */
 
-/* Base wrapper styling */
-.diff-viewer .vue-diff-wrapper {
-  border: none;
-  border-radius: 0;
-  background: var(--diff-code-bg);
-  font-family: var(--font-mono);
-  overflow: hidden;
+/*
+ * Strategy: Override diff2html's CSS custom properties so its own layout
+ * rules stay intact. This avoids breaking the absolute-positioned line
+ * numbers and padding-based content alignment.
+ */
+
+/* Prevent text-transform inheritance (terminal mode) */
+.diff-renderer,
+.diff-renderer * {
+  text-transform: none !important;
 }
 
-/* ===== ROW STYLING ===== */
-.diff-viewer .vue-diff-row {
-  background: var(--diff-code-bg);
-  color: var(--dt-text-primary);
-  font-size: 13px;
-  line-height: 20px;
-  transition: background-color 60ms ease;
+/* Map diff2html CSS variables to our design tokens */
+.diff-container {
+  /* Base */
+  --d2h-bg-color: var(--diff-gutter-bg);
+  --d2h-border-color: var(--dt-border);
+  --d2h-dim-color: var(--diff-gutter-text);
+  --d2h-line-border-color: var(--dt-border);
+
+  /* File header (hidden, but override anyway) */
+  --d2h-file-header-bg-color: var(--dt-surface-2);
+  --d2h-file-header-border-color: var(--dt-border);
+
+  /* Placeholders (empty side in side-by-side) */
+  --d2h-empty-placeholder-bg-color: var(--dt-surface-2);
+  --d2h-empty-placeholder-border-color: var(--dt-border);
+
+  /* Insertions */
+  --d2h-ins-bg-color: var(--diff-added-bg);
+  --d2h-ins-border-color: var(--diff-added-border);
+  --d2h-ins-highlight-bg-color: var(--diff-added-word-bg);
+
+  /* Deletions */
+  --d2h-del-bg-color: var(--diff-removed-bg);
+  --d2h-del-border-color: var(--diff-removed-border);
+  --d2h-del-highlight-bg-color: var(--diff-removed-word-bg);
+
+  /* Changes (modified lines — del side and ins side) */
+  --d2h-change-del-color: var(--diff-removed-bg);
+  --d2h-change-ins-color: var(--diff-added-bg);
+
+  /* Info / hunk headers */
+  --d2h-info-bg-color: var(--dt-surface-2);
+  --d2h-info-border-color: var(--dt-border);
+
+  /* Selected */
+  --d2h-selected-color: var(--dt-brand-light);
+
+  /* Dark scheme variables (mapped to same tokens — we force light class) */
+  --d2h-dark-bg-color: var(--diff-gutter-bg);
+  --d2h-dark-border-color: var(--dt-border);
+  --d2h-dark-dim-color: var(--diff-gutter-text);
+  --d2h-dark-line-border-color: var(--dt-border);
+  --d2h-dark-file-header-bg-color: var(--dt-surface-2);
+  --d2h-dark-file-header-border-color: var(--dt-border);
+  --d2h-dark-empty-placeholder-bg-color: var(--dt-surface-2);
+  --d2h-dark-empty-placeholder-border-color: var(--dt-border);
+  --d2h-dark-ins-bg-color: var(--diff-added-bg);
+  --d2h-dark-ins-border-color: var(--diff-added-border);
+  --d2h-dark-ins-highlight-bg-color: var(--diff-added-word-bg);
+  --d2h-dark-del-bg-color: var(--diff-removed-bg);
+  --d2h-dark-del-border-color: var(--diff-removed-border);
+  --d2h-dark-del-highlight-bg-color: var(--diff-removed-word-bg);
+  --d2h-dark-change-del-color: var(--diff-removed-bg);
+  --d2h-dark-change-ins-color: var(--diff-added-bg);
+  --d2h-dark-info-bg-color: var(--dt-surface-2);
+  --d2h-dark-info-border-color: var(--dt-border);
 }
 
-.diff-viewer .vue-diff-row:hover {
-  background: var(--diff-row-hover-bg);
+/* Hide file header (we show our own stats bar) */
+.diff-container .d2h-file-header {
+  display: none !important;
 }
 
-/* ===== LINE NUMBER GUTTER ===== */
-.diff-viewer .vue-diff-row .lineNum {
-  background: var(--diff-gutter-bg);
-  color: var(--diff-gutter-text);
-  border-right: 1px solid var(--dt-border);
-  text-align: right;
+/* Remove file wrapper border/margin */
+.diff-container .d2h-file-wrapper {
+  border: none !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+}
+
+/* Font overrides — keep layout, change font */
+.diff-container .d2h-diff-table {
+  font-family: var(--font-mono) !important;
+}
+
+.diff-container .d2h-code-line-ctn {
+  font-family: var(--font-mono) !important;
+  color: var(--dt-text-primary) !important;
+}
+
+.diff-container .d2h-code-line-prefix {
+  font-family: var(--font-mono) !important;
+  color: var(--diff-gutter-text) !important;
+}
+
+/* Code line — transparent bg so td's del/ins color shows through uniformly */
+.diff-container .d2h-code-line,
+.diff-container .d2h-code-side-line {
+  background: transparent !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  padding-right: 1em !important;
+}
+
+/* Unchanged rows — neutral background */
+.diff-container .d2h-cntx:not(.d2h-emptyplaceholder) {
+  background-color: var(--diff-code-bg) !important;
+}
+
+/* Scrollable panel background — matches neutral so no edge gap shows */
+.diff-container .d2h-file-side-diff,
+.diff-container .d2h-code-wrapper {
+  background: var(--diff-code-bg) !important;
+}
+
+/* Line number colors */
+.diff-container .d2h-code-linenumber,
+.diff-container .d2h-code-side-linenumber {
+  background-color: var(--diff-gutter-bg) !important;
+  color: var(--diff-gutter-text) !important;
+  border-color: var(--dt-border) !important;
+}
+
+/* Added line — line number gutter */
+.diff-container .d2h-ins .d2h-code-linenumber,
+.diff-container .d2h-ins .d2h-code-side-linenumber,
+.diff-container .d2h-ins.d2h-change .d2h-code-linenumber,
+.diff-container .d2h-ins.d2h-change .d2h-code-side-linenumber {
+  background-color: var(--diff-added-gutter-bg) !important;
+  border-color: var(--diff-added-border) !important;
+}
+
+/* Removed line — line number gutter */
+.diff-container .d2h-del .d2h-code-linenumber,
+.diff-container .d2h-del .d2h-code-side-linenumber,
+.diff-container .d2h-del.d2h-change .d2h-code-linenumber,
+.diff-container .d2h-del.d2h-change .d2h-code-side-linenumber {
+  background-color: var(--diff-removed-gutter-bg) !important;
+  border-color: var(--diff-removed-border) !important;
+}
+
+/* Word-level highlights */
+.diff-container .d2h-code-line del,
+.diff-container .d2h-code-side-line del {
+  background-color: var(--diff-removed-word-bg) !important;
+  text-decoration: none !important;
+  border-radius: 3px;
+  padding: 1px 2px;
+}
+
+.diff-container .d2h-code-line ins,
+.diff-container .d2h-code-side-line ins {
+  background-color: var(--diff-added-word-bg) !important;
+  text-decoration: none !important;
+  border-radius: 3px;
+  padding: 1px 2px;
+}
+
+/* ===== HIDE HUNK HEADERS ===== */
+.diff-container tr:has(> td.d2h-info) {
+  display: none !important;
+}
+
+/* ===== EMPTY FILLER ROWS — subtle diagonal stripe ===== */
+.diff-container .d2h-code-side-emptyplaceholder,
+.diff-container .d2h-emptyplaceholder {
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--dt-surface-2),
+    var(--dt-surface-2) 3px,
+    var(--dt-border) 3px,
+    var(--dt-border) 4px
+  ) !important;
+}
+
+/* ===== VERTICAL SEPARATOR between left and right panels ===== */
+/* diff2html uses two separate .d2h-file-side-diff divs side-by-side */
+.diff-container .d2h-file-side-diff + .d2h-file-side-diff {
+  border-left: 2px solid var(--dt-border) !important;
+}
+
+/* ===== +/- SIGN PREFIX — bolder and colored ===== */
+.diff-container .d2h-code-line-prefix {
+  font-weight: 700 !important;
   user-select: none;
-  font-size: 12px;
-  min-width: 60px;
-  padding: 0 var(--space-sm);
-  font-family: var(--font-mono);
-  cursor: pointer;
-  transition: background-color 60ms ease;
 }
 
-.diff-viewer .vue-diff-row:hover .lineNum {
-  background: var(--dt-surface-2);
+.diff-container .d2h-del .d2h-code-line-prefix {
+  color: var(--dt-danger) !important;
 }
 
-/* ===== CODE CELLS ===== */
-.diff-viewer .vue-diff-row .code {
-  background: transparent;
-  color: var(--dt-text-primary);
-  font-family: var(--font-mono);
-  padding-left: var(--space-md);
+.diff-container .d2h-ins .d2h-code-line-prefix {
+  color: var(--dt-success) !important;
 }
 
-/* ===== ADDED LINES ===== */
-/* Covers both unified mode (class on row) and split mode (class on cell) */
-.diff-viewer .vue-diff-cell-added,
-.diff-viewer .code.vue-diff-cell-added {
-  background: var(--diff-added-bg);
-  color: var(--dt-text-primary);
+/* ===== GUTTER — distinct background + right border ===== */
+.diff-container .d2h-code-side-linenumber,
+.diff-container .d2h-code-linenumber {
+  background-color: var(--diff-gutter-bg) !important;
+  color: var(--diff-gutter-text) !important;
+  border-right: 1px solid var(--dt-border) !important;
+  font-weight: 500 !important;
 }
 
-/* Compound selector for split mode: .lineNum.vue-diff-cell-added (same element) */
-.diff-viewer .lineNum.vue-diff-cell-added,
-.diff-viewer .vue-diff-cell-added .lineNum {
-  background: var(--diff-added-gutter-bg);
-  color: var(--diff-gutter-text);
-  border-right-color: var(--diff-added-border);
+/* Row hover */
+.diff-container tr:hover .d2h-code-line,
+.diff-container tr:hover .d2h-code-side-line {
+  background: var(--diff-row-hover-bg) !important;
 }
 
-/* ===== REMOVED LINES ===== */
-.diff-viewer .vue-diff-cell-removed,
-.diff-viewer .code.vue-diff-cell-removed {
-  background: var(--diff-removed-bg);
-  color: var(--dt-text-primary);
+.diff-container tr:hover .d2h-code-linenumber,
+.diff-container tr:hover .d2h-code-side-linenumber {
+  background-color: var(--dt-surface-2) !important;
 }
 
-.diff-viewer .lineNum.vue-diff-cell-removed,
-.diff-viewer .vue-diff-cell-removed .lineNum {
-  background: var(--diff-removed-gutter-bg);
-  color: var(--diff-gutter-text);
-  border-right-color: var(--diff-removed-border);
-}
-
-/* ===== WORD-LEVEL HIGHLIGHTING ===== */
-.diff-viewer .vue-diff-cell-added span.modified {
-  background: var(--diff-added-word-bg);
-  color: var(--dt-text-primary);
-  text-decoration: none;
-  padding: 1px 2px;
-  font-weight: inherit;
-  border-radius: 3px;
-  box-decoration-break: clone;
-  -webkit-box-decoration-break: clone;
-}
-
-.diff-viewer .vue-diff-cell-removed span.modified {
-  background: var(--diff-removed-word-bg);
-  color: var(--dt-text-primary);
-  text-decoration: none;
-  padding: 1px 2px;
-  font-weight: inherit;
-  border-radius: 3px;
-  box-decoration-break: clone;
-  -webkit-box-decoration-break: clone;
-}
-
-/* ===== FOLD SECTIONS ===== */
-.diff-viewer .vue-diff-cell-fold {
-  background: var(--dt-surface-2);
-  color: var(--dt-text-tertiary);
-  border-top: 1px solid var(--diff-fold-border);
-  border-bottom: 1px solid var(--diff-fold-border);
-  cursor: pointer;
-  font-size: 12px;
-  transition: background-color var(--transition-fast);
-}
-
-.diff-viewer .vue-diff-cell-fold:hover {
-  background: var(--diff-fold-hover-bg);
-  color: var(--dt-text-secondary);
-}
-
-/* ===== VIRTUAL SCROLL ===== */
-.diff-viewer .vue-recycle-scroller {
-  height: 100%;
-}
-
-.diff-viewer .vue-recycle-scroller__slot {
-  background: var(--diff-code-bg);
-}
-
-/* ===== NAVIGATION HIGHLIGHT WITH PULSE ===== */
+/* ===== NAVIGATION HIGHLIGHT ===== */
 .diff-nav-highlight {
   outline: 2px solid var(--diff-highlight-ring);
   outline-offset: -2px;
@@ -973,47 +1109,29 @@ onUnmounted(() => {
 }
 
 /* ===== SCROLLBAR STYLING ===== */
-.diff-viewer ::-webkit-scrollbar {
+.diff-container ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
 
-.diff-viewer ::-webkit-scrollbar-track {
+.diff-container ::-webkit-scrollbar-track {
   background: var(--dt-surface-1);
 }
 
-.diff-viewer ::-webkit-scrollbar-thumb {
+.diff-container ::-webkit-scrollbar-thumb {
   background: var(--dt-text-tertiary);
   border: 2px solid var(--dt-surface-1);
   border-radius: 4px;
 }
 
-.diff-viewer ::-webkit-scrollbar-thumb:hover {
+.diff-container ::-webkit-scrollbar-thumb:hover {
   background: var(--dt-text-secondary);
-}
-
-/* ===== HIDE VUE-DIFF WATERMARK ===== */
-.diff-viewer .vue-diff-wrapper > footer,
-.diff-viewer .vue-diff-wrapper > .vue-diff-footer,
-.diff-viewer + div[class=""],
-.diff-container > div:not(.diff-viewer) {
-  display: none !important;
-}
-
-/* ===== SYNTAX HIGHLIGHTING OVERRIDES ===== */
-.diff-viewer .hljs {
-  background: transparent !important;
-  color: var(--dt-text-primary);
 }
 
 /* ===== REDUCED MOTION ===== */
 @media (prefers-reduced-motion: reduce) {
   .diff-nav-highlight {
     animation: none;
-  }
-
-  .diff-viewer .vue-diff-row {
-    transition: none;
   }
 }
 </style>

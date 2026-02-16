@@ -1,56 +1,49 @@
 <template>
   <div class="home-view">
-    <!-- Elegant Tools Navigation -->
-    <div class="elegant-navigation">
-      <div class="nav-container">
-        <div class="nav-tabs" role="tablist" aria-label="Developer tools navigation">
-          <router-link
-            v-for="(tool, index) in tools"
-            :key="index"
-            :to="tool.route"
-            @keydown.arrow-right="navigateTab(index + 1)"
-            @keydown.arrow-left="navigateTab(index - 1)"
-            @keydown.home="navigateTab(0)"
-            @keydown.end="navigateTab(tools.length - 1)"
-            :class="['nav-tab', { active: $route.path === tool.route }]"
-            :aria-selected="$route.path === tool.route"
-            :aria-controls="`panel-${index}`"
-            :id="`tab-${index}`"
-            role="tab"
-          >
-            <div class="tab-content">
-              <div class="tab-text">
-                <span class="tab-title">{{ tool.title }}</span>
-                <span class="tab-subtitle">{{ tool.subtitle }}</span>
-              </div>
-            </div>
-            <div class="tab-glow"></div>
-          </router-link>
-        </div>
-      </div>
-
-      <!-- Active Tool Content -->
-      <div class="tool-content">
-        <router-view v-slot="{ Component }">
-          <Transition name="fade" mode="out-in">
-            <component :is="Component" />
-          </Transition>
-        </router-view>
+    <!-- Segmented Control Navigation -->
+    <div class="seg-navigation">
+      <div class="seg-track" role="tablist" aria-label="Developer tools navigation">
+        <router-link
+          v-for="(tool, index) in tools"
+          :key="index"
+          :to="tool.route"
+          @keydown.arrow-right="navigateTab(index + 1)"
+          @keydown.arrow-left="navigateTab(index - 1)"
+          @keydown.home="navigateTab(0)"
+          @keydown.end="navigateTab(tools.length - 1)"
+          :class="['seg-item', { active: $route.path === tool.route }]"
+          :aria-selected="$route.path === tool.route"
+          :aria-controls="`panel-${index}`"
+          :id="`tab-${index}`"
+          role="tab"
+        >
+          <i :class="tool.icon" aria-hidden="true"></i>
+          <span>{{ tool.title }}</span>
+        </router-link>
       </div>
     </div>
 
+    <!-- Active Tool Content -->
+    <div class="tool-content" role="tabpanel" :id="`panel-${activeTabIndex}`" :aria-labelledby="`tab-${activeTabIndex}`">
+      <router-view v-slot="{ Component }">
+        <Transition name="fade" mode="out-in">
+          <component :is="Component" />
+        </Transition>
+      </router-view>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { nextTick, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, nextTick, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useSEO } from '@/composables/useSEO'
 import { SEO_CONFIG } from '@/config/seo'
 
 const router = useRouter()
+const route = useRoute()
 
-const { setMetaTags, addOrganizationSchema } = useSEO()
+const { setMetaTags, addOrganizationSchema, addWebSiteSchema } = useSEO()
 
 onMounted(() => {
   // Set homepage SEO
@@ -69,8 +62,9 @@ onMounted(() => {
     twitterImage: `${window.location.origin}/twitter-image.png`
   })
 
-  // Add organization schema for homepage
+  // Add organization and website schemas for homepage
   addOrganizationSchema()
+  addWebSiteSchema()
 
   // If on home page, redirect to first tool
   if (router.currentRoute.value.path === '/') {
@@ -89,7 +83,7 @@ const navigateTab = (targetIndex: number) => {
   }
 
   // Navigate to the tool route
-  router.push(tools[newIndex].route)
+  router.push(tools[newIndex]!.route)
 
   // Focus the newly active tab
   nextTick(() => {
@@ -102,7 +96,7 @@ const tools = [
   {
     title: 'Text Compare',
     subtitle: 'Compare & Format',
-    icon: 'pi pi-sync',
+    icon: 'pi pi-search',
     route: '/tools/text-compare'
   },
   {
@@ -148,6 +142,11 @@ const tools = [
     route: '/tools/character-count'
   }
 ]
+
+const activeTabIndex = computed(() => {
+  const idx = tools.findIndex(t => t.route === route.path)
+  return idx >= 0 ? idx : 0
+})
 </script>
 
 <style scoped>
@@ -155,189 +154,122 @@ const tools = [
   width: 100%;
 }
 
-
-/* Baseline Grid Navigation */
-.elegant-navigation {
-  width: 100%;
-  margin-bottom: var(--space-2xl); /* 32px = 4 baseline */
+/* Segmented control navigation — sticky below header */
+.seg-navigation {
+  position: sticky;
+  top: 48px;
+  z-index: 50;
+  background: var(--dt-background);
+  border-bottom: 1px solid var(--dt-border);
+  padding: 8px 0;
+  margin: 0 calc(-1 * var(--space-lg));
+  padding-left: var(--space-lg);
+  padding-right: var(--space-lg);
 }
 
-.nav-container {
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-2xl); /* 16px = 2 baseline */
-  padding: var(--space-lg); /* 16px = 2 baseline */
-  backdrop-filter: blur(12px);
-  margin-bottom: var(--space-2xl); /* 32px = 4 baseline */
-  box-shadow: var(--elevation-1);
+.seg-track {
+  display: flex;
+  gap: 2px;
+  background: var(--dt-surface-2);
+  border: 1px solid var(--dt-border);
+  border-radius: var(--radius-lg, 10px);
+  padding: 3px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
-.nav-tabs {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: var(--space-sm); /* 8px = 1 baseline */
+.seg-track::-webkit-scrollbar {
+  display: none;
 }
 
-.nav-tab {
-  position: relative;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: var(--radius-lg); /* 10px - same as buttons */
-  /* Standardized padding aligned to grid */
-  padding: var(--space-md) var(--space-lg); /* 12px 16px */
-  min-height: var(--button-height); /* 40px = 5 baseline - same as buttons */
-
-  cursor: pointer;
-  transition: all var(--transition-normal);
-  overflow: hidden;
-  backdrop-filter: blur(10px);
-  text-decoration: none;
-
-  /* Center content vertically */
+.seg-item {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 6px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  color: var(--dt-text-secondary);
+  text-decoration: none;
+  border-radius: var(--radius-md, 8px);
+  white-space: nowrap;
+  transition: all var(--transition-fast);
+  border: 1px solid transparent;
 }
 
-.nav-tab:hover {
-  border-color: var(--dt-brand);
-  background: var(--dt-brand-light);
-  transform: translateY(-1px);
-  box-shadow: var(--elevation-1);
+.seg-item i {
+  font-size: 14px;
 }
 
-.nav-tab.active {
-  background: var(--dt-brand);
-  border-color: var(--dt-brand);
-  color: white;
-  box-shadow: var(--elevation-2);
-  transform: translateY(-1px);
+.seg-item:hover {
+  color: var(--dt-text-primary);
+  background: var(--dt-surface-3);
 }
 
-/* Focus state for accessibility */
-.nav-tab:focus-visible {
+.seg-item.active {
+  color: var(--dt-brand);
+  background: var(--dt-surface-1);
+  font-weight: 600;
+  border-color: var(--dt-border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.seg-item:focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);
 }
 
-.tab-content {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  z-index: 2;
-}
-
-
-.tab-text {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: var(--space-xs); /* 4px spacing between title and subtitle */
-}
-
-.tab-title {
-  font-family: var(--font-sans);
-  font-size: var(--text-sm); /* 14px - aligned to grid */
-  font-weight: var(--font-weight-semibold); /* 600 */
-  color: var(--dt-text-primary);
-  line-height: 1; /* Tight line height for compact tabs */
-  margin: 0;
-  transition: color var(--transition-normal);
-}
-
-.nav-tab.active .tab-title {
-  color: white;
-  font-weight: var(--font-weight-semibold);
-}
-
-.tab-subtitle {
-  font-family: var(--font-sans);
-  font-size: var(--text-xs); /* 12px - aligned to grid */
-  font-weight: var(--font-weight-medium); /* 500 */
-  color: var(--dt-text-secondary);
-  line-height: 1; /* Tight line height for compact tabs */
-  letter-spacing: var(--letter-spacing-wide); /* 0.025em */
-  text-transform: uppercase;
-  margin: 0;
-  transition: color var(--transition-normal);
-}
-
-.nav-tab.active .tab-subtitle {
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.nav-tab:hover .tab-title {
-  color: var(--dt-brand);
-}
-
-.nav-tab:hover .tab-subtitle {
-  color: var(--dt-brand);
-}
-
-.nav-tab.active:hover .tab-title,
-.nav-tab.active:hover .tab-subtitle {
-  color: white;
-}
-
-.tab-glow {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: var(--gradient-accent);
-  opacity: 0;
-  border-radius: 12px;
-  transition: opacity 0.3s ease;
-  z-index: 1;
-}
-
-.nav-tab.active .tab-glow {
-  opacity: 1;
-}
-
-/* Content Transitions */
+/* Simplified page transition */
 .fade-enter-active,
 .fade-leave-active {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: opacity 100ms ease;
 }
 
-.fade-enter-from {
-  opacity: 0;
-  transform: translateY(20px);
-}
-
+.fade-enter-from,
 .fade-leave-to {
   opacity: 0;
-  transform: translateY(-20px);
 }
 
 .tool-content {
-  min-height: 600px; /* 75 baseline = good minimum height */
-  padding: var(--space-lg); /* 16px = 2 baseline */
-  margin-top: var(--space-lg); /* 16px = 2 baseline */
+  padding-top: var(--space-lg);
 }
 
 @media (max-width: 768px) {
-
-  .nav-tabs {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.5rem;
+  .seg-navigation {
+    margin: 0 calc(-1 * var(--space-md));
+    padding-left: var(--space-md);
+    padding-right: var(--space-md);
   }
 
-  .nav-tab {
-    padding: 0.7rem 0.75rem;
+  .seg-item {
+    font-size: 12px;
+    padding: 6px 10px;
   }
 
+  .seg-item i {
+    font-size: 12px;
+  }
+}
 
-  .tab-title {
-    font-size: 0.8rem;
+@media (max-width: 480px) {
+  .seg-navigation {
+    margin: 0 calc(-1 * var(--space-sm));
+    padding-left: var(--space-sm);
+    padding-right: var(--space-sm);
   }
 
-  .tab-subtitle {
-    font-size: 0.6rem;
+  .seg-item span {
+    display: none;
+  }
+
+  .seg-item i {
+    font-size: 16px;
+  }
+
+  .seg-item {
+    padding: 8px 12px;
   }
 }
 </style>

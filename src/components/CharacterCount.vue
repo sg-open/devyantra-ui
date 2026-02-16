@@ -1,47 +1,31 @@
 <template>
-  <Card class="character-count">
-    <template #title>
-      <div class="card-header">
-        <i class="pi pi-hashtag text-2xl mr-2"></i>
-        Character Counter
-      </div>
-    </template>
-
-    <template #subtitle>
-      Analyze text statistics including characters, words, lines, and more
-    </template>
-
-    <template #content>
+  <div class="tool-panel character-count">
+    <header class="tool-hero">
+      <h1>Character & Word Counter</h1>
+      <p>Count characters, words, sentences, and paragraphs in any text. Get reading time estimates and check against platform character limits.</p>
+    </header>
 
     <div class="counter-container">
       <!-- Input Section -->
       <div class="input-section">
         <label class="input-label">Enter your text:</label>
-        <Textarea
+        <textarea
           v-model="inputText"
           placeholder="Type or paste your text here to analyze..."
           rows="12"
-          class="text-area"
+          class="p-inputtextarea text-area"
           @input="analyzeText"
-        />
+        ></textarea>
 
         <div class="input-actions">
-          <Button
-            @click="clearText"
-            :disabled="!inputText.trim()"
-            icon="pi pi-trash"
-            label="Clear Text"
-            severity="secondary"
-            outlined
-          />
-          <Button
-            @click="copyStats"
-            :disabled="!inputText.trim()"
-            icon="pi pi-copy"
-            label="Copy Stats"
-            severity="secondary"
-            outlined
-          />
+          <button class="p-button p-button-secondary p-button-outlined" :disabled="!inputText.trim()" @click="clearText">
+            <i class="pi pi-trash"></i>
+            Clear Text
+          </button>
+          <button class="p-button p-button-secondary p-button-outlined" :disabled="!inputText.trim()" @click="copyStats">
+            <i class="pi pi-copy"></i>
+            Copy Stats
+          </button>
         </div>
       </div>
 
@@ -108,16 +92,26 @@
               <div class="stat-label">Reading Time (min)</div>
             </div>
           </div>
+
+          <div class="stat-card info">
+            <div class="stat-icon">
+              <i class="pi pi-microphone"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-value">{{ stats.speakingTime }}</div>
+              <div class="stat-label">Speaking Time (min)</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Detailed Analysis - Full Width Below Both Sections -->
     <div v-if="inputText.trim()" class="detailed-analysis">
-      <h3 class="analysis-title">
+      <h2 class="analysis-title">
         <i class="pi pi-chart-bar mr-2"></i>
         Detailed Analysis
-      </h3>
+      </h2>
 
       <div class="analysis-grid">
         <div class="analysis-item">
@@ -150,17 +144,58 @@
     <!-- Empty State for Detailed Analysis -->
     <div v-else class="detailed-analysis-empty">
       <div class="empty-state">
-        <i class="pi pi-chart-bar text-4xl text-gray-400 mb-2"></i>
-        <p class="text-gray-500">Enter text above to see detailed analysis</p>
+        <i class="pi pi-chart-bar empty-state-icon"></i>
+        <p>Enter text above to see detailed analysis</p>
       </div>
     </div>
-    </template>
-  </Card>
+
+    <!-- SEO Content Section -->
+    <section class="tool-info" aria-label="About this tool">
+      <h2>What is a Character Counter?</h2>
+      <p>A character counter is a tool that analyzes text and reports its length in multiple units — characters (with and without spaces), words, sentences, lines, and paragraphs. Writers, marketers, and developers use character counters to meet length requirements for social media posts, meta descriptions, SMS messages, academic papers, and API field limits.</p>
+      <p>DevYantra's Character Counter goes beyond simple counting. It estimates reading and speaking time, calculates text density metrics like average word length, identifies the longest word, counts unique words, and checks your text against common platform limits like Twitter/X (280 characters), SMS (160 characters), and Google meta descriptions (160 characters).</p>
+
+      <h2>Key Features</h2>
+      <ul class="feature-list">
+        <li>Real-time character, word, sentence, line, and paragraph counting</li>
+        <li>Reading time and speaking time estimates</li>
+        <li>Platform limit checks (Twitter, SMS, meta descriptions, and more)</li>
+        <li>Text density analytics: average word length, longest word, unique words</li>
+        <li>Characters with spaces and characters without spaces counts</li>
+      </ul>
+
+      <h2>How to Use the Character Counter</h2>
+      <ol>
+        <li>Paste or type your text into the input area.</li>
+        <li>Character, word, line, and paragraph counts update instantly.</li>
+        <li>Check the stats cards for reading time, speaking time, and more.</li>
+        <li>Expand "Detailed Analysis" for word frequency and text density metrics.</li>
+      </ol>
+
+      <h2>Frequently Asked Questions</h2>
+      <div class="faq-section">
+        <h3>How do I count characters in text?</h3>
+        <p>Paste or type your text into the input area and DevYantra instantly displays the character count, word count, line count, and paragraph count. It also shows reading time estimates and checks against common platform character limits.</p>
+
+        <h3>What is a word counter?</h3>
+        <p>A word counter is a tool that counts the number of words in a piece of text. It typically also provides character counts, sentence counts, and reading time estimates. Writers use word counters for meeting article length requirements, social media post limits, and academic paper constraints.</p>
+
+        <h3>Does it count characters with or without spaces?</h3>
+        <p>DevYantra shows both: total characters (with spaces) and characters without spaces. This is useful for platforms like Twitter/X that count all characters, and services that only count non-space characters.</p>
+      </div>
+
+      <h2>Related Tools</h2>
+      <nav class="related-tools" aria-label="Related developer tools">
+        <router-link to="/tools/timestamp-converter">Timestamp Converter</router-link>
+        <router-link to="/tools/text-compare">Text Compare</router-link>
+        <router-link to="/tools/delimiter">Delimiter Tool</router-link>
+      </nav>
+    </section>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
-import { useToast } from 'primevue/usetoast'
 
 interface TextStats {
   characters: number
@@ -170,6 +205,7 @@ interface TextStats {
   paragraphs: number
   sentences: number
   readingTime: number
+  speakingTime: number
   avgWordsPerSentence: number
   avgCharsPerWord: number
   longestWord: string
@@ -177,7 +213,7 @@ interface TextStats {
   uniqueWords: number
 }
 
-const toast = useToast()
+
 const inputText = ref('')
 
 const stats = reactive<TextStats>({
@@ -188,6 +224,7 @@ const stats = reactive<TextStats>({
   paragraphs: 0,
   sentences: 0,
   readingTime: 0,
+  speakingTime: 0,
   avgWordsPerSentence: 0,
   avgCharsPerWord: 0,
   longestWord: '',
@@ -222,6 +259,9 @@ const analyzeText = () => {
 
   // Reading time (assuming 200 words per minute)
   stats.readingTime = Math.ceil(stats.words / 200)
+
+  // Speaking time (assuming 150 words per minute)
+  stats.speakingTime = Math.ceil(stats.words / 150)
 
   // Averages
   stats.avgWordsPerSentence = stats.sentences > 0 ? Math.round((stats.words / stats.sentences) * 10) / 10 : 0
@@ -274,6 +314,7 @@ const resetStats = () => {
     paragraphs: 0,
     sentences: 0,
     readingTime: 0,
+    speakingTime: 0,
     avgWordsPerSentence: 0,
     avgCharsPerWord: 0,
     longestWord: '',
@@ -285,13 +326,6 @@ const resetStats = () => {
 const clearText = () => {
   inputText.value = ''
   resetStats()
-
-  toast.add({
-    severity: 'info',
-    summary: 'Cleared',
-    detail: 'Text and statistics have been cleared',
-    life: 2000
-  })
 }
 
 const copyStats = async () => {
@@ -313,31 +347,13 @@ const copyStats = async () => {
 
   try {
     await navigator.clipboard.writeText(statsText)
-    toast.add({
-      severity: 'success',
-      summary: 'Copied',
-      detail: 'Statistics copied to clipboard',
-      life: 2000
-    })
   } catch (err) {
     console.error('Copy failed:', err)
-    toast.add({
-      severity: 'error',
-      summary: 'Copy Failed',
-      detail: 'Failed to copy statistics',
-      life: 3000
-    })
   }
 }
 </script>
 
 <style scoped>
-.card-header {
-  display: flex;
-  align-items: center;
-  font-weight: 600;
-}
-
 .counter-container {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -353,12 +369,12 @@ const copyStats = async () => {
 .input-label {
   display: block;
   font-weight: 500;
-  color: var(--text-color);
+  color: var(--dt-text-primary);
   margin-bottom: 0.5rem;
 }
 
 .text-area {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 0.875rem;
   line-height: 1.5;
   min-height: 300px;
@@ -385,49 +401,13 @@ const copyStats = async () => {
 }
 
 .stat-card {
-  background: var(--surface-card);
-  border: 1px solid var(--surface-border);
-  border-radius: 8px;
-  padding: 1.5rem;
+  background: var(--dt-surface-1);
+  border: 1px solid var(--dt-border);
+  border-radius: var(--radius-md);
+  padding: 1rem;
   display: flex;
   align-items: center;
-  gap: 1rem;
-  transition: all 0.2s ease;
-}
-
-.stat-card:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.stat-card.primary {
-  border-color: var(--blue-300);
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05));
-}
-
-.stat-card.secondary {
-  border-color: var(--gray-300);
-  background: linear-gradient(135deg, rgba(107, 114, 128, 0.1), rgba(107, 114, 128, 0.05));
-}
-
-.stat-card.success {
-  border-color: var(--green-300);
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(34, 197, 94, 0.05));
-}
-
-.stat-card.info {
-  border-color: var(--cyan-300);
-  background: linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(6, 182, 212, 0.05));
-}
-
-.stat-card.warning {
-  border-color: var(--yellow-300);
-  background: linear-gradient(135deg, rgba(251, 191, 36, 0.1), rgba(251, 191, 36, 0.05));
-}
-
-.stat-card.danger {
-  border-color: var(--red-300);
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.05));
+  gap: 0.75rem;
 }
 
 .stat-icon {
@@ -442,20 +422,20 @@ const copyStats = async () => {
 .stat-value {
   font-size: 1.8rem;
   font-weight: 700;
-  color: var(--text-color);
+  color: var(--dt-text-primary);
   line-height: 1;
 }
 
 .stat-label {
   font-size: 0.85rem;
-  color: var(--text-color-secondary);
+  color: var(--dt-text-secondary);
   margin-top: 0.25rem;
   font-weight: 500;
 }
 
 .detailed-analysis {
-  background: var(--surface-card);
-  border: 1px solid var(--surface-border);
+  background: var(--dt-surface-1);
+  border: 1px solid var(--dt-border);
   border-radius: 8px;
   padding: 1.5rem;
   margin-top: 1.5rem;
@@ -468,7 +448,7 @@ const copyStats = async () => {
 .analysis-title {
   font-size: 1.1rem;
   font-weight: 600;
-  color: var(--text-color);
+  color: var(--dt-text-primary);
   margin-bottom: 1rem;
   display: flex;
   align-items: center;
@@ -485,7 +465,7 @@ const copyStats = async () => {
   justify-content: space-between;
   align-items: center;
   padding: 0.5rem 0;
-  border-bottom: 1px solid var(--surface-border);
+  border-bottom: 1px solid var(--dt-border);
 }
 
 .analysis-item:last-child {
@@ -494,13 +474,13 @@ const copyStats = async () => {
 
 .analysis-label {
   font-weight: 500;
-  color: var(--text-color-secondary);
+  color: var(--dt-text-secondary);
 }
 
 .analysis-value {
   font-weight: 600;
-  color: var(--text-color);
-  font-family: 'JetBrains Mono', monospace;
+  color: var(--dt-text-primary);
+  font-family: var(--font-mono);
 }
 
 .empty-state {
@@ -510,10 +490,16 @@ const copyStats = async () => {
   justify-content: center;
   padding: 2rem;
   text-align: center;
-  border: 2px dashed var(--surface-border);
-  border-radius: var(--border-radius);
-  color: var(--text-color-secondary);
+  border: 2px dashed var(--dt-border);
+  border-radius: var(--radius-lg);
+  color: var(--dt-text-secondary);
   min-height: 200px;
+}
+
+.empty-state-icon {
+  font-size: 2rem;
+  color: var(--dt-text-tertiary);
+  margin-bottom: var(--space-sm);
 }
 
 @media (max-width: 1024px) {

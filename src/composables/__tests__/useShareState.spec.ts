@@ -149,7 +149,7 @@ describe('useShareState', () => {
         }
 
         toString() {
-          return this.href + this.hash
+          return this.href + (this.hash ? '#' + this.hash : '')
         }
       } as any
 

@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test('Verify button text centering', async ({ page }) => {
   // Navigate to the application
-  await page.goto('http://localhost:5175');
+  await page.goto('/');
   await page.waitForLoadState('networkidle');
 
   // Take screenshot focusing on Feedback button area for detailed centering examination
