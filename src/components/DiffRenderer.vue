@@ -1,16 +1,15 @@
 <!--
-  DiffRenderer.vue - Robust side-by-side diff renderer
+  DiffRenderer.vue - World-class side-by-side diff renderer
 
   Props:
   - leftText: string - Original text content
   - rightText: string - Modified text content
   - mode: 'split' | 'unified' - Display mode
-  - granularity: 'line' | 'word' | 'char' - Comparison granularity
   - ignoreWhitespace: boolean - Ignore whitespace differences
   - ignoreCase: boolean - Ignore case differences
   - language: string - Programming language for syntax highlighting
   - virtualScrollEnabled: boolean - Enable virtual scrolling for large files
-  - theme: 'light' | 'dark' - Theme mode (uses design tokens)
+  - diffStats: DiffStats | null - Pre-computed diff stats from useDiffEngine
 
   Events:
   - @diff-computed: Emitted when diff computation is complete
@@ -21,87 +20,89 @@
 
 <template>
   <div class="diff-renderer" :class="{ [`diff-renderer--${mode}`]: true }">
-    <!-- Options Panel -->
-    <div class="diff-options-panel">
-      <div class="diff-options-group">
-        <label class="diff-option-label">View:</label>
-        <div class="diff-option-buttons">
-          <button
-            v-for="viewMode in viewModes"
-            :key="viewMode.value"
-@click="updateMode(viewMode.value as 'split' | 'unified')"
-            :class="{
-              'diff-option-button': true,
-              'diff-option-button--active': mode === viewMode.value
-            }"
-            :title="viewMode.title"
-          >
-            <i :class="viewMode.icon"></i>
-            {{ viewMode.label }}
-          </button>
-        </div>
+    <!-- Stats Bar (above diff) — hides zero-count chips -->
+    <div v-if="displayStats" class="diff-stats-bar">
+      <span v-if="displayStats.additions > 0" class="diff-stat-chip diff-stat-chip--added">
+        +{{ displayStats.additions }} added
+      </span>
+      <span v-if="displayStats.deletions > 0" class="diff-stat-chip diff-stat-chip--removed">
+        -{{ displayStats.deletions }} removed
+      </span>
+      <span v-if="displayStats.modifications > 0" class="diff-stat-chip diff-stat-chip--modified">
+        ~{{ displayStats.modifications }} modified
+      </span>
+      <span class="diff-stat-chip diff-stat-chip--info">
+        {{ displayStats.totalLines }} lines
+      </span>
+      <span class="diff-stat-chip diff-stat-chip--time">
+        {{ displayStats.computeTime }}ms
+      </span>
+    </div>
+
+    <!-- Sticky Toolbar -->
+    <div class="diff-toolbar">
+      <!-- Segmented Control: Split / Unified -->
+      <div class="diff-segmented-control">
+        <button
+          v-for="viewMode in viewModes"
+          :key="viewMode.value"
+          @click="updateMode(viewMode.value as 'split' | 'unified')"
+          :class="['diff-segment', { 'diff-segment--active': mode === viewMode.value }]"
+          :title="viewMode.title"
+        >
+          <span class="diff-segment-icon">{{ viewMode.icon }}</span>
+          <span class="diff-segment-label">{{ viewMode.label }}</span>
+        </button>
       </div>
 
-      <div class="diff-options-group">
-        <label class="diff-option-label">Granularity:</label>
-        <div class="diff-option-buttons">
-          <button
-            v-for="gran in granularityOptions"
-            :key="gran.value"
-@click="updateGranularity(gran.value as 'line' | 'word' | 'char')"
-            :class="{
-              'diff-option-button': true,
-              'diff-option-button--active': granularity === gran.value
-            }"
-            :title="gran.title"
-          >
-            {{ gran.label }}
-          </button>
-        </div>
+      <!-- Toggle Options -->
+      <div class="diff-toggles">
+        <label v-for="toggle in toggleOptions" :key="toggle.key" class="diff-toggle">
+          <input
+            type="checkbox"
+            :checked="toggle.checked"
+            @change="toggle.onChange(($event.target as HTMLInputElement).checked)"
+            class="diff-toggle-input"
+          />
+          <span class="diff-toggle-label">{{ toggle.label }}</span>
+        </label>
       </div>
 
-      <div class="diff-options-group">
-        <div class="diff-option-toggles">
-          <label class="diff-toggle">
-            <input
-              type="checkbox"
-              :checked="ignoreWhitespace"
-@change="updateIgnoreWhitespace(($event.target as HTMLInputElement).checked)"
-              class="diff-toggle-input"
-            />
-            <span class="diff-toggle-label">Ignore Whitespace</span>
-          </label>
+      <!-- Action Buttons -->
+      <div class="diff-actions">
+        <button
+          class="diff-action-btn"
+          @click="$emit('copy-diff')"
+          title="Copy diff to clipboard"
+        >
+          <span class="diff-action-icon">&#x2398;</span>
+          <span class="diff-action-text">Copy</span>
+        </button>
+        <button
+          class="diff-action-btn"
+          @click="$emit('download-patch')"
+          title="Download as .patch file"
+        >
+          <span class="diff-action-icon">&#x21E9;</span>
+          <span class="diff-action-text">Export</span>
+        </button>
+      </div>
 
-          <label class="diff-toggle">
-            <input
-              type="checkbox"
-              :checked="ignoreCase"
-@change="updateIgnoreCase(($event.target as HTMLInputElement).checked)"
-              class="diff-toggle-input"
-            />
-            <span class="diff-toggle-label">Ignore Case</span>
-          </label>
-
-          <label class="diff-toggle">
-            <input
-              type="checkbox"
-              :checked="virtualScrollEnabled"
-@change="updateVirtualScroll(($event.target as HTMLInputElement).checked)"
-              class="diff-toggle-input"
-            />
-            <span class="diff-toggle-label">Virtual Scroll</span>
-          </label>
-
-          <label class="diff-toggle">
-            <input
-              type="checkbox"
-              :checked="useMonacoEditor"
-@change="updateUseMonaco(($event.target as HTMLInputElement).checked)"
-              class="diff-toggle-input"
-            />
-            <span class="diff-toggle-label">Monaco Editor</span>
-          </label>
-        </div>
+      <!-- Navigation -->
+      <div v-if="navigation.hasChanges.value" class="diff-nav">
+        <button
+          class="diff-nav-btn"
+          @click="navigation.prevChange()"
+          title="Previous change (Alt+Up)"
+        >&#x25B2;</button>
+        <span class="diff-nav-counter">
+          {{ navigation.currentIndex.value >= 0 ? `${navigation.currentIndex.value + 1}/${navigation.totalChanges.value}` : `–/${navigation.totalChanges.value}` }}
+        </span>
+        <button
+          class="diff-nav-btn"
+          @click="navigation.nextChange()"
+          title="Next change (Alt+Down)"
+        >&#x25BC;</button>
       </div>
     </div>
 
@@ -113,23 +114,8 @@
         <span class="diff-loading-text">Computing differences...</span>
       </div>
 
-      <!-- Monaco Editor Renderer (when enabled) -->
-      <div v-else-if="useMonacoEditor && shouldShowDiff" class="monaco-container">
-        <MonacoDiffRenderer
-          :left-text="processedLeftText"
-          :right-text="processedRightText"
-          :language="detectedLanguage"
-          :theme="theme"
-          :height="600"
-          :read-only="true"
-          @text-changed="onMonacoTextChanged"
-          @editor-ready="onMonacoReady"
-          class="monaco-diff-editor"
-        />
-      </div>
-
-      <!-- Vue-diff Renderer (default) -->
-      <div v-else-if="shouldShowDiff" class="diff-container">
+      <!-- Vue-diff Renderer -->
+      <div v-else-if="shouldShowDiff" class="diff-container" ref="diffContainerRef">
         <Diff
           :prev="processedLeftText"
           :current="processedRightText"
@@ -138,6 +124,7 @@
           :input-delay="120"
           :virtual-scroll="virtualScrollConfig"
           :folding="true"
+          :chk-words="true"
           @diff="onDiffComputed"
           class="diff-viewer"
         />
@@ -154,110 +141,91 @@
         </div>
       </div>
     </div>
-
-    <!-- Stats Panel -->
-    <div v-if="diffStats" class="diff-stats-panel">
-      <div class="diff-stats-item">
-        <span class="diff-stats-label">Added:</span>
-        <span class="diff-stats-value diff-stats-value--added">{{ diffStats.additions }}</span>
-      </div>
-      <div class="diff-stats-item">
-        <span class="diff-stats-label">Removed:</span>
-        <span class="diff-stats-value diff-stats-value--removed">{{ diffStats.deletions }}</span>
-      </div>
-      <div class="diff-stats-item">
-        <span class="diff-stats-label">Modified:</span>
-        <span class="diff-stats-value diff-stats-value--modified">{{ diffStats.modifications }}</span>
-      </div>
-      <div class="diff-stats-item">
-        <span class="diff-stats-label">Lines:</span>
-        <span class="diff-stats-value">{{ diffStats.totalLines }}</span>
-      </div>
-      <div class="diff-stats-item">
-        <span class="diff-stats-label">Time:</span>
-        <span class="diff-stats-value">{{ diffStats.computeTime }}ms</span>
-      </div>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { Diff } from 'vue-diff'
 import 'vue-diff/dist/index.css'
-import * as JSDiff from 'jsdiff'
-import MonacoDiffRenderer from './MonacoDiffRenderer.vue'
-import type * as Monaco from 'monaco-editor'
+import type { DiffStats } from '@/composables/useDiffEngine'
+import { useDiffNavigation } from '@/composables/useDiffNavigation'
 
 // Props
 interface Props {
   leftText: string
   rightText: string
   mode?: 'split' | 'unified'
-  granularity?: 'line' | 'word' | 'char'
   ignoreWhitespace?: boolean
   ignoreCase?: boolean
   language?: string
   virtualScrollEnabled?: boolean
-  theme?: 'light' | 'dark'
+  diffStats?: DiffStats | null
 }
 
 const props = withDefaults(defineProps<Props>(), {
   mode: 'split',
-  granularity: 'line',
   ignoreWhitespace: false,
   ignoreCase: false,
   language: 'plaintext',
   virtualScrollEnabled: false,
-  theme: 'light'
+  diffStats: null
 })
 
 // Emits
-interface Emits {
-  'diff-computed': [stats: DiffStats]
-  'scroll-sync': [scrollTop: number]
-  'mode-changed': [mode: 'split' | 'unified']
-  'options-changed': [options: DiffOptions]
-  'text-changed': [data: { left: string; right: string }]
-  'editor-ready': [editor: Monaco.editor.IStandaloneDiffEditor]
-}
-
-const emit = defineEmits<Emits>()
-
-// Types
-interface DiffStats {
-  additions: number
-  deletions: number
-  modifications: number
-  totalLines: number
-  computeTime: number
-}
-
 interface DiffOptions {
-  granularity: 'line' | 'word' | 'char'
   ignoreWhitespace: boolean
   ignoreCase: boolean
   virtualScrollEnabled: boolean
 }
 
+interface Emits {
+  'diff-computed': [stats: DiffStats]
+  'scroll-sync': [scrollTop: number]
+  'mode-changed': [mode: 'split' | 'unified']
+  'options-changed': [options: DiffOptions]
+  'copy-diff': []
+  'download-patch': []
+}
+
+const emit = defineEmits<Emits>()
+
 // State
 const isLoading = ref(false)
-const diffStats = ref<DiffStats | null>(null)
 const processedLeftText = ref('')
 const processedRightText = ref('')
-const useMonacoEditor = ref(false)
+const diffContainerRef = ref<HTMLElement>()
+
+// Navigation
+const navigation = useDiffNavigation(diffContainerRef)
 
 // Configuration
 const viewModes = [
-  { value: 'split', label: 'Split', icon: 'pi pi-columns', title: 'Side-by-side view' },
-  { value: 'unified', label: 'Unified', icon: 'pi pi-align-left', title: 'Unified diff view' }
+  { value: 'split', label: 'Split', icon: '\u2016', title: 'Side-by-side view' },
+  { value: 'unified', label: 'Unified', icon: '\u2261', title: 'Unified diff view' }
 ]
 
-const granularityOptions = [
-  { value: 'line', label: 'Line', title: 'Compare line by line' },
-  { value: 'word', label: 'Word', title: 'Compare word by word' },
-  { value: 'char', label: 'Char', title: 'Compare character by character' }
-]
+// Toggle options computed for cleaner template
+const toggleOptions = computed(() => [
+  {
+    key: 'whitespace',
+    label: 'Whitespace',
+    checked: props.ignoreWhitespace,
+    onChange: updateIgnoreWhitespace
+  },
+  {
+    key: 'case',
+    label: 'Case',
+    checked: props.ignoreCase,
+    onChange: updateIgnoreCase
+  },
+  {
+    key: 'virtualScroll',
+    label: 'V-Scroll',
+    checked: props.virtualScrollEnabled,
+    onChange: updateVirtualScroll
+  }
+])
 
 // Computed
 const detectedLanguage = computed(() => {
@@ -282,10 +250,12 @@ const shouldShowDiff = computed(() => {
          processedLeftText.value !== processedRightText.value
 })
 
+const displayStats = computed(() => props.diffStats)
+
 const shouldAutoEnableVirtualScroll = computed(() => {
   const totalLength = (props.leftText?.length || 0) + (props.rightText?.length || 0)
   const totalLines = (props.leftText?.split('\n').length || 0) + (props.rightText?.split('\n').length || 0)
-  return totalLength > 1024 * 1024 || totalLines > 5000 // 1MB or 5k lines
+  return totalLength > 1024 * 1024 || totalLines > 5000
 })
 
 // Methods
@@ -345,12 +315,11 @@ const preprocessText = (text: string): string => {
   }
 
   if (props.ignoreWhitespace) {
-    // Normalize whitespace
     processed = processed
-      .replace(/\t/g, '    ') // Convert tabs to spaces
-      .replace(/[ ]+/g, ' ')  // Collapse multiple spaces
-      .replace(/[ ]+$/gm, '') // Remove trailing spaces
-      .replace(/^\s+$/gm, '') // Remove whitespace-only lines
+      .replace(/\t/g, '    ')
+      .replace(/[ ]+/g, ' ')
+      .replace(/[ ]+$/gm, '')
+      .replace(/^\s+$/gm, '')
   }
 
   return processed
@@ -360,87 +329,24 @@ const computeDiff = async () => {
   if (!props.leftText && !props.rightText) {
     processedLeftText.value = ''
     processedRightText.value = ''
-    diffStats.value = null
     return
   }
 
   isLoading.value = true
-  const startTime = performance.now()
 
   try {
     await nextTick()
 
-    // Apply granularity-specific processing
-    let leftProcessed = props.leftText
-    let rightProcessed = props.rightText
+    // Apply standard preprocessing (ignore whitespace / ignore case)
+    processedLeftText.value = preprocessText(props.leftText)
+    processedRightText.value = preprocessText(props.rightText)
 
-    if (props.granularity !== 'line') {
-      // For word/char granularity, we need to precompute diff
-      const diffFunction = props.granularity === 'char' ? JSDiff.diffChars : JSDiff.diffWords
-      const changes = diffFunction(leftProcessed, rightProcessed, {
-        ignoreCase: props.ignoreCase,
-        ignoreWhitespace: props.ignoreWhitespace
-      })
-
-      // Reconstruct texts with change markers for vue-diff
-      leftProcessed = ''
-      rightProcessed = ''
-
-      changes.forEach((change) => {
-        if (change.removed) {
-          leftProcessed += change.value
-        } else if (change.added) {
-          rightProcessed += change.value
-        } else {
-          leftProcessed += change.value
-          rightProcessed += change.value
-        }
-      })
+    // Emit stats from the parent's diffEngine
+    if (props.diffStats) {
+      emit('diff-computed', props.diffStats)
     }
-
-    // Apply standard preprocessing
-    processedLeftText.value = preprocessText(leftProcessed)
-    processedRightText.value = preprocessText(rightProcessed)
-
-    // Calculate basic stats
-    const leftLines = processedLeftText.value.split('\n')
-    const rightLines = processedRightText.value.split('\n')
-
-    const lineDiff = JSDiff.diffLines(processedLeftText.value, processedRightText.value)
-
-    let additions = 0
-    let deletions = 0
-    let modifications = 0
-
-    lineDiff.forEach(change => {
-      const lineCount = change.value.split('\n').length - 1
-      if (change.added) {
-        additions += lineCount
-      } else if (change.removed) {
-        deletions += lineCount
-      }
-    })
-
-    // Estimate modifications (lines that appear as both added and removed)
-    modifications = Math.min(additions, deletions)
-    additions = Math.max(0, additions - modifications)
-    deletions = Math.max(0, deletions - modifications)
-
-    const computeTime = Math.round(performance.now() - startTime)
-
-    diffStats.value = {
-      additions,
-      deletions,
-      modifications,
-      totalLines: Math.max(leftLines.length, rightLines.length),
-      computeTime
-    }
-
-    emit('diff-computed', diffStats.value)
-
   } catch (error) {
     console.error('Error computing diff:', error)
-    diffStats.value = null
   } finally {
     isLoading.value = false
   }
@@ -449,11 +355,6 @@ const computeDiff = async () => {
 const updateMode = (newMode: 'split' | 'unified') => {
   emit('mode-changed', newMode)
   emitOptionsChanged()
-}
-
-const updateGranularity = (newGranularity: 'line' | 'word' | 'char') => {
-  emitOptionsChanged({ granularity: newGranularity })
-  computeDiff()
 }
 
 const updateIgnoreWhitespace = (value: boolean) => {
@@ -472,7 +373,6 @@ const updateVirtualScroll = (value: boolean) => {
 
 const emitOptionsChanged = (partialOptions?: Partial<DiffOptions>) => {
   const options: DiffOptions = {
-    granularity: props.granularity,
     ignoreWhitespace: props.ignoreWhitespace,
     ignoreCase: props.ignoreCase,
     virtualScrollEnabled: props.virtualScrollEnabled,
@@ -482,24 +382,9 @@ const emitOptionsChanged = (partialOptions?: Partial<DiffOptions>) => {
 }
 
 const onDiffComputed = (event: { scrollTop?: number }) => {
-  // Handle vue-diff events if needed
   if (event.scrollTop !== undefined) {
     emit('scroll-sync', event.scrollTop)
   }
-}
-
-// Event handlers for Monaco Editor
-const onMonacoTextChanged = (data: { left: string; right: string }) => {
-  emit('text-changed', data)
-}
-
-const onMonacoReady = (editor: Monaco.editor.IStandaloneDiffEditor) => {
-  emit('editor-ready', editor)
-}
-
-const updateUseMonaco = (value: boolean) => {
-  useMonacoEditor.value = value
-  emitOptionsChanged()
 }
 
 // Watchers
@@ -508,11 +393,21 @@ watch([() => props.leftText, () => props.rightText], () => {
 }, { immediate: true })
 
 watch(
-  [() => props.ignoreWhitespace, () => props.ignoreCase, () => props.granularity],
+  [() => props.ignoreWhitespace, () => props.ignoreCase],
   () => {
     computeDiff()
   }
 )
+
+// Start navigation observation when diff container appears
+watch(shouldShowDiff, async (show) => {
+  if (show) {
+    await nextTick()
+    navigation.startObserving()
+  } else {
+    navigation.stopObserving()
+  }
+})
 
 // Auto-enable virtual scroll for large files
 watch(shouldAutoEnableVirtualScroll, (shouldEnable) => {
@@ -521,8 +416,32 @@ watch(shouldAutoEnableVirtualScroll, (shouldEnable) => {
   }
 })
 
+// Keyboard shortcuts for navigation
+const handleKeydown = (event: KeyboardEvent) => {
+  if (event.altKey) {
+    if (event.key === 'ArrowDown') {
+      event.preventDefault()
+      navigation.nextChange()
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault()
+      navigation.prevChange()
+    }
+  }
+}
+
 onMounted(() => {
   computeDiff()
+  document.addEventListener('keydown', handleKeydown)
+
+  // Auto-switch to unified on small screens
+  if (window.innerWidth < 768 && props.mode === 'split') {
+    updateMode('unified')
+  }
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleKeydown)
+  navigation.stopObserving()
 })
 </script>
 
@@ -532,91 +451,229 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: 100%;
-  background: var(--dt-surface-0);
+  border: 1px solid var(--dt-border);
   border-radius: var(--radius-lg);
+  box-shadow: var(--elevation-1);
   overflow: hidden;
+  background: var(--dt-surface-1);
 }
 
-/* ===== OPTIONS PANEL ===== */
-.diff-options-panel {
+/* ===== STATS BAR (above toolbar) ===== */
+.diff-stats-bar {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-xl);
-  padding: var(--space-lg);
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-lg);
   background: var(--dt-surface-1);
   border-bottom: 1px solid var(--dt-border);
   align-items: center;
 }
 
-.diff-options-group {
-  display: flex;
+.diff-stat-chip {
+  display: inline-flex;
   align-items: center;
-  gap: var(--space-md);
-}
-
-.diff-option-label {
-  font-size: var(--text-sm);
-  font-weight: var(--font-weight-medium);
-  color: var(--dt-text-primary);
+  padding: 2px 10px;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+  border-radius: 20px;
+  border: 1px solid transparent;
+  line-height: 1.5;
   white-space: nowrap;
 }
 
-.diff-option-buttons {
-  display: flex;
-  gap: var(--space-xs);
+.diff-stat-chip--added {
+  background: var(--diff-added-bg);
+  border-color: var(--diff-added-border);
+  color: var(--dt-success);
 }
 
-.diff-option-button {
+.diff-stat-chip--removed {
+  background: var(--diff-removed-bg);
+  border-color: var(--diff-removed-border);
+  color: var(--dt-danger);
+}
+
+.diff-stat-chip--modified {
+  background: var(--dt-warning-light);
+  border-color: rgba(245, 158, 11, 0.25);
+  color: var(--dt-warning);
+}
+
+.diff-stat-chip--info {
+  background: var(--dt-surface-2);
+  border-color: var(--dt-border);
+  color: var(--dt-text-secondary);
+}
+
+.diff-stat-chip--time {
+  background: var(--dt-surface-2);
+  border-color: var(--dt-border);
+  color: var(--dt-text-tertiary);
+  margin-left: auto;
+}
+
+/* ===== STICKY TOOLBAR ===== */
+.diff-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-lg);
+  padding: var(--space-sm) var(--space-lg);
+  background: var(--dt-surface-1);
+  border-bottom: 1px solid var(--dt-border);
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  backdrop-filter: blur(8px);
+}
+
+/* ===== SEGMENTED CONTROL ===== */
+.diff-segmented-control {
+  display: flex;
+  background: var(--dt-surface-2);
+  border-radius: var(--radius-md);
+  padding: 2px;
+  gap: 2px;
+}
+
+.diff-segment {
   display: flex;
   align-items: center;
-  gap: var(--space-xs);
-  padding: var(--space-xs) var(--space-sm);
+  gap: 6px;
+  padding: 4px 12px;
   font-size: var(--text-sm);
   font-weight: var(--font-weight-medium);
+  font-family: var(--font-sans);
   color: var(--dt-text-secondary);
-  background: var(--dt-surface-0);
-  border: 1px solid var(--dt-border);
-  border-radius: var(--radius-md);
+  background: transparent;
+  border: none;
+  border-radius: calc(var(--radius-md) - 2px);
   cursor: pointer;
-  transition: all var(--transition-normal);
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+  line-height: 1.4;
 }
 
-.diff-option-button:hover {
+.diff-segment:hover:not(.diff-segment--active) {
   color: var(--dt-text-primary);
-  border-color: var(--dt-brand);
-  background: var(--dt-brand-light);
 }
 
-.diff-option-button--active {
-  color: var(--dt-brand-contrast);
+.diff-segment-icon {
+  font-size: 14px;
+  line-height: 1;
+  font-weight: bold;
+}
+
+.diff-segment--active {
   background: var(--dt-brand);
-  border-color: var(--dt-brand);
+  color: #ffffff;
+  box-shadow: var(--elevation-1);
 }
 
-.diff-option-toggles {
+/* ===== TOGGLE OPTIONS ===== */
+.diff-toggles {
   display: flex;
-  gap: var(--space-lg);
+  gap: var(--space-md);
 }
 
 .diff-toggle {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: 6px;
   cursor: pointer;
+  margin-bottom: 0;
 }
 
 .diff-toggle-input {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   accent-color: var(--dt-brand);
   cursor: pointer;
 }
 
 .diff-toggle-label {
-  font-size: var(--text-sm);
-  color: var(--dt-text-primary);
+  font-size: var(--text-xs);
+  color: var(--dt-text-secondary);
   cursor: pointer;
+  white-space: nowrap;
+}
+
+/* ===== ACTION BUTTONS ===== */
+.diff-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.diff-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: var(--dt-surface-2);
+  border: 1px solid var(--dt-border);
+  border-radius: var(--radius-sm);
+  color: var(--dt-text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-size: var(--text-xs);
+  font-family: var(--font-sans);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+.diff-action-icon {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.diff-action-btn:hover {
+  border-color: var(--dt-brand);
+  color: var(--dt-brand);
+  background: var(--dt-brand-light);
+}
+
+/* ===== NAVIGATION ===== */
+.diff-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  padding-left: var(--space-md);
+  border-left: 1px solid var(--dt-border);
+}
+
+.diff-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: var(--dt-surface-2);
+  border: 1px solid var(--dt-border);
+  border-radius: var(--radius-sm);
+  color: var(--dt-text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-size: 9px;
+  line-height: 1;
+}
+
+.diff-nav-btn:hover {
+  border-color: var(--dt-brand);
+  color: var(--dt-brand);
+  background: var(--dt-brand-light);
+}
+
+.diff-nav-counter {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--dt-text-secondary);
+  white-space: nowrap;
+  min-width: 32px;
+  text-align: center;
 }
 
 /* ===== DIFF CONTENT ===== */
@@ -624,8 +681,9 @@ onMounted(() => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  min-height: 400px;
+  min-height: 300px;
   position: relative;
+  overflow: auto;
 }
 
 .diff-content--loading {
@@ -666,7 +724,6 @@ onMounted(() => {
 .diff-container {
   flex: 1;
   position: relative;
-  overflow: hidden;
 }
 
 .diff-viewer {
@@ -674,7 +731,6 @@ onMounted(() => {
   height: 100%;
   font-family: var(--font-mono);
   font-size: var(--text-sm);
-  line-height: var(--leading-relaxed);
 }
 
 /* ===== EMPTY STATE ===== */
@@ -715,86 +771,49 @@ onMounted(() => {
   line-height: var(--leading-normal);
 }
 
-/* ===== STATS PANEL ===== */
-.diff-stats-panel {
-  display: flex;
-  gap: var(--space-xl);
-  padding: var(--space-md) var(--space-lg);
-  background: var(--dt-surface-1);
-  border-top: 1px solid var(--dt-border);
-  font-size: var(--text-sm);
-}
-
-.diff-stats-item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-}
-
-.diff-stats-label {
-  color: var(--dt-text-secondary);
-  font-weight: var(--font-weight-medium);
-}
-
-.diff-stats-value {
-  color: var(--dt-text-primary);
-  font-weight: var(--font-weight-semibold);
-}
-
-.diff-stats-value--added {
-  color: var(--dt-success);
-}
-
-.diff-stats-value--removed {
-  color: var(--dt-danger);
-}
-
-.diff-stats-value--modified {
-  color: var(--dt-warning);
-}
-
-/* ===== RESPONSIVE DESIGN ===== */
+/* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
-  .diff-options-panel {
-    flex-direction: column;
-    align-items: stretch;
-    gap: var(--space-lg);
+  .diff-toolbar {
+    gap: var(--space-sm);
+    padding: var(--space-sm);
   }
 
-  .diff-options-group {
-    flex-direction: column;
-    align-items: flex-start;
+  .diff-toggles {
+    flex-wrap: wrap;
     gap: var(--space-sm);
   }
 
-  .diff-option-buttons,
-  .diff-option-toggles {
-    flex-wrap: wrap;
+  .diff-nav {
+    border-left: none;
+    padding-left: 0;
+    margin-left: 0;
   }
 
-  .diff-stats-panel {
-    flex-wrap: wrap;
-    gap: var(--space-md);
+  .diff-stats-bar {
+    padding: var(--space-sm);
   }
 }
 
 @media (max-width: 480px) {
-  .diff-options-panel {
-    padding: var(--space-md);
+  .diff-segment-label {
+    display: none;
   }
 
-  .diff-option-button {
-    font-size: var(--text-xs);
-    padding: var(--space-xs);
+  .diff-toggle-label {
+    display: none;
   }
 
-  .diff-stats-panel {
-    flex-direction: column;
-    gap: var(--space-sm);
+  .diff-action-text {
+    display: none;
   }
 
-  .diff-stats-item {
-    justify-content: space-between;
+  .diff-stats-bar {
+    gap: 4px;
+  }
+
+  .diff-stat-chip {
+    font-size: 10px;
+    padding: 1px 6px;
   }
 }
 </style>
@@ -802,216 +821,161 @@ onMounted(() => {
 <!-- Theme-agnostic vue-diff styling overrides -->
 <style>
 /* ===== VUE-DIFF THEME INTEGRATION ===== */
-.diff-viewer .d2h-wrapper {
-  border: 1px solid var(--dt-border);
-  border-radius: var(--radius-lg);
-  background: var(--dt-surface-0);
+
+/* Base wrapper styling */
+.diff-viewer .vue-diff-wrapper {
+  border: none;
+  border-radius: 0;
+  background: var(--diff-code-bg);
   font-family: var(--font-mono);
   overflow: hidden;
 }
 
-/* File header styling for GitHub-like design */
-.diff-viewer .d2h-file-header {
-  background: var(--dt-surface-1);
-  border-bottom: 1px solid var(--dt-border);
+/* ===== ROW STYLING ===== */
+.diff-viewer .vue-diff-row {
+  background: var(--diff-code-bg);
   color: var(--dt-text-primary);
-  padding: var(--space-md);
-  font-size: var(--text-sm);
-  font-weight: var(--font-weight-semibold);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.diff-viewer .d2h-file-header .d2h-file-name {
-  font-weight: var(--font-weight-medium);
-  color: var(--dt-text-secondary);
-}
-
-.diff-viewer .d2h-file-stats {
-  display: flex;
-  gap: var(--space-md);
-  font-size: var(--text-sm);
-}
-
-.diff-viewer .d2h-lines-added {
-  color: var(--dt-success);
-  font-weight: var(--font-weight-medium);
-}
-
-.diff-viewer .d2h-lines-deleted {
-  color: var(--dt-danger);
-  font-weight: var(--font-weight-medium);
-}
-
-.diff-viewer .d2h-code-wrapper {
-  background: var(--dt-surface-0);
-}
-
-.diff-viewer .d2h-code-line {
-  background: var(--dt-surface-0);
-  color: var(--dt-text-primary);
-  border: none;
   font-size: 13px;
-  line-height: 1.45;
+  line-height: 20px;
+  transition: background-color 60ms ease;
 }
 
-.diff-viewer .d2h-code-line-prefix {
-  background: var(--dt-surface-1);
-  color: var(--dt-text-tertiary);
-  border-right: 1px solid var(--dt-border);
-  text-align: center;
-  user-select: none;
-  width: 20px;
-  padding: 2px 4px;
-  font-family: var(--font-mono);
-  font-size: 12px;
+.diff-viewer .vue-diff-row:hover {
+  background: var(--diff-row-hover-bg);
 }
 
-.diff-viewer .d2h-code-linenumber {
-  background: var(--dt-surface-1);
-  color: var(--dt-text-tertiary);
+/* ===== LINE NUMBER GUTTER ===== */
+.diff-viewer .vue-diff-row .lineNum {
+  background: var(--diff-gutter-bg);
+  color: var(--diff-gutter-text);
   border-right: 1px solid var(--dt-border);
   text-align: right;
   user-select: none;
   font-size: 12px;
-  min-width: 50px;
-  padding: 2px var(--space-sm);
+  min-width: 60px;
+  padding: 0 var(--space-sm);
   font-family: var(--font-mono);
+  cursor: pointer;
+  transition: background-color 60ms ease;
 }
 
-/* GitHub-style line highlighting */
-.diff-viewer .d2h-ins {
-  background: rgba(34, 197, 94, 0.1);
-  color: var(--dt-text-primary);
-}
-
-.diff-viewer .d2h-ins .d2h-code-line-prefix {
-  background: rgba(34, 197, 94, 0.15);
-  color: var(--dt-success);
-  font-weight: var(--font-weight-bold);
-  width: 20px;
-  text-align: center;
-}
-
-.diff-viewer .d2h-ins .d2h-code-linenumber {
-  background: rgba(34, 197, 94, 0.15);
-  color: var(--dt-text-tertiary);
-  min-width: 50px;
-  padding: 0 var(--space-sm);
-}
-
-.diff-viewer .d2h-del {
-  background: rgba(239, 68, 68, 0.1);
-  color: var(--dt-text-primary);
-}
-
-.diff-viewer .d2h-del .d2h-code-line-prefix {
-  background: rgba(239, 68, 68, 0.15);
-  color: var(--dt-danger);
-  font-weight: var(--font-weight-bold);
-  width: 20px;
-  text-align: center;
-}
-
-.diff-viewer .d2h-del .d2h-code-linenumber {
-  background: rgba(239, 68, 68, 0.15);
-  color: var(--dt-text-tertiary);
-  min-width: 50px;
-  padding: 0 var(--space-sm);
-}
-
-.diff-viewer .d2h-cntx {
-  background: var(--dt-surface-0);
-  color: var(--dt-text-primary);
-}
-
-.diff-viewer .d2h-info {
+.diff-viewer .vue-diff-row:hover .lineNum {
   background: var(--dt-surface-2);
+}
+
+/* ===== CODE CELLS ===== */
+.diff-viewer .vue-diff-row .code {
+  background: transparent;
+  color: var(--dt-text-primary);
+  font-family: var(--font-mono);
+  padding-left: var(--space-md);
+}
+
+/* ===== ADDED LINES ===== */
+/* Covers both unified mode (class on row) and split mode (class on cell) */
+.diff-viewer .vue-diff-cell-added,
+.diff-viewer .code.vue-diff-cell-added {
+  background: var(--diff-added-bg);
+  color: var(--dt-text-primary);
+}
+
+/* Compound selector for split mode: .lineNum.vue-diff-cell-added (same element) */
+.diff-viewer .lineNum.vue-diff-cell-added,
+.diff-viewer .vue-diff-cell-added .lineNum {
+  background: var(--diff-added-gutter-bg);
+  color: var(--diff-gutter-text);
+  border-right-color: var(--diff-added-border);
+}
+
+/* ===== REMOVED LINES ===== */
+.diff-viewer .vue-diff-cell-removed,
+.diff-viewer .code.vue-diff-cell-removed {
+  background: var(--diff-removed-bg);
+  color: var(--dt-text-primary);
+}
+
+.diff-viewer .lineNum.vue-diff-cell-removed,
+.diff-viewer .vue-diff-cell-removed .lineNum {
+  background: var(--diff-removed-gutter-bg);
+  color: var(--diff-gutter-text);
+  border-right-color: var(--diff-removed-border);
+}
+
+/* ===== WORD-LEVEL HIGHLIGHTING ===== */
+.diff-viewer .vue-diff-cell-added span.modified {
+  background: var(--diff-added-word-bg);
+  color: var(--dt-text-primary);
+  text-decoration: none;
+  padding: 1px 2px;
+  font-weight: inherit;
+  border-radius: 3px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.diff-viewer .vue-diff-cell-removed span.modified {
+  background: var(--diff-removed-word-bg);
+  color: var(--dt-text-primary);
+  text-decoration: none;
+  padding: 1px 2px;
+  font-weight: inherit;
+  border-radius: 3px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+/* ===== FOLD SECTIONS ===== */
+.diff-viewer .vue-diff-cell-fold {
+  background: var(--dt-surface-2);
+  color: var(--dt-text-tertiary);
+  border-top: 1px solid var(--diff-fold-border);
+  border-bottom: 1px solid var(--diff-fold-border);
+  cursor: pointer;
+  font-size: 12px;
+  transition: background-color var(--transition-fast);
+}
+
+.diff-viewer .vue-diff-cell-fold:hover {
+  background: var(--diff-fold-hover-bg);
   color: var(--dt-text-secondary);
-  border-top: 1px solid var(--dt-border);
-  border-bottom: 1px solid var(--dt-border);
 }
 
-/* GitHub-style intraline highlighting */
-.diff-viewer .d2h-ins ins {
-  background: rgba(34, 197, 94, 0.4);
-  color: var(--dt-text-primary);
-  text-decoration: none;
-  padding: 2px 1px;
-  font-weight: var(--font-weight-semibold);
-  border-radius: 2px;
-}
-
-.diff-viewer .d2h-del del {
-  background: rgba(239, 68, 68, 0.4);
-  color: var(--dt-text-primary);
-  text-decoration: none;
-  padding: 2px 1px;
-  font-weight: var(--font-weight-semibold);
-  border-radius: 2px;
-}
-
-/* Virtual scroll styling */
+/* ===== VIRTUAL SCROLL ===== */
 .diff-viewer .vue-recycle-scroller {
   height: 100%;
 }
 
 .diff-viewer .vue-recycle-scroller__slot {
-  background: var(--dt-surface-0);
+  background: var(--diff-code-bg);
 }
 
-/* Split view specific styling for GitHub-like layout */
-.diff-renderer--split .d2h-file-side-diff {
-  border-left: 1px solid var(--dt-border);
-  position: relative;
+/* ===== NAVIGATION HIGHLIGHT WITH PULSE ===== */
+.diff-nav-highlight {
+  outline: 2px solid var(--diff-highlight-ring);
+  outline-offset: -2px;
+  border-radius: 2px;
+  animation: diff-highlight-pulse 1.5s ease-out;
 }
 
-.diff-renderer--split .d2h-file-side-diff:first-child {
-  border-left: none;
-  border-right: 1px solid var(--dt-border);
+@keyframes diff-highlight-pulse {
+  0% {
+    outline-color: var(--diff-highlight-ring);
+    outline-width: 2px;
+  }
+  30% {
+    outline-color: var(--dt-brand);
+    outline-width: 3px;
+  }
+  100% {
+    outline-color: var(--diff-highlight-ring);
+    outline-width: 2px;
+  }
 }
 
-.diff-renderer--split .d2h-file-side-diff .d2h-file-header {
-  position: relative;
-}
-
-.diff-renderer--split .d2h-file-side-diff .d2h-file-header::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 1px;
-  background: var(--dt-border);
-}
-
-.diff-renderer--split .d2h-file-side-diff:first-child .d2h-file-header::before {
-  display: none;
-}
-
-/* Enhanced table styling for split view */
-.diff-renderer--split .d2h-code-wrapper table {
-  border-collapse: separate;
-  border-spacing: 0;
-  width: 100%;
-}
-
-.diff-renderer--split .d2h-code-line {
-  border-bottom: 1px solid transparent;
-  padding: 2px 0;
-  line-height: 1.45;
-}
-
-/* Unified view specific styling */
-.diff-renderer--unified .d2h-file-diff {
-  border: none;
-}
-
-/* Scrollbar styling */
+/* ===== SCROLLBAR STYLING ===== */
 .diff-viewer ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
 }
 
 .diff-viewer ::-webkit-scrollbar-track {
@@ -1019,11 +983,37 @@ onMounted(() => {
 }
 
 .diff-viewer ::-webkit-scrollbar-thumb {
-  background: var(--dt-border);
-  border-radius: var(--radius-sm);
+  background: var(--dt-text-tertiary);
+  border: 2px solid var(--dt-surface-1);
+  border-radius: 4px;
 }
 
 .diff-viewer ::-webkit-scrollbar-thumb:hover {
-  background: var(--dt-text-tertiary);
+  background: var(--dt-text-secondary);
+}
+
+/* ===== HIDE VUE-DIFF WATERMARK ===== */
+.diff-viewer .vue-diff-wrapper > footer,
+.diff-viewer .vue-diff-wrapper > .vue-diff-footer,
+.diff-viewer + div[class=""],
+.diff-container > div:not(.diff-viewer) {
+  display: none !important;
+}
+
+/* ===== SYNTAX HIGHLIGHTING OVERRIDES ===== */
+.diff-viewer .hljs {
+  background: transparent !important;
+  color: var(--dt-text-primary);
+}
+
+/* ===== REDUCED MOTION ===== */
+@media (prefers-reduced-motion: reduce) {
+  .diff-nav-highlight {
+    animation: none;
+  }
+
+  .diff-viewer .vue-diff-row {
+    transition: none;
+  }
 }
 </style>

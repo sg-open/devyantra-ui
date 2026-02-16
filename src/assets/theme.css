@@ -172,6 +172,23 @@
   --focus-ring: 0 0 0 var(--focus-ring-width) rgba(59, 130, 246, var(--focus-ring-alpha)),
                 inset 0 0 0 var(--focus-ring-offset) var(--glass-hairline);
 
+  /* Diff color tokens — light mode */
+  --diff-added-bg: rgba(34, 197, 94, 0.08);
+  --diff-added-gutter-bg: rgba(34, 197, 94, 0.18);
+  --diff-added-word-bg: rgba(34, 197, 94, 0.30);
+  --diff-added-border: rgba(34, 197, 94, 0.25);
+  --diff-removed-bg: rgba(239, 68, 68, 0.08);
+  --diff-removed-gutter-bg: rgba(239, 68, 68, 0.18);
+  --diff-removed-word-bg: rgba(239, 68, 68, 0.30);
+  --diff-removed-border: rgba(239, 68, 68, 0.25);
+  --diff-gutter-bg: #F6F8FA;
+  --diff-gutter-text: #57606A;
+  --diff-code-bg: #FFFFFF;
+  --diff-row-hover-bg: rgba(59, 130, 246, 0.03);
+  --diff-highlight-ring: rgba(59, 130, 246, 0.5);
+  --diff-fold-border: var(--dt-border);
+  --diff-fold-hover-bg: var(--dt-surface-2);
+
   /* Container constraints */
   --container-max-width: 1200px;
   --container-padding: var(--space-lg);
@@ -239,6 +256,23 @@
   --elevation-2: 0 3px 6px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.2);
   --elevation-3: 0 10px 20px rgba(0, 0, 0, 0.4), 0 3px 6px rgba(0, 0, 0, 0.2);
   --elevation-4: 0 15px 25px rgba(0, 0, 0, 0.5), 0 5px 10px rgba(0, 0, 0, 0.3);
+
+  /* Diff color tokens — dark mode */
+  --diff-added-bg: rgba(34, 197, 94, 0.12);
+  --diff-added-gutter-bg: rgba(34, 197, 94, 0.22);
+  --diff-added-word-bg: rgba(34, 197, 94, 0.38);
+  --diff-added-border: rgba(34, 197, 94, 0.30);
+  --diff-removed-bg: rgba(248, 113, 113, 0.15);
+  --diff-removed-gutter-bg: rgba(248, 113, 113, 0.25);
+  --diff-removed-word-bg: rgba(248, 113, 113, 0.40);
+  --diff-removed-border: rgba(248, 113, 113, 0.30);
+  --diff-gutter-bg: var(--dt-surface-2);
+  --diff-gutter-text: var(--dt-text-tertiary);
+  --diff-code-bg: var(--dt-surface-1);
+  --diff-row-hover-bg: rgba(96, 165, 250, 0.04);
+  --diff-highlight-ring: rgba(96, 165, 250, 0.5);
+  --diff-fold-border: var(--dt-border);
+  --diff-fold-hover-bg: var(--dt-surface-3);
 
   /* Focus ring for dark mode */
   --focus-ring: 0 0 0 var(--focus-ring-width) rgba(96, 165, 250, var(--focus-ring-alpha)),

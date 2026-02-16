@@ -171,7 +171,6 @@
         :left-text="leftText"
         :right-text="rightText"
         :mode="viewMode"
-        :granularity="mapGranularity(diffOptions.granularity) || 'line'"
         :ignore-whitespace="diffOptions.ignoreWhitespace || false"
         :ignore-case="diffOptions.ignoreCase || false"
         :language="detectedLanguageLeft"
@@ -205,7 +204,6 @@ const rightText = ref('')
 
 // Diff options for DiffRenderer compatibility
 const diffOptions = ref({
-  granularity: 'line' as 'line' | 'word' | 'char',
   ignoreCase: false,
   ignoreWhitespace: false,
   virtualScrollEnabled: false
@@ -221,12 +219,6 @@ const virtualScrollEnabled = ref(false)
 // Language detection and selection
 const selectedLanguageLeft = ref('')
 
-// Map granularity values between DiffOptions and DiffRenderer
-const mapGranularity = (granularity: string | undefined): 'line' | 'word' | 'char' => {
-  if (granularity === 'character') return 'char'
-  if (granularity === 'word') return 'word'
-  return 'line'
-}
 const selectedLanguageRight = ref('')
 
 const languageOptions = [
@@ -469,7 +461,7 @@ const onDiffRendererComputed = (stats: { additions: number; deletions: number; m
   console.log('Diff computed:', stats)
 }
 
-const onDiffOptionsChanged = (options: { granularity: 'line' | 'word' | 'char'; ignoreWhitespace: boolean; ignoreCase: boolean; virtualScrollEnabled: boolean }) => {
+const onDiffOptionsChanged = (options: { ignoreWhitespace: boolean; ignoreCase: boolean; virtualScrollEnabled: boolean }) => {
   // Update internal diff options when changed from DiffRenderer
   Object.assign(diffOptions.value, options)
   virtualScrollEnabled.value = options.virtualScrollEnabled
@@ -831,39 +823,30 @@ onMounted(() => {
   }
 }
 
-/* Diff2HTML Styling Overrides */
-:deep(.d2h-wrapper) {
-  border-radius: var(--radius-lg);
-  overflow: hidden;
+/* Vue-diff Styling Overrides — covers both unified (row-level) and split (cell-level) */
+:deep(.vue-diff-cell-added),
+:deep(.code.vue-diff-cell-added) {
+  background: var(--diff-added-bg);
 }
 
-:deep(.d2h-file-header) {
-  background: var(--dt-surface-2);
-  border-bottom: 1px solid var(--dt-border);
-  padding: var(--space-md);
-  font-size: var(--text-sm);
-  font-weight: var(--font-weight-medium);
-  color: var(--dt-text-primary);
+:deep(.vue-diff-cell-removed),
+:deep(.code.vue-diff-cell-removed) {
+  background: var(--diff-removed-bg);
 }
 
-:deep(.d2h-code-line) {
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  line-height: var(--leading-relaxed);
+:deep(.lineNum.vue-diff-cell-added) {
+  background: var(--diff-added-gutter-bg);
 }
 
-:deep(.d2h-ins) {
-  background: var(--dt-success-light);
-  color: var(--dt-text-primary);
+:deep(.lineNum.vue-diff-cell-removed) {
+  background: var(--diff-removed-gutter-bg);
 }
 
-:deep(.d2h-del) {
-  background: var(--dt-danger-light);
-  color: var(--dt-text-primary);
+:deep(.vue-diff-cell-added span.modified) {
+  background: var(--diff-added-word-bg);
 }
 
-:deep(.d2h-cntx) {
-  background: var(--dt-surface-1);
-  color: var(--dt-text-primary);
+:deep(.vue-diff-cell-removed span.modified) {
+  background: var(--diff-removed-word-bg);
 }
 </style>

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { ref } from 'vue'
 import { useShareState } from '../useShareState'
-import type { DiffOptions } from '../useDiff'
+import type { DiffShareOptions } from '../useShareState'
 
 // Mock LZ-string
 vi.mock('lz-string', () => ({
@@ -53,7 +53,7 @@ describe('useShareState', () => {
   beforeEach(() => {
     leftText = ref('')
     rightText = ref('')
-    options = ref<Partial<DiffOptions>>({})
+    options = ref<Partial<DiffShareOptions>>({})
     vi.clearAllMocks()
 
     // Reset location mock

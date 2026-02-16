@@ -59,17 +59,46 @@
             </div>
           </div>
 
-          <Textarea
-            v-model="text1Content"
-            placeholder="Paste your original text here..."
-            rows="12"
-            class="text-area enhanced-textarea"
-            @input="onText1Input"
-            @paste="onText1Paste"
+          <div
+            class="drop-zone"
+            :class="{ 'drop-zone--active': isDragging1 }"
+            @dragover.prevent="isDragging1 = true"
+            @dragleave="isDragging1 = false"
+            @drop.prevent="handleDrop($event, 'left')"
+          >
+            <Textarea
+              v-model="text1Content"
+              placeholder="Paste your original text here, or drag & drop a file..."
+              rows="12"
+              class="text-area enhanced-textarea"
+              @input="onText1Input"
+              @paste="onText1Paste"
+            />
+            <div v-if="isDragging1" class="drop-overlay">
+              <i class="pi pi-upload"></i>
+              <span>Drop file here</span>
+            </div>
+          </div>
+          <input
+            ref="fileInput1"
+            type="file"
+            accept=".txt,.json,.js,.ts,.vue,.css,.html,.xml,.sql,.py,.java,.cpp,.c,.md,.csv,.log"
+            @change="handleFileInput($event, 'left')"
+            style="display: none"
           />
 
           <!-- Quick Actions for Left -->
           <div class="quick-actions left-actions">
+            <Button
+              @click="fileInput1?.click()"
+              size="small"
+              variant="outlined"
+              class="quick-btn upload-btn"
+              v-tooltip="'Upload file'"
+            >
+              <i class="pi pi-upload"></i>
+              Upload
+            </Button>
             <Button
               @click="copyText1"
               :disabled="!text1Content.trim()"
@@ -153,17 +182,46 @@
             </div>
           </div>
 
-          <Textarea
-            v-model="text2Content"
-            placeholder="Paste your changed text here..."
-            rows="12"
-            class="text-area enhanced-textarea"
-            @input="onText2Input"
-            @paste="onText2Paste"
+          <div
+            class="drop-zone"
+            :class="{ 'drop-zone--active': isDragging2 }"
+            @dragover.prevent="isDragging2 = true"
+            @dragleave="isDragging2 = false"
+            @drop.prevent="handleDrop($event, 'right')"
+          >
+            <Textarea
+              v-model="text2Content"
+              placeholder="Paste your changed text here, or drag & drop a file..."
+              rows="12"
+              class="text-area enhanced-textarea"
+              @input="onText2Input"
+              @paste="onText2Paste"
+            />
+            <div v-if="isDragging2" class="drop-overlay">
+              <i class="pi pi-upload"></i>
+              <span>Drop file here</span>
+            </div>
+          </div>
+          <input
+            ref="fileInput2"
+            type="file"
+            accept=".txt,.json,.js,.ts,.vue,.css,.html,.xml,.sql,.py,.java,.cpp,.c,.md,.csv,.log"
+            @change="handleFileInput($event, 'right')"
+            style="display: none"
           />
 
           <!-- Quick Actions for Right -->
           <div class="quick-actions right-actions">
+            <Button
+              @click="fileInput2?.click()"
+              size="small"
+              variant="outlined"
+              class="quick-btn upload-btn"
+              v-tooltip="'Upload file'"
+            >
+              <i class="pi pi-upload"></i>
+              Upload
+            </Button>
             <Button
               @click="copyText2"
               :disabled="!text2Content.trim()"
@@ -197,37 +255,45 @@
               <i class="pi pi-file"></i>
               Sample
             </Button>
-          </div>
-        </div>
-      </div>
-
-      <Divider />
-
-      <!-- Action Buttons - Unified CTA Toolbar -->
-      <Toolbar class="cta-toolbar">
-        <template #center>
-          <div class="cta-group">
             <Button
-              @click="showDiff = true"
-              :disabled="!text1Content.trim() || !text2Content.trim()"
-              class="compare-btn animate-glow"
-                          >
-              <i class="pi pi-search"></i>
-              Find differences
+              @click="onShareClick"
+              :disabled="!text1Content.trim() && !text2Content.trim()"
+              size="small"
+              variant="outlined"
+              class="quick-btn share-btn"
+              v-tooltip="'Share comparison'"
+            >
+              <i class="pi pi-share-alt"></i>
+              Share
             </Button>
             <Button
               @click="clearAll"
               :disabled="!text1Content.trim() && !text2Content.trim()"
+              size="small"
               variant="outlined"
               severity="secondary"
-              class="clear-btn"
+              class="quick-btn clear-btn"
+              v-tooltip="'Clear All'"
             >
               <i class="pi pi-trash"></i>
-              Clear all
+              Clear All
             </Button>
           </div>
-        </template>
-      </Toolbar>
+        </div>
+      </div>
+
+      <!-- Compare Button -->
+      <div class="compare-action">
+        <Button
+          @click="onCompare"
+          :disabled="!text1Content.trim() || !text2Content.trim()"
+          class="compare-btn"
+          severity="primary"
+        >
+          <i class="pi pi-sync"></i>
+          Compare
+        </Button>
+      </div>
 
       <!-- Error Message -->
       <Message
@@ -239,30 +305,24 @@
         {{ textProcessor.error.value }}
       </Message>
 
-      <!-- Enhanced Diff Renderer -->
-      <div v-if="showDiff && (text1Content.trim() || text2Content.trim())" class="comparison-results">
+      <!-- Diff Renderer (shown after clicking Compare) -->
+      <div v-if="showDiff && diffEngine.hasBothInputs.value" class="comparison-results">
         <Divider />
         <DiffRenderer
           :left-text="text1Content"
           :right-text="text2Content"
           :mode="diffViewMode"
-          :granularity="'line'"
           :ignore-whitespace="false"
           :ignore-case="false"
           :language="detectedLanguage"
           :virtual-scroll-enabled="false"
+          :diff-stats="diffEngine.stats.value"
           @diff-computed="onDiffRendererComputed"
           @mode-changed="diffViewMode = $event"
+          @copy-diff="onCopyDiff"
+          @download-patch="onDownloadPatch"
           class="enhanced-diff"
         />
-      </div>
-
-      <!-- Empty State -->
-      <div v-else-if="showDiff" class="empty-state">
-        <Message severity="info" :closable="false">
-          <i class="pi pi-info-circle"></i>
-          No differences found - the texts are identical!
-        </Message>
       </div>
     </template>
   </Card>
@@ -272,6 +332,8 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useToast } from 'primevue/usetoast'
 import { useTextProcessor, type TextType } from '@/composables/useTextProcessor'
+import { useDiffEngine } from '@/composables/useDiffEngine'
+import { useShareState } from '@/composables/useShareState'
 import DiffRenderer from '@/components/DiffRenderer.vue'
 
 const toast = useToast()
@@ -281,6 +343,32 @@ const textProcessor = useTextProcessor()
 const text1Content = ref('')
 const text2Content = ref('')
 
+// File upload refs
+const fileInput1 = ref<HTMLInputElement>()
+const fileInput2 = ref<HTMLInputElement>()
+
+// Drag state
+const isDragging1 = ref(false)
+const isDragging2 = ref(false)
+
+// File upload constants
+const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
+const ALLOWED_EXTENSIONS = ['txt', 'json', 'js', 'ts', 'html', 'css', 'xml', 'sql', 'py', 'java', 'cpp', 'c', 'vue', 'md', 'csv', 'log']
+const ALLOWED_MIME_PREFIXES = ['text/', 'application/json', 'application/javascript', 'application/xml', 'application/sql']
+
+// Diff engine for accurate stats
+const diffEngine = useDiffEngine(text1Content, text2Content)
+
+// Share state for URL/localStorage persistence
+const shareOptions = ref<{ ignoreWhitespace: boolean; ignoreCase: boolean }>({
+  ignoreWhitespace: false,
+  ignoreCase: false
+})
+const shareState = useShareState(text1Content, text2Content, shareOptions, {
+  autoSave: true,
+  autoLoad: true
+})
+
 // Text types
 const text1Type = ref<TextType>('text')
 const text2Type = ref<TextType>('text')
@@ -289,13 +377,15 @@ const text2Type = ref<TextType>('text')
 const isFormatting1 = ref(false)
 const isFormatting2 = ref(false)
 
-// Diff view mode and display state
+// Diff view mode
 const diffViewMode = ref<'split' | 'unified'>('split')
+
+// Whether to show diff results (toggled by Compare button)
 const showDiff = ref(false)
 
 // Smart suggestions
-const smartSuggestion1 = ref<{ message: string; action: string; data?: any } | null>(null)
-const smartSuggestion2 = ref<{ message: string; action: string; data?: any } | null>(null)
+const smartSuggestion1 = ref<{ message: string; action: string; data?: unknown } | null>(null)
+const smartSuggestion2 = ref<{ message: string; action: string; data?: unknown } | null>(null)
 
 // Debounce timers for type detection
 let text1Timer: ReturnType<typeof setTimeout> | null = null
@@ -303,7 +393,6 @@ let text2Timer: ReturnType<typeof setTimeout> | null = null
 
 // Language detection for DiffRenderer
 const detectedLanguage = computed(() => {
-  // Simple language detection based on text content
   const text = text1Content.value || text2Content.value
   if (!text) return 'plaintext'
 
@@ -328,9 +417,19 @@ const detectedLanguage = computed(() => {
   return 'plaintext'
 })
 
-// DiffRenderer event handler
+// Compare button handler
+let lastToastStatsKey = ''
+const onCompare = () => {
+  lastToastStatsKey = '' // Reset so next diff-computed fires a fresh toast
+  showDiff.value = true
+}
+
+// DiffRenderer event handler — deduplicated to avoid double toasts
 const onDiffRendererComputed = (stats: { additions: number; deletions: number; modifications: number; totalLines: number; computeTime: number }) => {
-  // Show toast with diff results
+  const key = `${stats.additions}-${stats.deletions}-${stats.modifications}`
+  if (key === lastToastStatsKey) return // Already shown for this result
+  lastToastStatsKey = key
+
   if (stats.additions > 0 || stats.deletions > 0 || stats.modifications > 0) {
     toast.add({
       severity: 'info',
@@ -348,20 +447,52 @@ const onDiffRendererComputed = (stats: { additions: number; deletions: number; m
   }
 }
 
+// Share handler
+const onShareClick = async () => {
+  const success = await shareState.copyShareUrl()
+  toast.add({
+    severity: success ? 'success' : 'error',
+    summary: success ? 'Link Copied' : 'Share Failed',
+    detail: success ? 'Shareable link copied to clipboard' : 'URL too long to share. Try shorter text.',
+    life: 3000
+  })
+}
+
+// Export handlers
+const onCopyDiff = async () => {
+  const success = await diffEngine.copyDiffToClipboard()
+  toast.add({
+    severity: success ? 'success' : 'error',
+    summary: success ? 'Copied' : 'Copy Failed',
+    detail: success ? 'Diff copied to clipboard' : 'Could not copy diff',
+    life: 2000
+  })
+}
+
+const onDownloadPatch = () => {
+  diffEngine.downloadPatch()
+  toast.add({
+    severity: 'success',
+    summary: 'Downloaded',
+    detail: 'Patch file downloaded',
+    life: 2000
+  })
+}
+
 const onText1Input = () => {
+  showDiff.value = false
   if (text1Timer) clearTimeout(text1Timer)
   text1Timer = setTimeout(async () => {
     text1Type.value = await textProcessor.detectType(text1Content.value)
   }, 500)
-  showDiff.value = false
 }
 
 const onText2Input = () => {
+  showDiff.value = false
   if (text2Timer) clearTimeout(text2Timer)
   text2Timer = setTimeout(async () => {
     text2Type.value = await textProcessor.detectType(text2Content.value)
   }, 500)
-  showDiff.value = false
 }
 
 const formatText1 = async () => {
@@ -513,7 +644,7 @@ const copyText1 = async () => {
       detail: 'Original text copied to clipboard',
       life: 2000
     })
-  } catch (error) {
+  } catch {
     toast.add({
       severity: 'error',
       summary: 'Copy Failed',
@@ -534,7 +665,7 @@ const copyText2 = async () => {
       detail: 'Changed text copied to clipboard',
       life: 2000
     })
-  } catch (error) {
+  } catch {
     toast.add({
       severity: 'error',
       summary: 'Copy Failed',
@@ -548,7 +679,6 @@ const clearText1 = () => {
   text1Content.value = ''
   text1Type.value = 'text'
   smartSuggestion1.value = null
-  showDiff.value = false
 
   toast.add({
     severity: 'info',
@@ -562,7 +692,6 @@ const clearText2 = () => {
   text2Content.value = ''
   text2Type.value = 'text'
   smartSuggestion2.value = null
-  showDiff.value = false
 
   toast.add({
     severity: 'info',
@@ -584,7 +713,6 @@ const swapTexts = () => {
   // Clear suggestions when swapping
   smartSuggestion1.value = null
   smartSuggestion2.value = null
-  showDiff.value = false
 
   toast.add({
     severity: 'info',
@@ -659,12 +787,6 @@ const handleKeyboardShortcuts = (event: KeyboardEvent) => {
           event.preventDefault()
           loadSampleData()
           break
-        case 'Enter':
-          event.preventDefault()
-          if (text1Content.value.trim() && text2Content.value.trim()) {
-            showDiff.value = true
-          }
-          break
       }
     }
   }
@@ -678,6 +800,96 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('keydown', handleKeyboardShortcuts)
 })
+
+// File validation
+const isFileAllowed = (file: File): string | null => {
+  if (file.size > MAX_FILE_SIZE) {
+    return `File too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Maximum size is 5MB.`
+  }
+
+  const ext = file.name.split('.').pop()?.toLowerCase()
+  if (ext && !ALLOWED_EXTENSIONS.includes(ext)) {
+    return `File type .${ext} is not supported. Use text-based files only.`
+  }
+
+  if (file.type && !ALLOWED_MIME_PREFIXES.some(p => file.type.startsWith(p)) && file.type !== '') {
+    return 'Only text-based files are allowed for comparison.'
+  }
+
+  return null
+}
+
+// Check for binary content
+const isBinaryContent = (text: string): boolean => {
+  // Check first 8KB for null bytes or high concentration of non-printable chars
+  const sample = text.slice(0, 8192)
+  let nonPrintable = 0
+  for (let i = 0; i < sample.length; i++) {
+    const code = sample.charCodeAt(i)
+    if (code === 0) return true
+    if (code < 32 && code !== 9 && code !== 10 && code !== 13) nonPrintable++
+  }
+  return nonPrintable / sample.length > 0.1
+}
+
+const loadFile = async (file: File, side: 'left' | 'right') => {
+  const error = isFileAllowed(file)
+  if (error) {
+    toast.add({ severity: 'error', summary: 'Invalid File', detail: error, life: 5000 })
+    return
+  }
+
+  try {
+    const text = await file.text()
+
+    if (isBinaryContent(text)) {
+      toast.add({
+        severity: 'error',
+        summary: 'Binary File',
+        detail: 'This appears to be a binary file. Only text files are supported.',
+        life: 5000
+      })
+      return
+    }
+
+    if (side === 'left') {
+      text1Content.value = text
+      onText1Input()
+    } else {
+      text2Content.value = text
+      onText2Input()
+    }
+
+    toast.add({
+      severity: 'success',
+      summary: 'File Loaded',
+      detail: `${file.name} loaded successfully`,
+      life: 3000
+    })
+  } catch {
+    toast.add({
+      severity: 'error',
+      summary: 'Read Error',
+      detail: 'Failed to read the file',
+      life: 5000
+    })
+  }
+}
+
+const handleFileInput = (event: Event, side: 'left' | 'right') => {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (file) loadFile(file, side)
+  target.value = '' // Reset so same file can be re-uploaded
+}
+
+const handleDrop = (event: DragEvent, side: 'left' | 'right') => {
+  isDragging1.value = false
+  isDragging2.value = false
+
+  const file = event.dataTransfer?.files?.[0]
+  if (file) loadFile(file, side)
+}
 
 const clearAll = () => {
   text1Content.value = ''
@@ -770,116 +982,8 @@ const clearAll = () => {
   border-color: var(--blue-300);
 }
 
-.cta-toolbar {
-  margin: 1.5rem 0;
-  background: transparent;
-  border: none;
-  padding: 0;
-}
-
-.cta-group {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-  align-items: center;
-}
-
 .comparison-results {
   margin-top: 1.5rem;
-}
-
-.result-summary {
-  margin-bottom: 1rem;
-}
-
-.differences-section {
-  margin-top: 1rem;
-}
-
-/* Difference Items */
-.difference-item {
-  border-left: var(--space-xs) solid var(--dt-warning); /* 4px accent */
-  border-radius: var(--radius-lg);
-  background: var(--dt-surface-1);
-  border: 1px solid var(--dt-border);
-}
-
-.difference-details {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md); /* 12px = 1.5 baseline */
-  padding: var(--space-lg); /* 16px = 2 baseline */
-}
-
-.difference-path {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm); /* 8px = 1 baseline */
-}
-
-.path-label {
-  font-size: var(--text-xs); /* 12px */
-}
-
-.path-value {
-  background: var(--dt-surface-2);
-  color: var(--dt-text-primary);
-  padding: var(--space-xs) var(--space-sm); /* 4px 8px */
-  border-radius: var(--radius-sm);
-  font-family: var(--font-mono);
-  font-size: var(--text-sm); /* 14px */
-  border: 1px solid var(--dt-border);
-}
-
-.difference-type {
-  display: flex;
-  align-items: center;
-}
-
-.type-label {
-  font-size: var(--text-xs); /* 12px */
-}
-
-.difference-values {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm); /* 8px = 1 baseline */
-}
-
-.value-item {
-  padding: var(--space-md); /* 12px = 1.5 baseline */
-  border-radius: var(--radius-md);
-  border: 1px solid var(--dt-border);
-  background: var(--dt-surface-1);
-}
-
-.value-item strong {
-  display: block;
-  margin-bottom: var(--space-sm); /* 8px = 1 baseline */
-  font-size: var(--text-sm); /* 14px */
-  font-weight: var(--font-weight-medium);
-  color: var(--dt-text-primary);
-}
-
-.value-item code {
-  background: var(--dt-surface-2);
-  color: var(--dt-text-primary);
-  padding: var(--space-xs) var(--space-sm); /* 4px 8px */
-  border-radius: var(--radius-sm);
-  font-family: var(--font-mono);
-  font-size: var(--text-sm); /* 14px */
-  word-break: break-all;
-  border: 1px solid var(--dt-border);
-}
-
-.value-first {
-  background: var(--dt-warning-light);
-  border-color: var(--dt-warning);
-}
-
-.value-second {
-  background: var(--dt-brand-light);
-  border-color: var(--dt-brand);
 }
 
 /* ===== RESPONSIVE DESIGN ===== */
@@ -898,455 +1002,10 @@ const clearAll = () => {
   .format-controls {
     align-self: flex-end;
   }
-
-  .cta-group {
-    flex-direction: column;
-    gap: 0.75rem;
-  }
 }
 
 .empty-state {
   margin-top: var(--space-xl);
-}
-
-/* ===== DIFF CONTAINERS ===== */
-.diff-container {
-  margin-bottom: var(--space-xl); /* 24px = 3 baseline */
-  border-radius: var(--radius-lg);
-  box-shadow: var(--elevation-1);
-}
-
-/* ===== UNIFIED DIFF STYLING ===== */
-.unified-diff {
-  width: 100%;
-}
-
-.diff-content-wrapper {
-  background: var(--dt-surface-1);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--dt-border);
-  overflow: hidden;
-}
-
-.diff-output {
-  font-family: var(--font-mono);
-  font-size: var(--text-sm); /* 14px */
-  line-height: var(--leading-relaxed);
-  padding: var(--space-lg); /* 16px = 2 baseline */
-  margin: 0;
-  background: transparent;
-  color: var(--dt-text-primary);
-  white-space: pre;
-  overflow-x: auto;
-  max-height: 600px; /* 75 baseline = 600px */
-  overflow-y: auto;
-}
-
-/* Color coding for unified diff lines */
-.diff-output {
-  background: linear-gradient(
-    to right,
-    transparent 0,
-    transparent 50px,
-    var(--dt-surface-2) 50px,
-    var(--dt-surface-2) 52px,
-    transparent 52px
-  );
-}
-
-
-/* ===== STRUCTURAL DIFFERENCES ===== */
-.structural-differences {
-  margin-top: var(--space-xl); /* 24px = 3 baseline */
-}
-
-.structural-title {
-  display: flex;
-  align-items: center;
-  font-size: var(--text-lg); /* 18px */
-  font-weight: var(--font-weight-semibold);
-  color: var(--dt-text-primary);
-  margin: 0;
-  margin-bottom: var(--space-lg); /* 16px = 2 baseline */
-}
-
-.structural-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md); /* 12px = 1.5 baseline */
-}
-
-.structural-item {
-  border-left: var(--space-xs) solid var(--dt-brand); /* 4px accent */
-  border-radius: var(--radius-lg);
-}
-
-.structural-details {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm); /* 8px = 1 baseline */
-}
-
-.structural-path,
-.structural-type {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm); /* 8px = 1 baseline */
-}
-
-.structural-values {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs); /* 4px = 0.5 baseline */
-}
-
-.structural-values strong {
-  font-weight: var(--font-weight-medium);
-  color: var(--dt-text-primary);
-}
-
-.structural-values code {
-  background: var(--dt-surface-2);
-  color: var(--dt-text-primary);
-  padding: var(--space-xs) var(--space-sm); /* 4px 8px */
-  border-radius: var(--radius-sm);
-  font-family: var(--font-mono);
-  font-size: var(--text-sm); /* 14px */
-  border: 1px solid var(--dt-border);
-  margin-top: var(--space-xs); /* 4px = 0.5 baseline */
-}
-
-
-/* ===== UNIFIED DIFF STYLING - DESIGN SYSTEM ALIGNED ===== */
-.unified-diff-content {
-  font-family: var(--font-mono);
-  font-size: var(--text-sm); /* 14px */
-  line-height: var(--leading-relaxed); /* 20px = 2.5 baseline */
-  background: var(--dt-surface-1);
-  color: var(--dt-text-primary);
-  border-radius: var(--radius-lg); /* 8px = 1 baseline */
-  max-height: 480px; /* 60 baseline = 480px */
-  overflow-y: auto;
-  border: 1px solid var(--dt-border);
-}
-
-/* Unified diff hunk headers */
-.diff-hunk-header {
-  background: var(--dt-surface-2);
-  color: var(--dt-text-secondary);
-  padding: var(--space-sm) var(--space-lg); /* 8px 16px */
-  border-top: 1px solid var(--dt-border);
-  border-bottom: 1px solid var(--dt-border);
-  font-weight: var(--font-weight-medium);
-  font-size: var(--text-xs); /* 12px */
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-/* Unified diff lines */
-.diff-line-added,
-.diff-line-removed,
-.diff-line-context {
-  display: flex;
-  align-items: center;
-  padding: var(--space-xs) var(--space-md); /* 4px 12px */
-  margin: 0;
-  font-family: var(--font-mono);
-  font-size: var(--text-sm); /* 14px */
-  line-height: var(--leading-relaxed); /* 20px = 2.5 baseline */
-  border-left: var(--space-xs) solid transparent; /* 4px indicator */
-}
-
-.diff-line-added {
-  background: var(--dt-success-light);
-  border-left-color: var(--dt-success);
-}
-
-.diff-line-removed {
-  background: var(--dt-danger-light);
-  border-left-color: var(--dt-danger);
-}
-
-.diff-line-context {
-  background: transparent;
-}
-
-/* Unified diff markers */
-.diff-marker {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--space-lg); /* 16px = 2 baseline */
-  height: var(--space-lg); /* 16px = 2 baseline */
-  margin-right: var(--space-sm); /* 8px = 1 baseline */
-  font-weight: var(--font-weight-bold);
-  font-size: var(--text-xs); /* 12px */
-  border-radius: var(--radius-sm);
-  flex-shrink: 0;
-}
-
-.diff-line-added .diff-marker {
-  background: var(--dt-success);
-  color: white;
-}
-
-.diff-line-removed .diff-marker {
-  background: var(--dt-danger);
-  color: white;
-}
-
-.diff-line-context .diff-marker {
-  background: transparent;
-  color: var(--dt-text-tertiary);
-}
-
-/* Unified diff content */
-.diff-content {
-  flex: 1;
-  white-space: pre;
-  word-break: break-all;
-  font-family: var(--font-mono);
-}
-
-/* ===== SIDE-BY-SIDE DIFF STYLING - DESIGN SYSTEM ALIGNED ===== */
-.side-by-side-content {
-  width: 100%;
-}
-
-.diff-container-wrapper {
-  background: var(--dt-surface-1);
-  border-radius: var(--radius-lg); /* 8px = 1 baseline */
-  border: 1px solid var(--dt-border);
-  overflow: hidden;
-}
-
-.diff-side-by-side {
-  display: flex;
-  flex-direction: column;
-}
-
-/* Side-by-side header */
-.side-by-side-content .diff-header {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  background: var(--dt-surface-2);
-  border-bottom: 1px solid var(--dt-border);
-}
-
-.side-by-side-content .diff-column-header {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm); /* 8px = 1 baseline */
-  padding: var(--space-md) var(--space-lg); /* 12px 16px */
-  font-weight: var(--font-weight-semibold);
-  font-size: var(--text-sm); /* 14px */
-  color: var(--dt-text-primary);
-  border-right: 1px solid var(--dt-border);
-}
-
-.side-by-side-content .diff-column-header:last-child {
-  border-right: none;
-}
-
-.side-by-side-content .original-header {
-  background: rgba(239, 68, 68, 0.05); /* Subtle red tint */
-}
-
-.side-by-side-content .changed-header {
-  background: rgba(34, 197, 94, 0.05); /* Subtle green tint */
-}
-
-/* Side-by-side columns */
-.side-by-side-content .diff-columns {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  max-height: 480px; /* 60 baseline = 480px */
-  overflow: auto;
-}
-
-.side-by-side-content .diff-column {
-  overflow: hidden;
-  background: var(--dt-surface-1);
-  border-right: 1px solid var(--dt-border);
-}
-
-.side-by-side-content .diff-column:last-child {
-  border-right: none;
-}
-
-.side-by-side-content .original-column {
-  border-right: 1px solid var(--dt-border);
-}
-
-.side-by-side-content .changed-column {
-  border-left: none;
-}
-
-.side-by-side-content .diff-column .diff-content {
-  padding: var(--space-md); /* 12px = 1.5 baseline */
-}
-
-/* Side-by-side diff lines */
-.side-by-side-content .diff-column .diff-line {
-  display: flex;
-  align-items: center;
-  padding: var(--space-xs) var(--space-sm); /* 4px 8px */
-  margin: 1px 0;
-  font-family: var(--font-mono);
-  font-size: var(--text-sm); /* 14px */
-  line-height: var(--leading-relaxed); /* 20px = 2.5 baseline */
-  border-radius: var(--radius-sm);
-  border-left: var(--space-xs) solid transparent; /* 4px indicator */
-}
-
-/* Side-by-side line states */
-.side-by-side-content .diff-column .diff-line-added {
-  background: var(--dt-success-light);
-  border-left-color: var(--dt-success);
-}
-
-.side-by-side-content .diff-column .diff-line-removed {
-  background: var(--dt-danger-light);
-  border-left-color: var(--dt-danger);
-}
-
-.side-by-side-content .diff-column .diff-line-modified {
-  background: var(--dt-warning-light);
-  border-left-color: var(--dt-warning);
-}
-
-.side-by-side-content .diff-column .diff-line-empty {
-  background: var(--dt-surface-2);
-  opacity: 0.5;
-}
-
-/* Side-by-side line components */
-.side-by-side-content .diff-column .line-number {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: var(--space-2xl); /* 32px = 4 baseline */
-  padding: 0 var(--space-xs); /* 4px horizontal */
-  font-size: var(--text-xs); /* 12px */
-  font-weight: var(--font-weight-medium);
-  color: var(--dt-text-secondary);
-  background: var(--dt-surface-2);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--dt-border);
-  margin-right: var(--space-sm); /* 8px = 1 baseline */
-  flex-shrink: 0;
-}
-
-.side-by-side-content .diff-column .line-marker {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--space-lg); /* 16px = 2 baseline */
-  height: var(--space-lg); /* 16px = 2 baseline */
-  font-weight: var(--font-weight-bold);
-  font-size: var(--text-xs); /* 12px */
-  border-radius: var(--radius-sm);
-  margin-right: var(--space-sm); /* 8px = 1 baseline */
-  flex-shrink: 0;
-}
-
-.side-by-side-content .diff-line-added .line-marker {
-  background: var(--dt-success);
-  color: white;
-}
-
-.side-by-side-content .diff-line-removed .line-marker {
-  background: var(--dt-danger);
-  color: white;
-}
-
-.side-by-side-content .diff-line-modified .line-marker {
-  background: var(--dt-warning);
-  color: white;
-}
-
-.side-by-side-content .diff-line-empty .line-marker {
-  background: transparent;
-  color: var(--dt-text-tertiary);
-}
-
-.side-by-side-content .diff-column .line-content {
-  flex: 1;
-  font-family: var(--font-mono);
-  font-size: var(--text-sm); /* 14px */
-  color: var(--dt-text-primary);
-  white-space: pre;
-  word-break: break-all;
-}
-
-/* No differences message */
-.no-diff-message {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-sm); /* 8px = 1 baseline */
-  padding: var(--space-2xl); /* 32px = 4 baseline */
-  color: var(--dt-text-secondary);
-  font-style: italic;
-}
-
-/* ===== DARK MODE ADJUSTMENTS ===== */
-.app-dark .diff-line-added {
-  background: rgba(16, 185, 129, 0.15);
-}
-
-.app-dark .diff-line-removed {
-  background: rgba(239, 68, 68, 0.15);
-}
-
-.app-dark .diff-line-modified {
-  background: rgba(245, 158, 11, 0.15);
-}
-
-/* ===== RESPONSIVE DESIGN ===== */
-@media (max-width: 768px) {
-  .side-by-side-content .diff-columns {
-    grid-template-columns: 1fr;
-    max-height: 320px; /* 40 baseline = 320px */
-  }
-
-  .side-by-side-content .diff-header {
-    grid-template-columns: 1fr;
-  }
-
-  .side-by-side-content .original-column,
-  .side-by-side-content .changed-column {
-    border: none;
-    border-bottom: 1px solid var(--dt-border);
-  }
-
-  .side-by-side-content .changed-column {
-    border-bottom: none;
-  }
-
-  .side-by-side-content .diff-column-header {
-    border-right: none;
-    border-bottom: 1px solid var(--dt-border);
-  }
-
-  .side-by-side-content .diff-column-header:last-child {
-    border-bottom: none;
-  }
-}
-
-/* ===== ANIMATION CLASSES ===== */
-.animate-glow {
-  animation: glow 2s ease-in-out infinite alternate;
-}
-
-@keyframes glow {
-  from {
-    box-shadow: var(--elevation-1);
-  }
-  to {
-    box-shadow: var(--elevation-2), 0 0 20px rgba(59, 130, 246, 0.2);
-  }
 }
 
 /* ===== ENHANCED UX FEATURES ===== */
@@ -1411,6 +1070,20 @@ const clearAll = () => {
 }
 
 /* Quick actions */
+.compare-action {
+  display: flex;
+  justify-content: center;
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.compare-btn {
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 0.75rem 2.5rem;
+  gap: 0.5rem;
+}
+
 .quick-actions {
   display: flex;
   gap: 0.5rem;
@@ -1473,38 +1146,50 @@ const clearAll = () => {
   box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
 }
 
-/* Enhanced compare button */
-.compare-btn {
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8) !important;
-  border: none !important;
+.share-btn:hover {
+  background: linear-gradient(135deg, #06b6d4, #0891b2) !important;
   color: white !important;
-  font-weight: 600;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
+}
+
+.upload-btn:hover {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8) !important;
+  color: white !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+/* Drop zone */
+.drop-zone {
   position: relative;
-  overflow: hidden;
 }
 
-.compare-btn::after {
-  content: '';
+.drop-zone--active {
+  border-radius: 8px;
+  outline: 2px dashed var(--primary-color);
+  outline-offset: 2px;
+}
+
+.drop-overlay {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 0;
-  height: 0;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.3);
-  transform: translate(-50%, -50%);
-  transition: width 0.6s, height 0.6s;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 8px;
+  pointer-events: none;
+  z-index: 10;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--primary-color);
 }
 
-.compare-btn:hover::after {
-  width: 300px;
-  height: 300px;
-}
-
-.compare-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+.drop-overlay i {
+  font-size: 1.5rem;
 }
 
 /* Animation keyframes */
@@ -1516,15 +1201,6 @@ const clearAll = () => {
   to {
     opacity: 1;
     transform: translateY(0);
-  }
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.7;
   }
 }
 

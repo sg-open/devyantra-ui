@@ -1,11 +1,15 @@
 import { ref, watch, type Ref } from 'vue'
 import LZString from 'lz-string'
-import type { DiffOptions } from './useDiff'
+
+export interface DiffShareOptions {
+  ignoreWhitespace: boolean
+  ignoreCase: boolean
+}
 
 export interface ShareableState {
   leftText: string
   rightText: string
-  options: Partial<DiffOptions>
+  options: Partial<DiffShareOptions>
   timestamp: number
   version: string
 }
@@ -31,7 +35,7 @@ const CURRENT_VERSION = '1.0.0'
 export function useShareState(
   leftText: Ref<string>,
   rightText: Ref<string>,
-  options: Ref<Partial<DiffOptions>>,
+  options: Ref<Partial<DiffShareOptions>>,
   config: Partial<ShareStateConfig> = {}
 ) {
   const mergedConfig = { ...DEFAULT_CONFIG, ...config }
