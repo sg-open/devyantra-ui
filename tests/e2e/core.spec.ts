@@ -9,7 +9,7 @@ test.describe('DevYantra Core Functionality', () => {
     await devyantra.waitForPageLoad()
 
     // Check that the main elements are present
-    await expect(page.locator('h1')).toContainText('DevYantra')
+    await expect(page.locator('h1')).toBeVisible()
     await expect(page.locator('#main-content')).toBeVisible()
 
     // Check for the privacy badges
@@ -78,8 +78,8 @@ test.describe('DevYantra Core Functionality', () => {
     await expect(toolbar).toBeVisible()
 
     // Check that buttons are still accessible
-    const themeToggle = page.locator('.theme-toggle-btn')
-    await expect(themeToggle).toBeVisible()
+    const themeOption = page.locator('.theme-option').first()
+    await expect(themeOption).toBeVisible()
   })
 
   test('should have proper ARIA labels and roles', async ({ page, devyantra }) => {
@@ -104,11 +104,16 @@ test.describe('DevYantra Core Functionality', () => {
     // Continue navigation
     await page.keyboard.press('Tab')
 
-    // Should eventually reach the theme toggle
+    // Should eventually reach a theme option button
     let focused = false
-    for (let i = 0; i < 10; i++) {
-      const themeToggle = page.locator('.theme-toggle-btn')
-      if (await themeToggle.isVisible() && await themeToggle.evaluate(el => el === document.activeElement)) {
+    for (let i = 0; i < 15; i++) {
+      const themeOption = page.locator('.theme-option').first()
+      if (await themeOption.isVisible() && await themeOption.evaluate(el => el === document.activeElement)) {
+        focused = true
+        break
+      }
+      const themeOption2 = page.locator('.theme-option').last()
+      if (await themeOption2.isVisible() && await themeOption2.evaluate(el => el === document.activeElement)) {
         focused = true
         break
       }

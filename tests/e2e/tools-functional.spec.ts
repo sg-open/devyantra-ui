@@ -23,7 +23,7 @@ test.describe('Format Text Tool', () => {
   test('should format JSON input correctly', async ({ page }) => {
     const input = '{"name":"test","value":123,"nested":{"a":1}}'
     await page.locator('textarea').first().fill(input)
-    await page.locator('.format-btn, .enhanced-format-btn').click()
+    await page.locator('button:has-text("Beautify")').click()
     await page.waitForTimeout(500)
 
     const output = page.locator('.formatted-output')
@@ -51,26 +51,26 @@ test.describe('Format Text Tool', () => {
   test('should detect type tag for JSON', async ({ page }) => {
     await page.locator('textarea').first().fill('{"a":1}')
     await page.waitForTimeout(800) // detection debounce
-    const tag = page.locator('.type-indicator')
+    const tag = page.locator('.type-badge')
     await expect(tag).toBeVisible()
   })
 
-  test('should show quick format buttons', async ({ page }) => {
-    const quickBtns = page.locator('.quick-format-btn')
-    await expect(quickBtns).toHaveCount(6) // JSON, SQL, XML, CSV, CSS, JS
+  test('should show format type buttons', async ({ page }) => {
+    const formatBtns = page.locator('.format-type-btn')
+    await expect(formatBtns).toHaveCount(5) // JSON, SQL, XML, CSS, JS
   })
 
   test('should handle empty input gracefully', async ({ page }) => {
     // Button should be disabled when input is empty
-    const btn = page.locator('.format-btn, .enhanced-format-btn')
+    const btn = page.locator('button:has-text("Beautify")')
     await expect(btn).toBeDisabled()
   })
 
   test('should copy formatted output', async ({ page }) => {
     await page.locator('textarea').first().fill('{"a":1}')
-    await page.locator('.format-btn, .enhanced-format-btn').click()
+    await page.locator('button:has-text("Beautify")').click()
     await page.waitForTimeout(500)
-    const copyBtn = page.locator('.output-actions .copy-btn, .output-actions button:has-text("Copy")')
+    const copyBtn = page.locator('.panel-header .panel-action').last()
     if (await copyBtn.isVisible()) {
       await copyBtn.click()
       // No error = success (clipboard API may not work in test env)
@@ -254,7 +254,7 @@ test.describe('JWT Decoder Tool', () => {
   })
 
   test('should load example tokens', async ({ page }) => {
-    await page.locator('.example-btn').first().click()
+    await page.locator('.quick-btn').first().click()
     await page.waitForTimeout(500)
     await expect(page.locator('.jwt-part')).toHaveCount(3)
   })
@@ -288,7 +288,7 @@ test.describe('JWT Decoder Tool', () => {
 
   test('should show expired token status', async ({ page }) => {
     // Load the expired example
-    await page.locator('.example-btn.expired').click()
+    await page.locator('.quick-btn:has-text("Expired")').click()
     await page.waitForTimeout(500)
     await expect(page.locator('.info-value.expired').first()).toBeVisible()
   })
@@ -465,9 +465,9 @@ test.describe('Delimiter Tool', () => {
     }
   })
 
-  test('should have h2 panel headers', async ({ page }) => {
-    const h2s = page.locator('.panel-header h2')
-    await expect(h2s).toHaveCount(2) // "Delimited Text" and "Newline Separated"
+  test('should have panel labels', async ({ page }) => {
+    const labels = page.locator('.input-label')
+    await expect(labels).toHaveCount(2) // "Delimited Text" and "Newline Separated"
   })
 })
 

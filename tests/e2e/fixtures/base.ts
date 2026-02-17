@@ -91,7 +91,7 @@ class DevYantraPage implements DevYantraPageObjects {
   }
 
   async toggleTheme(): Promise<void> {
-    await this.page.click('.theme-toggle-btn')
+    await this.page.click('.theme-option:not(.active)')
     // Wait for theme transition
     await this.page.waitForTimeout(300)
   }

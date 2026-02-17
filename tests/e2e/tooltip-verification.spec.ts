@@ -30,8 +30,8 @@ test('Verify privacy tooltip styling in both light and dark modes', async ({ pag
 
   // Switch to Dark Mode
   console.log('Switching to dark mode...');
-  const themeToggle = page.locator('.theme-toggle-btn');
-  await themeToggle.click();
+  const darkThemeBtn = page.locator('button[aria-label="Dark theme"]');
+  await darkThemeBtn.click();
   await page.waitForTimeout(1000);
 
   // Test Dark Mode Privacy Tooltip
