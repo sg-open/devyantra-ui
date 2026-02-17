@@ -20,9 +20,8 @@ export const useThemeStore = defineStore('theme', () => {
       return 'light'
     }
 
-    // Default to system preference, fallback to dark
-    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
-    return prefersDark ? 'dark' : 'light'
+    // Default to light mode for first-time visitors
+    return 'light'
   }
 
   const mode = ref<ThemeMode>(getInitialTheme())
