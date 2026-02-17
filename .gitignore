@@ -93,8 +93,9 @@ dist
 # https://nextjs.org/blog/next-9-1#public-directory-support
 # public
 
-# Vite build output
+# Vite build output and cache
 dist-ssr
+.vite
 *.local
 
 # Rollup build output

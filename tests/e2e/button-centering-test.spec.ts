@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test } from '@playwright/test';
 
 test('Verify button text centering', async ({ page }) => {
   // Navigate to the application

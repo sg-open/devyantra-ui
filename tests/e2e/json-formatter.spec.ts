@@ -21,15 +21,6 @@ test.describe('JSON Formatter Tool', () => {
 
   test('should format valid JSON correctly', async ({ page }) => {
     const compactJson = '{"name":"John","age":30,"city":"New York","hobbies":["reading","coding"]}'
-    const expectedFormatted = `{
-  "name": "John",
-  "age": 30,
-  "city": "New York",
-  "hobbies": [
-    "reading",
-    "coding"
-  ]
-}`
 
     // Input compact JSON
     await page.locator('textarea').first().fill(compactJson)
@@ -45,7 +36,6 @@ test.describe('JSON Formatter Tool', () => {
     const formattedValue = await outputTextarea.inputValue()
 
     // Verify JSON is properly formatted (normalized whitespace comparison)
-    const normalizedExpected = expectedFormatted.replace(/\s+/g, ' ').trim()
     const normalizedActual = formattedValue.replace(/\s+/g, ' ').trim()
 
     expect(normalizedActual).toContain('"name": "John"')

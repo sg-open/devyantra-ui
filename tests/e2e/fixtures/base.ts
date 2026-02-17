@@ -1,4 +1,4 @@
-import { test as base, expect } from '@playwright/test'
+import { test as base, expect, type Page } from '@playwright/test'
 
 /**
  * Custom fixtures and page object models for DevYantra E2E tests
@@ -18,7 +18,7 @@ export interface DevYantraPageObjects {
 }
 
 class DevYantraPage implements DevYantraPageObjects {
-  constructor(private page: any) {}
+  constructor(private page: Page) {}
 
   async navigateToTool(toolName: string): Promise<void> {
     // Map tool names to routes

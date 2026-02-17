@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test } from '@playwright/test';
 
 test('Verify privacy tooltip styling in both light and dark modes', async ({ page }) => {
   // Navigate to the application

@@ -1,22 +1,13 @@
 import { test, expect } from './fixtures/base'
+import type { Page } from '@playwright/test'
 
 /* ─── Helper: toggle to dark mode ─── */
-async function setDarkMode(page: any) {
+async function setDarkMode(page: Page) {
   const isDark = await page.evaluate(() =>
     document.documentElement.classList.contains('app-dark')
   )
   if (!isDark) {
     await page.locator('.theme-option:has-text("Dark")').click()
-    await page.waitForTimeout(200)
-  }
-}
-
-async function setLightMode(page: any) {
-  const isDark = await page.evaluate(() =>
-    document.documentElement.classList.contains('app-dark')
-  )
-  if (isDark) {
-    await page.locator('.theme-option:has-text("Light")').click()
     await page.waitForTimeout(200)
   }
 }

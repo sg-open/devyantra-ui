@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { ref } from 'vue'
+import { ref, type Ref } from 'vue'
 import { useShareState } from '../useShareState'
 import type { DiffShareOptions } from '../useShareState'
 
@@ -46,9 +46,9 @@ const mockHistory = {
 Object.defineProperty(window, 'history', { value: mockHistory })
 
 describe('useShareState', () => {
-  let leftText: any
-  let rightText: any
-  let options: any
+  let leftText: Ref<string>
+  let rightText: Ref<string>
+  let options: Ref<Partial<DiffShareOptions>>
 
   beforeEach(() => {
     leftText = ref('')
@@ -151,6 +151,7 @@ describe('useShareState', () => {
         toString() {
           return this.href + (this.hash ? '#' + this.hash : '')
         }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any
 
       const shareState = useShareState(leftText, rightText, options)
@@ -212,6 +213,7 @@ describe('useShareState', () => {
         toString() {
           return this.href + this.hash
         }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any
 
       const shareState = useShareState(leftText, rightText, options)
@@ -306,6 +308,7 @@ describe('useShareState', () => {
       }
 
       const decompressed = shareState.decompressState(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         shareState.compressState(oldState as any)
       )
 
@@ -348,7 +351,7 @@ describe('useShareState', () => {
 
   describe('auto-save functionality', () => {
     it('should auto-save when content changes', async () => {
-      const shareState = useShareState(leftText, rightText, options, {
+      useShareState(leftText, rightText, options, {
         autoSave: true
       })
 
@@ -361,7 +364,7 @@ describe('useShareState', () => {
     })
 
     it('should not auto-save when disabled', async () => {
-      const shareState = useShareState(leftText, rightText, options, {
+      useShareState(leftText, rightText, options, {
         autoSave: false
       })
 
