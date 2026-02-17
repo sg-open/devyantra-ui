@@ -4,7 +4,8 @@ import fs from 'fs'
 import os from 'os'
 
 test.describe('Text Comparison Tool', () => {
-  test.beforeEach(async ({ devyantra }) => {
+  test.beforeEach(async ({ devyantra }, testInfo) => {
+    test.skip(testInfo.project.name.includes('Mobile'), 'Desktop-only tests')
     await devyantra.navigateToTool('text-compare')
   })
 

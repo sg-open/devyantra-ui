@@ -12,10 +12,13 @@ test.describe('DevYantra Core Functionality', () => {
     await expect(page.locator('h1')).toBeVisible()
     await expect(page.locator('#main-content')).toBeVisible()
 
-    // Check for the privacy badges
-    await expect(page.locator('.privacy-badge')).toBeVisible()
-    await expect(page.locator('.free-badge')).toBeVisible()
-    await expect(page.locator('.open-source-badge')).toBeVisible()
+    // Privacy badges are hidden on mobile viewports (< 768px)
+    const viewport = page.viewportSize()
+    if (viewport && viewport.width >= 768) {
+      await expect(page.locator('.privacy-badge')).toBeVisible()
+      await expect(page.locator('.free-badge')).toBeVisible()
+      await expect(page.locator('.open-source-badge')).toBeVisible()
+    }
   })
 
   test('should have proper meta tags for SEO', async ({ page }) => {
