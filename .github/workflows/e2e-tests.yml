@@ -44,10 +44,10 @@ jobs:
         with:
           name: playwright-results-${{ matrix.browser }}
           path: |
-            test-results/
-            playwright-report/
-            e2e-results.xml
-            e2e-results.json
+            temp/reports/test-results/
+            temp/reports/playwright-report/
+            temp/reports/e2e-results.xml
+            temp/reports/e2e-results.json
           retention-days: 7
 
       - name: Upload HTML report
@@ -55,7 +55,7 @@ jobs:
         if: failure()
         with:
           name: playwright-html-report-${{ matrix.browser }}
-          path: playwright-report/
+          path: temp/reports/playwright-report/
           retention-days: 7
 
   e2e-mobile:
@@ -77,7 +77,7 @@ jobs:
         run: npm ci
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps chromium webkit
 
       - name: Run Mobile E2E tests
         run: npx playwright test --project="Mobile Chrome" --project="Mobile Safari"
@@ -90,10 +90,10 @@ jobs:
         with:
           name: playwright-mobile-results
           path: |
-            test-results/
-            playwright-report/
-            e2e-results.xml
-            e2e-results.json
+            temp/reports/test-results/
+            temp/reports/playwright-report/
+            temp/reports/e2e-results.xml
+            temp/reports/e2e-results.json
           retention-days: 7
 
   accessibility-tests:
@@ -118,7 +118,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run Accessibility tests
-        run: npx playwright test accessibility.spec.ts
+        run: npx playwright test accessibility.spec.ts --project=chromium
         env:
           CI: true
 
@@ -128,10 +128,10 @@ jobs:
         with:
           name: accessibility-test-results
           path: |
-            test-results/
-            playwright-report/
-            e2e-results.xml
-            e2e-results.json
+            temp/reports/test-results/
+            temp/reports/playwright-report/
+            temp/reports/e2e-results.xml
+            temp/reports/e2e-results.json
           retention-days: 7
 
   performance-tests:
@@ -156,7 +156,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run Performance tests
-        run: npx playwright test core.spec.ts --grep "performance"
+        run: npx playwright test core.spec.ts --grep "performance" --project=chromium
         env:
           CI: true
 
@@ -166,10 +166,10 @@ jobs:
         with:
           name: performance-test-results
           path: |
-            test-results/
-            playwright-report/
-            e2e-results.xml
-            e2e-results.json
+            temp/reports/test-results/
+            temp/reports/playwright-report/
+            temp/reports/e2e-results.xml
+            temp/reports/e2e-results.json
           retention-days: 7
 
   test-summary:
