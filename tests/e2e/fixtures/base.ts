@@ -38,7 +38,7 @@ class DevYantraPage implements DevYantraPageObjects {
       throw new Error(`Unknown tool: ${toolName}`)
     }
 
-    await this.page.goto(route)
+    await this.page.goto(route, { waitUntil: 'domcontentloaded' })
     await this.waitForPageLoad()
   }
 
@@ -53,9 +53,6 @@ class DevYantraPage implements DevYantraPageObjects {
         getComputedStyle(spinner).display === 'none'
       )
     })
-
-    // Wait for network to be idle
-    await this.page.waitForLoadState('networkidle')
   }
 
   async checkAccessibility(): Promise<void> {
