@@ -92,11 +92,11 @@ test.describe('Format Text Tool', () => {
   })
 
   test('should format SQL input', async ({ page }) => {
-    // Select SQL format type
-    await page.locator('.format-type-btn', { hasText: 'SQL' }).click()
-
     const input = 'SELECT id, name FROM users WHERE active = 1 ORDER BY name'
     await page.locator('textarea').first().fill(input)
+
+    // Select SQL format type (must fill input first — buttons disabled when empty)
+    await page.locator('.format-type-btn', { hasText: 'SQL' }).click()
     await page.locator('button:has-text("Beautify")').click()
     await page.waitForTimeout(500)
 
