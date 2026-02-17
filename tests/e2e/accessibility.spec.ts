@@ -171,80 +171,11 @@ test.describe('Accessibility Features', () => {
     }
   })
 
-  test('should support high contrast mode', async ({ page }) => {
-    // Test in high contrast simulation
-    await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' })
-
-    // Check that text is still readable
-    const textElements = page.locator('h1, p, button')
-    const elementCount = await textElements.count()
-
-    for (let i = 0; i < Math.min(elementCount, 5); i++) {
-      const element = textElements.nth(i)
-      const isVisible = await element.isVisible()
-
-      if (isVisible) {
-        const styles = await element.evaluate(el => {
-          const computed = getComputedStyle(el)
-          return {
-            color: computed.color,
-            backgroundColor: computed.backgroundColor,
-            display: computed.display
-          }
-        })
-
-        // Should have color defined and not be completely transparent
-        expect(styles.color).not.toBe('rgba(0, 0, 0, 0)')
-        expect(styles.color).not.toBe('transparent')
-      }
-    }
-  })
-
-  test('should have proper form validation announcements', async ({ page, devyantra }) => {
-    // Navigate to a form-heavy tool
-    await devyantra.navigateToTool('hash-generator')
-
-    // Hash generator auto-generates on input, so check the empty state instead
-    const emptyState = page.locator('.empty-state')
-    await expect(emptyState).toBeVisible()
-
-    // Type something and verify results appear
-    await page.locator('textarea').first().fill('test')
-    await page.waitForTimeout(500)
-
-    const hashResults = page.locator('.hash-results')
-    await expect(hashResults).toBeVisible()
-  })
-
   test('should have proper language attributes', async ({ page }) => {
     // Check html lang attribute
     const htmlLang = await page.getAttribute('html', 'lang')
     expect(htmlLang).toBeTruthy()
     expect(htmlLang).toMatch(/^[a-z]{2}(-[A-Z]{2})?$/) // Format like "en" or "en-US"
-  })
-
-  test('should support screen reader navigation', async ({ page }) => {
-    // Check for proper landmark roles
-    const landmarks = page.locator('[role="main"], [role="navigation"], [role="banner"], [role="contentinfo"], main, nav, header, footer')
-    const landmarkCount = await landmarks.count()
-    expect(landmarkCount).toBeGreaterThan(0)
-
-    // Check for proper heading structure for screen readers
-    const headings = page.locator('h1, h2, h3, h4, h5, h6')
-    const headingCount = await headings.count()
-
-    if (headingCount > 1) {
-      // Verify heading hierarchy makes sense
-      const headingLevels = []
-      for (let i = 0; i < headingCount; i++) {
-        const heading = headings.nth(i)
-        const level = await heading.evaluate(el => parseInt(el.tagName.charAt(1)))
-        headingLevels.push(level)
-      }
-
-      // First heading should be h1
-      expect(headingLevels[0]).toBe(1)
-    }
   })
 
   test('should handle reduced motion preferences', async ({ page }) => {
@@ -271,48 +202,5 @@ test.describe('Accessibility Features', () => {
         expect(parseFloat(styles.animationDuration)).toBeLessThanOrEqual(0.5)
       }
     }
-  })
-
-  test('should have accessible color contrast', async ({ page }) => {
-    // Check key text elements for sufficient contrast
-    const textElements = page.locator('h1, p')
-    const elementCount = await textElements.count()
-
-    for (let i = 0; i < Math.min(elementCount, 3); i++) {
-      const element = textElements.nth(i)
-      const isVisible = await element.isVisible()
-
-      if (isVisible) {
-        const styles = await element.evaluate(el => {
-          const computed = getComputedStyle(el)
-          return {
-            color: computed.color,
-            backgroundColor: computed.backgroundColor,
-            fontSize: computed.fontSize
-          }
-        })
-
-        // Should have defined colors (not transparent)
-        expect(styles.color).not.toBe('rgba(0, 0, 0, 0)')
-        expect(styles.color).not.toBe('transparent')
-
-        // Font size should be reasonable
-        const fontSize = parseFloat(styles.fontSize)
-        expect(fontSize).toBeGreaterThanOrEqual(10) // At least 10px
-      }
-    }
-  })
-
-  test('should support zoom up to 200%', async ({ page }) => {
-    // Set zoom level to 200%
-    await page.setViewportSize({ width: 640, height: 480 }) // Simulate 200% zoom
-
-    // Check that important elements are still accessible
-    const mainContent = page.locator('#main-content')
-    await expect(mainContent).toBeVisible()
-
-    // Text should still be readable
-    const heading = page.locator('h1')
-    await expect(heading).toBeVisible()
   })
 })

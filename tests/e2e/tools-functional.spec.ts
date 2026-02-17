@@ -76,6 +76,36 @@ test.describe('Format Text Tool', () => {
       // No error = success (clipboard API may not work in test env)
     }
   })
+
+  test('should minify JSON input', async ({ page }) => {
+    const input = '{\n  "name": "test",\n  "value": 123\n}'
+    await page.locator('textarea').first().fill(input)
+    await page.locator('button:has-text("Minify")').click()
+    await page.waitForTimeout(500)
+
+    const output = page.locator('.formatted-output')
+    await expect(output).toBeVisible()
+    const text = await output.textContent()
+    // Minified JSON should have no newlines or extra spaces
+    expect(text).toContain('"name"')
+    expect(text).not.toContain('\n')
+  })
+
+  test('should format SQL input', async ({ page }) => {
+    // Select SQL format type
+    await page.locator('.format-type-btn', { hasText: 'SQL' }).click()
+
+    const input = 'SELECT id, name FROM users WHERE active = 1 ORDER BY name'
+    await page.locator('textarea').first().fill(input)
+    await page.locator('button:has-text("Beautify")').click()
+    await page.waitForTimeout(500)
+
+    const output = page.locator('.formatted-output')
+    await expect(output).toBeVisible()
+    const text = await output.textContent()
+    expect(text).toContain('SELECT')
+    expect(text).toContain('FROM')
+  })
 })
 
 /* ═══════════════════════════════════════════
@@ -468,6 +498,110 @@ test.describe('Delimiter Tool', () => {
   test('should have panel labels', async ({ page }) => {
     const labels = page.locator('.input-label')
     await expect(labels).toHaveCount(2) // "Delimited Text" and "Newline Separated"
+  })
+
+  test('should convert delimited to newline-separated', async ({ page }) => {
+    const delimitedArea = page.locator('textarea').first()
+    await delimitedArea.fill('apple,banana,cherry')
+
+    const toNewlinesBtn = page.locator('.convert-btn[title="Convert delimited text to newlines"]')
+    await toNewlinesBtn.click()
+    await page.waitForTimeout(300)
+
+    const newlineArea = page.locator('textarea').last()
+    const value = await newlineArea.inputValue()
+    expect(value).toBe('apple\nbanana\ncherry')
+  })
+
+  test('should use pipe delimiter', async ({ page }) => {
+    // Select pipe delimiter
+    await page.locator('.delimiter-btn', { hasText: 'Pipe' }).click()
+
+    const newlineArea = page.locator('textarea').last()
+    await newlineArea.fill('one\ntwo\nthree')
+
+    const toDelimitedBtn = page.locator('.convert-btn[title="Convert newline text to delimited"]')
+    await toDelimitedBtn.click()
+    await page.waitForTimeout(300)
+
+    const delimitedArea = page.locator('textarea').first()
+    const value = await delimitedArea.inputValue()
+    expect(value).toBe('one|two|three')
+  })
+
+  test('should support custom delimiter', async ({ page }) => {
+    // Click Custom button
+    await page.locator('.delimiter-btn.custom-btn').click()
+
+    // Enter custom delimiter
+    const customInput = page.locator('.custom-delimiter-input')
+    await expect(customInput).toBeVisible()
+    await customInput.fill(' :: ')
+
+    // Fill newline text and convert
+    const newlineArea = page.locator('textarea').last()
+    await newlineArea.fill('a\nb\nc')
+
+    const toDelimitedBtn = page.locator('.convert-btn[title="Convert newline text to delimited"]')
+    await toDelimitedBtn.click()
+    await page.waitForTimeout(300)
+
+    const delimitedArea = page.locator('textarea').first()
+    const value = await delimitedArea.inputValue()
+    expect(value).toBe('a :: b :: c')
+  })
+
+  test('should trim whitespace during conversion', async ({ page }) => {
+    // Trim whitespace is on by default
+    const delimitedArea = page.locator('textarea').first()
+    await delimitedArea.fill('  apple , banana , cherry  ')
+
+    const toNewlinesBtn = page.locator('.convert-btn[title="Convert delimited text to newlines"]')
+    await toNewlinesBtn.click()
+    await page.waitForTimeout(300)
+
+    const newlineArea = page.locator('textarea').last()
+    const value = await newlineArea.inputValue()
+    expect(value).toBe('apple\nbanana\ncherry')
+  })
+
+  test('should remove empty lines during conversion', async ({ page }) => {
+    // Remove empty lines is on by default
+    const newlineArea = page.locator('textarea').last()
+    await newlineArea.fill('one\n\ntwo\n\nthree')
+
+    const toDelimitedBtn = page.locator('.convert-btn[title="Convert newline text to delimited"]')
+    await toDelimitedBtn.click()
+    await page.waitForTimeout(300)
+
+    const delimitedArea = page.locator('textarea').first()
+    const value = await delimitedArea.inputValue()
+    expect(value).toBe('one,two,three')
+  })
+
+  test('should clear delimited and newline panels independently', async ({ page }) => {
+    const delimitedArea = page.locator('textarea').first()
+    const newlineArea = page.locator('textarea').last()
+
+    await delimitedArea.fill('some,data')
+    await newlineArea.fill('some\ndata')
+
+    // Clear left panel
+    await page.locator('.clear-btn').first().click()
+    await expect(delimitedArea).toHaveValue('')
+    await expect(newlineArea).toHaveValue('some\ndata')
+
+    // Clear right panel
+    await page.locator('.clear-btn').last().click()
+    await expect(newlineArea).toHaveValue('')
+  })
+
+  test('should show item and line counts', async ({ page }) => {
+    const delimitedArea = page.locator('textarea').first()
+    await delimitedArea.fill('a,b,c,d')
+
+    const itemCount = page.locator('.item-count')
+    await expect(itemCount).toContainText('4 items')
   })
 })
 

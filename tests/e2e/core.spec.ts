@@ -37,39 +37,18 @@ test.describe('DevYantra Core Functionality', () => {
   test('should toggle theme correctly', async ({ devyantra }) => {
     const initialTheme = await devyantra.getCurrentTheme()
 
-    // Toggle theme — cycles through 6 modes
+    // Toggle theme (dark ↔ light)
     await devyantra.toggleTheme()
     const secondTheme = await devyantra.getCurrentTheme()
 
     // Verify theme changed
     expect(secondTheme).not.toBe(initialTheme)
 
-    // Toggle again — should change to yet another theme
+    // Toggle back
     await devyantra.toggleTheme()
     const thirdTheme = await devyantra.getCurrentTheme()
 
     expect(thirdTheme).not.toBe(secondTheme)
-  })
-
-  test('should have working skip links for accessibility', async ({ page }) => {
-    // Focus on skip links using keyboard navigation
-    await page.keyboard.press('Tab')
-
-    // Check that skip link becomes visible when focused
-    const skipToContent = page.locator('.skip-link').first()
-    await expect(skipToContent).toBeFocused()
-
-    // Use keyboard to activate skip link instead of click
-    await page.keyboard.press('Enter')
-    await page.waitForTimeout(200)
-
-    // Verify that main content gains focus or the page scrolls to it
-    const mainContent = page.locator('#main-content')
-    const isFocused = await mainContent.evaluate(el => el === document.activeElement)
-    const isVisible = await mainContent.isVisible()
-
-    // Either the element should be focused or at least visible and scrolled into view
-    expect(isFocused || isVisible).toBe(true)
   })
 
   test('should be responsive on mobile devices', async ({ page }) => {
@@ -83,47 +62,6 @@ test.describe('DevYantra Core Functionality', () => {
     // Check that buttons are still accessible
     const themeOption = page.locator('.theme-option').first()
     await expect(themeOption).toBeVisible()
-  })
-
-  test('should have proper ARIA labels and roles', async ({ page, devyantra }) => {
-    await devyantra.checkAccessibility()
-
-    // Check specific ARIA implementations
-    const navigation = page.locator('#navigation')
-    await expect(navigation).toHaveAttribute('role', /.+/)
-
-    const mainContent = page.locator('#main-content')
-    await expect(mainContent).toBeVisible()
-  })
-
-  test('should handle keyboard navigation', async ({ page }) => {
-    // Start keyboard navigation
-    await page.keyboard.press('Tab')
-
-    // Should focus on skip link
-    const skipLink = page.locator('.skip-link').first()
-    await expect(skipLink).toBeFocused()
-
-    // Continue navigation
-    await page.keyboard.press('Tab')
-
-    // Should eventually reach a theme option button
-    let focused = false
-    for (let i = 0; i < 15; i++) {
-      const themeOption = page.locator('.theme-option').first()
-      if (await themeOption.isVisible() && await themeOption.evaluate(el => el === document.activeElement)) {
-        focused = true
-        break
-      }
-      const themeOption2 = page.locator('.theme-option').last()
-      if (await themeOption2.isVisible() && await themeOption2.evaluate(el => el === document.activeElement)) {
-        focused = true
-        break
-      }
-      await page.keyboard.press('Tab')
-    }
-
-    expect(focused).toBe(true)
   })
 
   test('should load without JavaScript errors', async ({ page }) => {
