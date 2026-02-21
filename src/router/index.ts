@@ -131,7 +131,7 @@ const router = createRouter({
         title: 'DevYantra - Free Online Developer Tools | DEVYANTRA',
         description: 'Free browser-based developer tools: text diff, JSON formatter, hash generator, Base64, JWT decoder, timestamps, and more. No signup, no data sent to servers.',
         keywords: 'developer tools, online tools, json formatter, text compare, hash generator, base64',
-        canonical: '/'
+        canonical: '/tools/text-compare'
       }
     },
     {

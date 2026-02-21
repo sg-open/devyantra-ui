@@ -2,6 +2,13 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/tools/text-compare",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",
