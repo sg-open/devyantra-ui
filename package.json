@@ -62,7 +62,7 @@
   "devDependencies": {
     "@playwright/test": "^1.55.0",
     "@resvg/resvg-js": "^2.6.2",
-    "@tailwindcss/postcss": "^4.1.13",
+    "@tailwindcss/postcss": "^4.2.0",
     "@tailwindcss/typography": "^0.5.19",
     "@tsconfig/node22": "^22.0.2",
     "@types/diff": "^7.0.2",
