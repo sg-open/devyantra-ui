@@ -39,7 +39,7 @@ jobs:
           CI: true
 
       - name: Upload test results
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: playwright-results-${{ matrix.browser }}
@@ -51,7 +51,7 @@ jobs:
           retention-days: 7
 
       - name: Upload HTML report
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: playwright-html-report-${{ matrix.browser }}
@@ -85,7 +85,7 @@ jobs:
           CI: true
 
       - name: Upload mobile test results
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: playwright-mobile-results
@@ -123,7 +123,7 @@ jobs:
           CI: true
 
       - name: Upload accessibility test results
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: accessibility-test-results
@@ -161,7 +161,7 @@ jobs:
           CI: true
 
       - name: Upload performance test results
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: performance-test-results
