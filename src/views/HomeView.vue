@@ -12,6 +12,7 @@
           @keydown.home="navigateTab(0)"
           @keydown.end="navigateTab(tools.length - 1)"
           :class="['seg-item', { active: $route.path === tool.route }]"
+          :aria-label="tool.title"
           :aria-selected="$route.path === tool.route"
           :aria-controls="`panel-${index}`"
           :id="`tab-${index}`"
@@ -25,11 +26,13 @@
 
     <!-- Active Tool Content -->
     <div class="tool-content" role="tabpanel" :id="`panel-${activeTabIndex}`" :aria-labelledby="`tab-${activeTabIndex}`">
-      <router-view v-slot="{ Component }">
-        <Transition name="fade" mode="out-in">
-          <component :is="Component" />
-        </Transition>
-      </router-view>
+      <ErrorBoundary>
+        <router-view v-slot="{ Component }">
+          <Transition name="fade" mode="out-in">
+            <component :is="Component" />
+          </Transition>
+        </router-view>
+      </ErrorBoundary>
     </div>
   </div>
 </template>
@@ -39,6 +42,7 @@ import { computed, nextTick, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useSEO } from '@/composables/useSEO'
 import { SEO_CONFIG } from '@/config/seo'
+import ErrorBoundary from '@/components/ErrorBoundary.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -47,20 +51,23 @@ const { setMetaTags, addOrganizationSchema, addWebSiteSchema } = useSEO()
 
 onMounted(() => {
   // Set homepage SEO
-  setMetaTags({
-    title: SEO_CONFIG.site.title,
-    description: SEO_CONFIG.site.description,
-    keywords: SEO_CONFIG.site.keywords,
-    canonical: '/',
-    ogTitle: SEO_CONFIG.site.title,
-    ogDescription: SEO_CONFIG.site.description,
-    ogType: 'website',
-    ogImage: `${window.location.origin}/og-image.png`,
-    twitterTitle: SEO_CONFIG.site.title,
-    twitterDescription: SEO_CONFIG.site.description,
-    twitterCard: 'summary_large_image',
-    twitterImage: `${window.location.origin}/twitter-image.png`
-  })
+  // Only set homepage-level SEO when on the root path (before redirect).
+  // Child routes handle their own title/description/canonical via the router guard.
+  if (router.currentRoute.value.path === '/') {
+    setMetaTags({
+      title: SEO_CONFIG.site.title,
+      description: SEO_CONFIG.site.description,
+      keywords: SEO_CONFIG.site.keywords,
+      ogTitle: SEO_CONFIG.site.title,
+      ogDescription: SEO_CONFIG.site.description,
+      ogType: 'website',
+      ogImage: `${window.location.origin}/og-image.png`,
+      twitterTitle: SEO_CONFIG.site.title,
+      twitterDescription: SEO_CONFIG.site.description,
+      twitterCard: 'summary_large_image',
+      twitterImage: `${window.location.origin}/twitter-image.png`
+    })
+  }
 
   // Add organization and website schemas for homepage
   addOrganizationSchema()
@@ -96,7 +103,7 @@ const tools = [
   {
     title: 'Text Compare',
     subtitle: 'Compare & Format',
-    icon: 'pi pi-search',
+    icon: 'pi pi-arrows-alt',
     route: '/tools/text-compare'
   },
   {
@@ -120,19 +127,19 @@ const tools = [
   {
     title: 'Hash Generator',
     subtitle: 'MD5, SHA1, SHA256',
-    icon: 'pi pi-key',
+    icon: 'pi pi-lock',
     route: '/tools/hash-generator'
   },
   {
     title: 'Base64 Tools',
     subtitle: 'Encode & Decode',
-    icon: 'pi pi-code',
+    icon: 'pi pi-arrow-right-arrow-left',
     route: '/tools/base64-tools'
   },
   {
     title: 'Timestamp',
     subtitle: 'Unix & ISO Converter',
-    icon: 'pi pi-calendar',
+    icon: 'pi pi-clock',
     route: '/tools/timestamp-converter'
   },
   {

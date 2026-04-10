@@ -53,7 +53,7 @@
         </div>
 
         <div class="header-actions">
-          <button class="cmdk-trigger" @click="commandPaletteOpen = true" v-tooltip.bottom="'Search tools (⌘K)'" aria-label="Search tools">
+          <button class="cmdk-trigger" @click="commandPaletteOpen = true" v-tooltip.bottom="'Search tools (⌘K)'" aria-label="Search tools, ⌘K">
             <i class="pi pi-search"></i>
             <kbd>⌘K</kbd>
           </button>
@@ -495,6 +495,10 @@ onUnmounted(() => {
 
 @media (max-width: 480px) {
   .feedback-btn {
+    padding: 4px 8px;
+  }
+
+  .feedback-btn .feedback-text {
     display: none;
   }
 

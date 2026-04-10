@@ -105,7 +105,7 @@ const toolRoutes: RouteRecordRaw[] = [
   {
     path: '/tools/delimiter',
     name: 'delimiter',
-    component: () => import('../views/DelimiterView.vue'),
+    component: () => import('../views/tools/DelimiterView.vue'),
     meta: {
       title: 'Delimiter Tool - Split & Join Text Online | DEVYANTRA',
       description: 'Convert between delimited and newline-separated text formats. Split comma-separated values to lines or join lines with custom delimiters.',

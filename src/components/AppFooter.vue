@@ -94,8 +94,7 @@
 .footer-privacy {
   margin-top: var(--space-sm, 0.5rem);
   font-size: 0.75rem;
-  color: var(--dt-text-secondary);
-  opacity: 0.7;
+  color: var(--dt-text-tertiary);
   line-height: 1.4;
 }
 
