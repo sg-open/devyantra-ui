@@ -10,8 +10,7 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 const SITE_URL = 'https://devyantra.app'
 
 const SITE_ROUTES: Array<{ path: string; priority: string; changefreq: string }> = [
-  { path: '/', priority: '1.0', changefreq: 'weekly' },
-  { path: '/tools/text-compare', priority: '0.9', changefreq: 'monthly' },
+  { path: '/tools/text-compare', priority: '1.0', changefreq: 'monthly' },
   { path: '/tools/format-text', priority: '0.9', changefreq: 'monthly' },
   { path: '/tools/hash-generator', priority: '0.9', changefreq: 'monthly' },
   { path: '/tools/base64-tools', priority: '0.9', changefreq: 'monthly' },

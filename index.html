@@ -14,8 +14,10 @@
     <meta name="googlebot" content="index,follow,max-snippet:-1,max-image-preview:large">
     <title>DevYantra - Free Online Developer Tools | DEVYANTRA</title>
 
-    <!-- Canonical, OG, and Twitter tags are set dynamically per-route by the Vue router guard -->
-    <!-- Do NOT hardcode canonical here — it causes "alternative page with proper canonical tag" issues in Google Search Console -->
+    <!-- Default canonical for the root URL (which redirects to /tools/text-compare).
+         This gets overwritten dynamically by the Vue router guard on each navigation,
+         but ensures crawlers that don't execute JS still see a valid canonical. -->
+    <link rel="canonical" href="https://devyantra.app/tools/text-compare">
     <meta property="og:image" content="https://devyantra.app/og-image.png">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="DEVYANTRA">

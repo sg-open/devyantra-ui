@@ -16,6 +16,8 @@ import handler from 'serve-handler'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const distDir = resolve(__dirname, '..', 'dist')
+const PROD_ORIGIN = 'https://devyantra.app'
+const LOCAL_ORIGIN = 'http://localhost:4567'
 
 const ROUTES = [
   '/tools/text-compare',
@@ -60,7 +62,10 @@ async function prerender() {
       // Wait a bit for Vue to mount and SEO composables to run
       await page.waitForTimeout(500)
 
-      const html = await page.content()
+      let html = await page.content()
+
+      // Replace localhost URLs with production domain in all meta tags
+      html = html.replaceAll(LOCAL_ORIGIN, PROD_ORIGIN)
 
       // Create directory structure in dist
       const outPath = resolve(distDir, route.slice(1), 'index.html')
