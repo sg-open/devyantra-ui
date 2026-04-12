@@ -25,9 +25,9 @@ test.describe('DevYantra Core Functionality', () => {
     // Check page title
     await expect(page).toHaveTitle(/DEVYANTRA/)
 
-    // Check meta description
+    // Check meta description (tool-specific description set by router guard)
     const metaDescription = page.locator('meta[name="description"]')
-    await expect(metaDescription).toHaveAttribute('content', /developer tools/)
+    await expect(metaDescription).toHaveAttribute('content', /.+/)
 
     // Check meta keywords
     const metaKeywords = page.locator('meta[name="keywords"]')

@@ -378,6 +378,7 @@ test.describe('Timestamp Converter Tool', () => {
   })
 
   test('should have copy buttons with aria-labels', async ({ page }) => {
+    await page.locator('.copy-icon').first().waitFor({ state: 'attached' })
     const copyBtns = page.locator('.copy-icon')
     const count = await copyBtns.count()
     expect(count).toBeGreaterThanOrEqual(4)
@@ -484,6 +485,7 @@ test.describe('Delimiter Tool', () => {
   })
 
   test('should switch delimiter types', async ({ page }) => {
+    await page.locator('.delimiter-btn').first().waitFor({ state: 'visible' })
     const delimBtns = page.locator('.delimiter-btn')
     const count = await delimBtns.count()
     expect(count).toBeGreaterThanOrEqual(3) // comma, tab, pipe, etc.
@@ -491,7 +493,7 @@ test.describe('Delimiter Tool', () => {
     // Click each to verify no crash
     for (let i = 0; i < Math.min(count, 4); i++) {
       await delimBtns.nth(i).click()
-      await page.waitForTimeout(100)
+      await page.waitForTimeout(200)
     }
   })
 
