@@ -111,7 +111,6 @@ storybook-static
 
 # vuepress v2.x temp and cache directory
 .temp
-.cache
 
 # Docusaurus cache and generated files
 .docusaurus
@@ -140,7 +139,6 @@ storybook-static
 
 # IDEs and editors
 .idea/
-.vscode/
 *.swp
 *.swo
 *~
@@ -161,13 +159,11 @@ tools/analyzers/
 
 # Vue.js specific
 # Local env files
-.env.local
 .env.*.local
 
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
-.idea
 *.suo
 *.ntvs*
 *.njsproj
@@ -185,9 +181,6 @@ tools/analyzers/
 
 # Vercel
 .vercel
-
-# Local development
-*.local
 
 # Hot reload files
 *.hot-update.js
@@ -210,8 +203,5 @@ ReferenceScreenshots/
 CLAUDE.md
 
 # Playwright E2E test results
-/test-results/
-/playwright-report/
-/playwright/.cache/
 e2e-results.xml
 e2e-results.json
