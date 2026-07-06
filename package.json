@@ -81,7 +81,7 @@
     "npm-run-all2": "^8.0.4",
     "playwright": "^1.59.1",
     "postcss": "^8.5.9",
-    "prettier": "^3.8.2",
+    "prettier": "^3.9.4",
     "serve-handler": "^6.1.7",
     "tailwindcss": "^4.2.2",
     "typescript": "~6.0.2",
