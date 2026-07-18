@@ -168,7 +168,7 @@ describe('useShareState', () => {
       const mockState = {
         leftText: 'url left',
         rightText: 'url right',
-        options: { granularity: 'word' },
+        options: { ignoreCase: true },
         timestamp: Date.now(),
         version: '1.0.0'
       }
@@ -184,7 +184,7 @@ describe('useShareState', () => {
       expect(result).toBe(true)
       expect(leftText.value).toBe('url left')
       expect(rightText.value).toBe('url right')
-      expect(options.value.granularity).toBe('word')
+      expect(options.value.ignoreCase).toBe(true)
     })
 
     it('should handle malformed URL hash', () => {
@@ -221,7 +221,7 @@ describe('useShareState', () => {
       leftText.value = 'test'
       const result = await shareState.copyShareUrl()
 
-      expect(result).toBe(true)
+      expect(result.ok).toBe(true)
       expect(mockClipboard.writeText).toHaveBeenCalled()
     })
 
@@ -251,6 +251,29 @@ describe('useShareState', () => {
         '',
         'https://example.com/diff'
       )
+    })
+
+    it('copyShareUrl reports too-large with the measured size', async () => {
+      const shareState = useShareState(leftText, rightText, options, {
+        maxUrlLength: 50, autoLoad: false
+      })
+      leftText.value = 'a'.repeat(1000)
+      rightText.value = 'b'.repeat(1000)
+
+      const result = await shareState.copyShareUrl()
+
+      expect(result.ok).toBe(false)
+      if (!result.ok) {
+        expect(result.reason).toBe('too-large')
+        expect(result.size).toBeGreaterThan(50)
+      }
+      expect(mockClipboard.writeText).not.toHaveBeenCalled()
+    })
+
+    it('copyShareUrl reports empty when there is nothing to share', async () => {
+      const shareState = useShareState(leftText, rightText, options, { autoLoad: false })
+      const result = await shareState.copyShareUrl()
+      expect(result).toEqual({ ok: false, reason: 'empty' })
     })
   })
 
@@ -295,10 +318,9 @@ describe('useShareState', () => {
       })
     })
 
-    it('should handle state version migration', () => {
+    it('rejects version-less state instead of migrating it', () => {
       const shareState = useShareState(leftText, rightText, options)
 
-      // Create old version state (without version field)
       const oldState = {
         leftText: 'old left',
         rightText: 'old right',
@@ -312,8 +334,26 @@ describe('useShareState', () => {
         shareState.compressState(oldState as any)
       )
 
-      expect(decompressed?.version).toBe('1.0.0')
-      expect(decompressed?.leftText).toBe('old left')
+      expect(decompressed).toBe(null)
+    })
+
+    it('rejects unknown-version state (would otherwise blank both panes)', () => {
+      const shareState = useShareState(leftText, rightText, options, { autoLoad: false })
+      const compressed = 'compressed_' + btoa(JSON.stringify({ version: '2.0.0' }))
+
+      const result = shareState.loadFromUrl(`https://example.com/diff#${compressed}`)
+
+      expect(result).toBe(false)
+      expect(leftText.value).toBe('') // untouched
+    })
+
+    it('rejects payloads with non-string texts', () => {
+      const shareState = useShareState(leftText, rightText, options, { autoLoad: false })
+      const compressed = 'compressed_' + btoa(JSON.stringify({
+        version: '1.0.0', leftText: 42, rightText: 'ok', options: {}, timestamp: 1
+      }))
+
+      expect(shareState.loadFromUrl(`https://example.com/diff#${compressed}`)).toBe(false)
     })
   })
 
@@ -337,13 +377,13 @@ describe('useShareState', () => {
 
       leftText.value = 'left text'
       rightText.value = 'right text'
-      options.value = { granularity: 'character' }
+      options.value = { ignoreWhitespace: true }
 
       const state = shareState.createState()
 
       expect(state.leftText).toBe('left text')
       expect(state.rightText).toBe('right text')
-      expect(state.options.granularity).toBe('character')
+      expect(state.options.ignoreWhitespace).toBe(true)
       expect(state.version).toBe('1.0.0')
       expect(typeof state.timestamp).toBe('number')
     })
@@ -376,6 +416,34 @@ describe('useShareState', () => {
     })
   })
 
+  describe('restore lifecycle (data-loss protection)', () => {
+    it('auto-load from URL strips the hash and does NOT autosave the restored state', async () => {
+      const state = {
+        leftText: 'shared L', rightText: 'shared R', options: {},
+        timestamp: Date.now(), version: '1.0.0'
+      }
+      const compressed = 'compressed_' + btoa(JSON.stringify(state))
+      mockLocation.href = `https://example.com/diff#${compressed}`
+      mockLocation.hash = `#${compressed}`
+
+      useShareState(leftText, rightText, options, { autoSave: true, autoLoad: true })
+
+      expect(leftText.value).toBe('shared L')
+      // hash cleaned immediately after restore
+      expect(mockHistory.replaceState).toHaveBeenCalledWith(null, '', 'https://example.com/diff')
+      // restoring must not overwrite the visitor's own saved state
+      await new Promise(resolve => setTimeout(resolve, 1100))
+      expect(mockLocalStorage.setItem).not.toHaveBeenCalled()
+    })
+
+    it('flushSave saves immediately, cancelling the debounce', () => {
+      const shareState = useShareState(leftText, rightText, options, { autoSave: true })
+      leftText.value = 'about to clear'
+      shareState.flushSave()
+      expect(mockLocalStorage.setItem).toHaveBeenCalledTimes(1)
+    })
+  })
+
   describe('error handling', () => {
     it('should handle decompression errors gracefully', () => {
       const shareState = useShareState(leftText, rightText, options)
@@ -393,7 +461,7 @@ describe('useShareState', () => {
       leftText.value = 'test'
       const result = await shareState.copyShareUrl()
 
-      expect(result).toBe(false)
+      expect(result).toEqual({ ok: false, reason: 'clipboard-failed' })
     })
   })
 

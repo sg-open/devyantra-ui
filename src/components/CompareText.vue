@@ -342,9 +342,21 @@ const onCompare = () => {
   showDiff.value = true
 }
 
-// Share handler
+// Share handler — every outcome is visible to the user
 const onShareClick = async () => {
-  await shareState.copyShareUrl()
+  const result = await shareState.copyShareUrl()
+  if (result.ok) {
+    toast.add({ severity: 'success', summary: 'Link copied', detail: 'Share URL is on your clipboard.', life: 2500 })
+  } else if (result.reason === 'too-large') {
+    toast.add({
+      severity: 'error',
+      summary: 'Too large to share as a link',
+      detail: `This comparison compresses to a ${result.size?.toLocaleString()}-character URL; links are capped at 8,000 characters. Use Export to download the diff instead.`,
+      life: 6000
+    })
+  } else if (result.reason === 'clipboard-failed') {
+    toast.add({ severity: 'error', summary: 'Copy failed', detail: 'Could not write to the clipboard.', life: 4000 })
+  }
 }
 
 const onText1Input = () => {
@@ -688,6 +700,10 @@ const clearAll = () => {
 
   if (text1Timer) clearTimeout(text1Timer)
   if (text2Timer) clearTimeout(text2Timer)
+
+  // Persist the cleared state immediately — a reload inside the 1s autosave
+  // debounce used to resurrect the cleared text.
+  shareState.flushSave()
 }
 </script>
 

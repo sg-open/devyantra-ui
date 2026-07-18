@@ -22,6 +22,10 @@ export interface ShareStateConfig {
   autoLoad: boolean
 }
 
+export type ShareResult =
+  | { ok: true; url: string }
+  | { ok: false; reason: 'empty' | 'too-large' | 'clipboard-failed'; size?: number }
+
 const DEFAULT_CONFIG: ShareStateConfig = {
   maxUrlLength: 8000, // Conservative limit for URL length
   compressionLevel: 'lz',
@@ -79,38 +83,35 @@ export function useShareState(
 
       if (!json) return null
 
-      const state = JSON.parse(json) as ShareableState
-
-      // Version compatibility check
-      if (!state.version || state.version !== CURRENT_VERSION) {
-        console.warn('State version mismatch, attempting to migrate...')
-        return migrateState(state)
-      }
-
-      return state
+      return validateState(JSON.parse(json))
     } catch (error) {
       console.error('Failed to decompress state:', error)
       return null
     }
   }
 
-  // Simple state migration logic
-  const migrateState = (state: unknown): ShareableState | null => {
-    try {
-      // Type guard to ensure state is an object with the expected properties
-      if (!state || typeof state !== 'object') return null
-      const stateObj = state as Record<string, unknown>
+  // Strict validation: unknown versions and malformed payloads are rejected
+  // (a lenient "migration" here used to blank both panes on garbage input).
+  const validateState = (value: unknown): ShareableState | null => {
+    if (!value || typeof value !== 'object') return null
+    const obj = value as Record<string, unknown>
+    if (obj.version !== CURRENT_VERSION) return null
+    if (typeof obj.leftText !== 'string' || typeof obj.rightText !== 'string') return null
 
-      return {
-        leftText: (typeof stateObj.leftText === 'string' ? stateObj.leftText : '') || '',
-        rightText: (typeof stateObj.rightText === 'string' ? stateObj.rightText : '') || '',
-        options: (typeof stateObj.options === 'object' && stateObj.options ? stateObj.options as Record<string, unknown> : {}) || {},
-        timestamp: (typeof stateObj.timestamp === 'number' ? stateObj.timestamp : Date.now()) || Date.now(),
-        version: CURRENT_VERSION
-      }
-    } catch (error) {
-      console.error('Failed to migrate state:', error)
-      return null
+    const rawOptions =
+      obj.options && typeof obj.options === 'object'
+        ? (obj.options as Record<string, unknown>)
+        : {}
+    const options: Partial<DiffShareOptions> = {}
+    if (typeof rawOptions.ignoreWhitespace === 'boolean') options.ignoreWhitespace = rawOptions.ignoreWhitespace
+    if (typeof rawOptions.ignoreCase === 'boolean') options.ignoreCase = rawOptions.ignoreCase
+
+    return {
+      leftText: obj.leftText,
+      rightText: obj.rightText,
+      options,
+      timestamp: typeof obj.timestamp === 'number' ? obj.timestamp : Date.now(),
+      version: CURRENT_VERSION
     }
   }
 
@@ -176,23 +177,25 @@ export function useShareState(
     }
   }
 
-  // Generate shareable URL
+  const buildShareUrl = (): { url: string; length: number; tooLarge: boolean } => {
+    const state = createState()
+    const compressed = compressState(state)
+    const url = new URL(window.location.href)
+    url.hash = compressed
+    const str = url.toString()
+    return { url: str, length: str.length, tooLarge: str.length > mergedConfig.maxUrlLength }
+  }
+
+  // Generate shareable URL ('' when over the length cap — legacy contract)
   const generateShareUrl = (): string => {
     try {
-      const state = createState()
-      const compressed = compressState(state)
-
-      const url = new URL(window.location.href)
-      url.hash = compressed
-
-      // Check URL length
-      if (url.toString().length > mergedConfig.maxUrlLength) {
+      const built = buildShareUrl()
+      if (built.tooLarge) {
         console.warn('Share URL exceeds maximum length, consider using localStorage sharing instead')
         return ''
       }
-
-      shareUrl.value = url.toString()
-      return shareUrl.value
+      shareUrl.value = built.url
+      return built.url
     } catch (error) {
       console.error('Failed to generate share URL:', error)
       return ''
@@ -229,17 +232,21 @@ export function useShareState(
     }
   }
 
-  // Copy share URL to clipboard
-  const copyShareUrl = async (): Promise<boolean> => {
-    const url = generateShareUrl()
-    if (!url) return false
-
+  // Copy share URL to clipboard, reporting the outcome for UI feedback
+  const copyShareUrl = async (): Promise<ShareResult> => {
+    if (!leftText.value && !rightText.value) {
+      return { ok: false, reason: 'empty' }
+    }
+    const built = buildShareUrl()
+    if (built.tooLarge) {
+      return { ok: false, reason: 'too-large', size: built.length }
+    }
+    shareUrl.value = built.url
     try {
-      await navigator.clipboard.writeText(url)
-      return true
-    } catch (error) {
-      console.error('Failed to copy share URL:', error)
-      return false
+      await navigator.clipboard.writeText(built.url)
+      return { ok: true, url: built.url }
+    } catch {
+      return { ok: false, reason: 'clipboard-failed' }
     }
   }
 
@@ -267,19 +274,6 @@ export function useShareState(
     }, 1000) // 1 second debounce
   }
 
-  // Watch for changes and auto-save
-  if (mergedConfig.autoSave) {
-    watch([leftText, rightText, options], debouncedSave, { deep: true })
-  }
-
-  // Auto-load on initialization
-  if (mergedConfig.autoLoad) {
-    // Try URL first, then localStorage
-    if (!loadFromUrl()) {
-      loadFromLocalStorage()
-    }
-  }
-
   // Clean up hash from URL after loading
   const cleanupUrl = () => {
     if (window.location.hash) {
@@ -287,6 +281,31 @@ export function useShareState(
       url.hash = ''
       window.history.replaceState(null, '', url.toString())
     }
+  }
+
+  const flushSave = () => {
+    if (saveTimeout) {
+      clearTimeout(saveTimeout)
+      saveTimeout = null
+    }
+    saveToLocalStorage()
+  }
+
+  // Auto-load BEFORE registering the autosave watcher: restoring shared or
+  // stored content must never count as a user edit (it used to overwrite the
+  // visitor's own saved state within 1s of opening a share link).
+  if (mergedConfig.autoLoad) {
+    if (loadFromUrl()) {
+      // Strip #hash so a reload restores the user's own state, not the link's
+      cleanupUrl()
+    } else {
+      loadFromLocalStorage()
+    }
+  }
+
+  // Watch for changes and auto-save (registered after restore on purpose)
+  if (mergedConfig.autoSave) {
+    watch([leftText, rightText, options], debouncedSave, { deep: true })
   }
 
   return {
@@ -300,6 +319,7 @@ export function useShareState(
     saveToLocalStorage,
     loadFromLocalStorage,
     clearLocalStorage,
+    flushSave,
 
     // URL sharing methods
     generateShareUrl,
