@@ -279,14 +279,9 @@ test.describe('Text Comparison Tool', () => {
     const caseToggle = page.locator('.diff-toggle', { hasText: /case/i })
     await expect(caseToggle).toBeVisible()
 
-    // Click it
-    await caseToggle.locator('input[type="checkbox"]').click()
-    await page.waitForTimeout(500)
-
-    // After ignoring case, texts become identical — diff renderer hides or shows "No differences"
-    // The diff-renderer container still exists but may show empty state
-    const diffRenderer = page.locator('.diff-renderer')
-    await expect(diffRenderer).toBeVisible()
+    // Click it — case-only differences must disappear
+    await caseToggle.locator('input[type="checkbox"]').check()
+    await expect(page.locator('.diff-empty-message h3')).toHaveText('No differences found')
   })
 
   test('should have share button', async ({ page }) => {

@@ -78,16 +78,18 @@
       <div class="diff-actions">
         <button
           class="diff-action-btn"
+          :disabled="!lastPatch"
           @click="copyDiffToClipboard"
-          title="Copy diff to clipboard"
+          :title="patchActionTitle"
         >
           <span class="diff-action-icon">&#x2398;</span>
           <span class="diff-action-text">Copy</span>
         </button>
         <button
           class="diff-action-btn"
+          :disabled="!lastPatch"
           @click="downloadPatch"
-          title="Download as .patch file"
+          :title="patchActionTitle"
         >
           <span class="diff-action-icon">&#x21E9;</span>
           <span class="diff-action-text">Export</span>
@@ -148,6 +150,7 @@ import { createTwoFilesPatch } from 'diff'
 import { html as diff2htmlHtml, parse as diff2htmlParse } from 'diff2html'
 import 'diff2html/bundles/css/diff2html.min.css'
 import { useDiffNavigation } from '@/composables/useDiffNavigation'
+import { useClipboard } from '@/composables/useClipboard'
 import type { DiffFile } from 'diff2html/lib/types'
 
 export interface DiffStats {
@@ -198,6 +201,14 @@ const lastPatch = ref('')
 
 // Navigation
 const navigation = useDiffNavigation(diffContainerRef)
+
+const clipboard = useClipboard()
+
+const patchActionTitle = computed(() =>
+  props.ignoreWhitespace || props.ignoreCase
+    ? 'Patch of the original texts — includes differences the active ignore options hide'
+    : 'Unified diff of the compared texts'
+)
 
 // Configuration
 const viewModes = [
@@ -271,29 +282,24 @@ const computeStatsFromParsed = (diffJson: DiffFile[], computeTime: number): Diff
 }
 
 // Methods
-const preprocessText = (text: string): string => {
-  if (!text) return ''
-
-  let processed = text
-
-  if (props.ignoreCase) {
-    processed = processed.toLowerCase()
-  }
-
+// Folding affects the compared/displayed diff only. Exported patches
+// never use folded text — see the lastPatch assignment below.
+const foldText = (text: string): string => {
+  let t = props.ignoreCase ? text.toLowerCase() : text
   if (props.ignoreWhitespace) {
-    processed = processed
-      .replace(/\t/g, '    ')
-      .replace(/[ ]+/g, ' ')
-      .replace(/[ ]+$/gm, '')
-      .replace(/^\s+$/gm, '')
+    t = t
+      .replace(/\t/g, ' ')
+      .replace(/ {2,}/g, ' ')
+      .replace(/^ +| +$/gm, '')
   }
-
-  return processed
+  return t
 }
 
 const computeDiff = async () => {
   if (!props.leftText && !props.rightText) {
     diffOutputHtml.value = ''
+    lastPatch.value = ''
+    renderedStats.value = null
     return
   }
 
@@ -304,15 +310,10 @@ const computeDiff = async () => {
     await nextTick()
 
     const startTime = performance.now()
-    const left = preprocessText(props.leftText)
-    const right = preprocessText(props.rightText)
+    const left = foldText(props.leftText)
+    const right = foldText(props.rightText)
 
-    if (left === right) {
-      diffOutputHtml.value = ''
-      return
-    }
-
-    // Generate unified diff with ALL context so stats cover every line
+    // Full-context patch over the compared texts — source of truth for stats
     const leftLineCount = left.split('\n').length
     const rightLineCount = right.split('\n').length
     const fullCtx = Math.max(leftLineCount, rightLineCount)
@@ -324,12 +325,21 @@ const computeDiff = async () => {
       { context: fullCtx }
     )
 
-    // Parse the full diff for accurate stats
     const fullDiffJson = diff2htmlParse(fullPatch)
     const computeTime = Math.round(performance.now() - startTime)
-    renderedStats.value = computeStatsFromParsed(fullDiffJson, computeTime)
+    const stats = computeStatsFromParsed(fullDiffJson, computeTime)
 
-    // Now render with the user-chosen context lines
+    if (stats.additions === 0 && stats.deletions === 0 && stats.modifications === 0) {
+      // Identical under the current options — show empty state, and make sure
+      // Copy/Export cannot emit a stale patch from a previous comparison.
+      diffOutputHtml.value = ''
+      lastPatch.value = ''
+      return
+    }
+
+    renderedStats.value = stats
+
+    // Render with the user-chosen context lines
     const renderCtx = contextLines.value === Infinity ? fullCtx : contextLines.value
     let renderPatch = fullPatch
     if (renderCtx !== fullCtx) {
@@ -349,10 +359,16 @@ const computeDiff = async () => {
       renderNothingWhenEmpty: true
     })
 
-    // Store the full patch for copy/export
-    lastPatch.value = fullPatch
+    // Copy/Export always reflect the ORIGINAL texts (never case-folded, no
+    // ignore options) so exported patches stay appliable.
+    lastPatch.value = createTwoFilesPatch(
+      'original', 'modified',
+      props.leftText, props.rightText,
+      '', '',
+      { context: fullCtx }
+    )
 
-    emit('diff-computed', renderedStats.value)
+    emit('diff-computed', stats)
   } catch (error) {
     console.error('Error computing diff:', error)
   } finally {
@@ -367,12 +383,10 @@ const updateMode = (newMode: 'split' | 'unified') => {
 
 const updateIgnoreWhitespace = (value: boolean) => {
   emitOptionsChanged({ ignoreWhitespace: value })
-  computeDiff()
 }
 
 const updateIgnoreCase = (value: boolean) => {
   emitOptionsChanged({ ignoreCase: value })
-  computeDiff()
 }
 
 const emitOptionsChanged = (partialOptions?: Partial<DiffOptions>) => {
@@ -387,11 +401,7 @@ const emitOptionsChanged = (partialOptions?: Partial<DiffOptions>) => {
 // Copy & Export — uses the same patch that was rendered
 const copyDiffToClipboard = async () => {
   if (!lastPatch.value) return
-  try {
-    await navigator.clipboard.writeText(lastPatch.value)
-  } catch (err) {
-    console.error('Copy failed:', err)
-  }
+  await clipboard.copyWithFeedback(lastPatch.value, 'Diff')
 }
 
 const downloadPatch = () => {
@@ -680,6 +690,12 @@ onUnmounted(() => {
   border-color: var(--dt-brand);
   color: var(--dt-brand);
   background: var(--dt-brand-light);
+}
+
+.diff-action-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 /* ===== NAVIGATION ===== */

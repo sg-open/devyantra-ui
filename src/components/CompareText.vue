@@ -194,10 +194,11 @@
           :left-text="text1Content"
           :right-text="text2Content"
           :mode="diffViewMode"
-          :ignore-whitespace="false"
-          :ignore-case="false"
+          :ignore-whitespace="diffOptions.ignoreWhitespace"
+          :ignore-case="diffOptions.ignoreCase"
           :language="detectedLanguage"
           @mode-changed="diffViewMode = $event"
+          @options-changed="diffOptions = $event"
           class="enhanced-diff"
         />
       </div>
@@ -275,12 +276,13 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
 const ALLOWED_EXTENSIONS = ['txt', 'json', 'js', 'ts', 'html', 'css', 'xml', 'sql', 'py', 'java', 'cpp', 'c', 'vue', 'md', 'csv', 'log']
 const ALLOWED_MIME_PREFIXES = ['text/', 'application/json', 'application/javascript', 'application/xml', 'application/sql']
 
-// Share state for URL/localStorage persistence
-const shareOptions = ref<{ ignoreWhitespace: boolean; ignoreCase: boolean }>({
+// Diff comparison options — updated by DiffRenderer's options-changed event
+// and persisted/shared through useShareState.
+const diffOptions = ref<{ ignoreWhitespace: boolean; ignoreCase: boolean }>({
   ignoreWhitespace: false,
   ignoreCase: false
 })
-const shareState = useShareState(text1Content, text2Content, shareOptions, {
+const shareState = useShareState(text1Content, text2Content, diffOptions, {
   autoSave: true,
   autoLoad: true
 })
