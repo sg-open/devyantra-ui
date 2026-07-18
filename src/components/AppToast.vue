@@ -12,6 +12,9 @@
           <div class="toast-summary">{{ msg.summary }}</div>
           <div v-if="msg.detail" class="toast-detail">{{ msg.detail }}</div>
         </div>
+        <button v-if="msg.action" class="toast-action" @click="runAction(msg)">
+          {{ msg.action.label }}
+        </button>
         <button class="toast-close" @click="remove(msg.id)" aria-label="Close">
           <i class="pi pi-times"></i>
         </button>
@@ -21,7 +24,7 @@
 </template>
 
 <script setup lang="ts">
-import { useToast } from '@/composables/useToast'
+import { useToast, type ToastMessage } from '@/composables/useToast'
 
 const { messages, remove } = useToast()
 
@@ -33,6 +36,11 @@ const iconClass = (severity: string) => {
     case 'error': return 'pi pi-times-circle'
     default: return 'pi pi-info-circle'
   }
+}
+
+const runAction = (msg: ToastMessage) => {
+  msg.action?.handler()
+  remove(msg.id)
 }
 </script>
 
@@ -107,6 +115,25 @@ const iconClass = (severity: string) => {
 
 .toast-close i {
   font-size: 12px;
+}
+
+.toast-action {
+  align-self: center;
+  flex-shrink: 0;
+  padding: 4px 10px;
+  background: transparent;
+  border: 1px solid var(--dt-brand);
+  border-radius: var(--radius-sm);
+  color: var(--dt-brand);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.toast-action:hover {
+  background: var(--dt-brand);
+  color: #ffffff;
 }
 
 /* Severity colors */

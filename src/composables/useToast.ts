@@ -6,6 +6,7 @@ export interface ToastMessage {
   summary: string
   detail?: string
   life?: number
+  action?: { label: string; handler: () => void }
 }
 
 const messages = ref<ToastMessage[]>([])
