@@ -369,6 +369,8 @@ const onShareClick = async () => {
     })
   } else if (result.reason === 'clipboard-failed') {
     toast.add({ severity: 'error', summary: 'Copy failed', detail: 'Could not write to the clipboard.', life: 4000 })
+  } else if (result.reason === 'empty') {
+    toast.add({ severity: 'info', summary: 'Nothing to share', detail: 'Both panes are empty.', life: 3000 })
   }
 }
 
@@ -534,6 +536,9 @@ const clearText1 = () => {
       }
     })
   }
+  // Persist the cleared state immediately — a reload inside the 1s autosave
+  // debounce used to resurrect the cleared text.
+  shareState.flushSave()
 }
 
 const clearText2 = () => {
@@ -558,6 +563,9 @@ const clearText2 = () => {
       }
     })
   }
+  // Persist the cleared state immediately — a reload inside the 1s autosave
+  // debounce used to resurrect the cleared text.
+  shareState.flushSave()
 }
 
 const swapTexts = () => {
@@ -594,6 +602,12 @@ const loadSampleData = () => {
     }
   ]
 
+  // Capture previous contents and filenames before loading
+  const previous1 = text1Content.value
+  const previous2 = text2Content.value
+  const previousFilename1 = leftFilename.value
+  const previousFilename2 = rightFilename.value
+
   const sample = sampleData[Math.floor(Math.random() * sampleData.length)]!
   text1Content.value = sample.original
   text2Content.value = sample.changed
@@ -601,6 +615,26 @@ const loadSampleData = () => {
   // Trigger type detection
   onText1Input()
   onText2Input()
+
+  // Show undo toast if either pane was previously non-empty
+  if (previous1 || previous2) {
+    toast.add({
+      severity: 'info',
+      summary: 'Sample loaded',
+      life: 10000,
+      action: {
+        label: 'Undo',
+        handler: () => {
+          text1Content.value = previous1
+          text2Content.value = previous2
+          onText1Input()
+          onText2Input()
+          leftFilename.value = previousFilename1
+          rightFilename.value = previousFilename2
+        }
+      }
+    })
+  }
 }
 
 // Keyboard shortcuts. Matching uses event.code because with Shift held,

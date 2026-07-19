@@ -367,3 +367,31 @@ test.describe('Export fidelity (D6)', () => {
     expect(clipboardText).toBe(content1)
   })
 })
+
+test.describe('Carried follow-ups (D9)', () => {
+  test.beforeEach(async ({ devyantra }) => {
+    await devyantra.navigateToTool('text-compare')
+  })
+
+  test('Sample load with Undo toast restores both panes when clicked', async ({ page }) => {
+    await page.locator('textarea').first().fill('precious')
+    await page.waitForTimeout(1300)
+    await page.locator('.quick-btn', { hasText: 'Sample' }).click()
+
+    // Toast with Undo should be visible
+    const undo = page.locator('.toast-action', { hasText: 'Undo' })
+    await expect(undo).toBeVisible()
+
+    // Click Undo — left pane back to 'precious'
+    await undo.click()
+    await expect(page.locator('textarea').first()).toHaveValue('precious')
+  })
+
+  test('Per-pane clear (left) + immediate reload stays cleared', async ({ page }) => {
+    await page.locator('textarea').first().fill('gone soon')
+    await page.waitForTimeout(1300)
+    await page.locator('.left-actions .clear-btn').click()
+    await page.reload() // immediately, inside the old 1s debounce window
+    await expect(page.locator('textarea').first()).toHaveValue('')
+  })
+})

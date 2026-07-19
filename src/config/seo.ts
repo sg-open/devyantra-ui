@@ -258,21 +258,6 @@ export const SEO_CONFIG = {
     }
   } as Record<string, ToolSEOConfig>,
 
-  meta: {
-    robots: 'index,follow',
-    googlebot: 'index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1',
-    bingbot: 'index,follow',
-    viewport: 'width=device-width,initial-scale=1',
-    'format-detection': 'telephone=no',
-    'theme-color': '#F5F0E8',
-    'apple-mobile-web-app-capable': 'yes',
-    'apple-mobile-web-app-status-bar-style': 'default',
-    'apple-mobile-web-app-title': 'DEVYANTRA',
-    'application-name': 'DEVYANTRA',
-    'msapplication-TileColor': '#8B4513',
-    'msapplication-config': '/browserconfig.xml'
-  },
-
   structured: {
     breadcrumb: true,
     organization: true,
