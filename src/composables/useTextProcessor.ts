@@ -175,8 +175,17 @@ export const useTextProcessor = () => {
         case 'js':
           result = formatJS(text)
           break
-        default:
-          result = { success: true, formatted: text, type: 'text', error: null }
+        default: {
+          const trimmed = text.trim()
+          if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+            // Looks like JSON that failed detection (e.g. truncated) — surface
+            // the real parse error instead of silently echoing the input back.
+            result = formatJSON(text)
+          } else {
+            result = { success: true, formatted: text, type: 'text', error: null }
+          }
+          break
+        }
       }
 
       if (!result.success && result.error) {

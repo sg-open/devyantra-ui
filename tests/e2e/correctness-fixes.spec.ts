@@ -181,3 +181,12 @@ test.describe('One-sided compares (D7)', () => {
     await expect(page.locator('.diff-stat-chip--added')).toContainText('+2 added')
   })
 })
+
+test.describe('Formatter honest errors (D6)', () => {
+  test('Beautify on truncated JSON shows the parse error, not silent success', async ({ page, devyantra }) => {
+    await devyantra.navigateToTool('format-text')
+    await page.locator('textarea').first().fill('{"a":1,')
+    await page.locator('button', { hasText: 'Beautify' }).first().click()
+    await expect(page.locator('.p-message-error .p-message-text')).toBeVisible()
+  })
+})
