@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+### Changed
+
+- Text Compare: the diff engine was rewritten from an HTML-string-reparse renderer (`v-html` over regenerated diff2html markup) to a structured, typed diff model (`DiffRow[]`) rendered directly — no HTML re-parsing
+- Text Compare: diff computation now runs in a Web Worker with cancel (available once a compute passes 300ms) and live elapsed-time progress, plus a 10-second compute cap so pathologically large/dissimilar inputs fail fast with a clear message instead of hanging indefinitely
+- Text Compare: rendering is virtualized, with published input limits enforced up front — 5 MB per side — instead of an unbounded input that could hang or crash the tab
+- Text Compare: EOL, BOM, and trailing-newline mismatches now surface as explicit indicator pills (e.g. "Line endings differ: left CRLF, right LF") instead of rendering as a phantom "everything changed" diff
+- Text Compare: word/character-level highlighting is grapheme-cluster-safe (`Intl.Segmenter`) — emoji ZWJ sequences (e.g. family emoji) and combining-mark characters are treated as one unit and are no longer split mid-character
+- Text Compare: Copy and Export always rebuild from the original (unfolded) text at the currently displayed context setting, and use the real uploaded filenames in both the patch headers and the downloaded filename, instead of a fixed context and generic "original"/"modified" placeholders
+- Text Compare: split-view diff navigation (Prev/Next) now reaches change blocks that are pure insertions (nothing on the left/original side) — navigation is computed from the diff model instead of scanning the rendered left-side DOM, which had nothing to find for insertion-only blocks
+- Dependencies: removed the unused `diff2html` package. It had already been fully replaced by the new renderer and was never part of the production bundle (no `import`/`require` of it remained in `src/`, so Vite's module graph never included it) — this is a dependency-hygiene cleanup, not a bundle-size reduction: 0 KB change to `dist/`, but 6 fewer packages in `node_modules` and 69 fewer lines in `package-lock.json`
+
 ### Fixed
 
 - Text Compare: "Ignore Whitespace" and "Ignore Case" toggles now actually affect the diff (they were wired to nothing)

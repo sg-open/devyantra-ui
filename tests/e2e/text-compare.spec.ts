@@ -33,7 +33,7 @@ test.describe('Text Comparison Tool', () => {
     // Click Compare
     await page.locator('.compare-btn').click()
 
-    // Wait for diff2html to render
+    // Wait for the diff renderer to show the computed rows
     const diffContainer = page.locator('.diff-renderer')
     await expect(diffContainer).toBeVisible({ timeout: 5000 })
 

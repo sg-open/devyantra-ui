@@ -33,7 +33,7 @@ Built with Vue 3, TypeScript, and modern web APIs (Web Crypto, Compression Strea
 
 ## Features
 
-- [x] **Text Compare** — Side-by-side and unified diff views with word/character granularity, syntax highlighting, file upload, shareable URLs (LZ-string compression), and export as `.diff` / `.txt`
+- [x] **Text Compare** — Side-by-side and unified diff views with word/character granularity, syntax highlighting, EOL/BOM/trailing-newline indicators instead of phantom "everything changed" diffs, diffing computed off the main thread in a Web Worker so large files (up to 5 MB per side) never freeze the UI, file upload, shareable URLs (LZ-string compression), and `.patch` exports/copies that honor the displayed context and the real uploaded filenames
 - [x] **Code Formatter** — Beautify and minify JSON, SQL, XML, CSS, and JavaScript with automatic language detection
 - [x] **Hash Generator** — MD5, SHA-1, SHA-256, SHA-384, SHA-512 via the Web Crypto API with one-click copy
 - [x] **Base64 Tools** — Encode and decode with standard and URL-safe variants, real-time conversion
@@ -61,7 +61,7 @@ Built with Vue 3, TypeScript, and modern web APIs (Web Crypto, Compression Strea
 | [PrimeVue 4](https://primevue.org/) | UI component library |
 | [Pinia](https://pinia.vuejs.org/) | State management |
 | [Vue Router](https://router.vuejs.org/) | Client-side routing with SEO metadata |
-| [jsdiff](https://github.com/kpdecker/jsdiff) + [diff2html](https://diff2html.xyz/) | Diff computation and rendering |
+| [jsdiff](https://github.com/kpdecker/jsdiff) | Diff computation (Myers diff, run in a Web Worker) |
 | [js-beautify](https://beautifier.io/) | JS, CSS, and HTML formatting |
 | [sql-formatter](https://github.com/sql-formatter-org/sql-formatter) | SQL formatting |
 | [LZ-String](https://github.com/pieroxy/lz-string) | URL state compression |
@@ -192,7 +192,7 @@ DevYantra is built on excellent open-source projects:
 - [Vue.js](https://vuejs.org/) and the Vue ecosystem (Vue Router, Pinia, Vite)
 - [PrimeVue](https://primevue.org/) for UI components
 - [TailwindCSS](https://tailwindcss.com/) for styling
-- [jsdiff](https://github.com/kpdecker/jsdiff) and [diff2html](https://diff2html.xyz/) for diff computation
+- [jsdiff](https://github.com/kpdecker/jsdiff) for diff computation
 - [js-beautify](https://beautifier.io/) and [sql-formatter](https://github.com/sql-formatter-org/sql-formatter) for code formatting
 - [LZ-String](https://github.com/pieroxy/lz-string) for compression
 - [Playwright](https://playwright.dev/) and [Vitest](https://vitest.dev/) for testing
