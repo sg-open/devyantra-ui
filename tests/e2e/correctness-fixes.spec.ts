@@ -89,8 +89,15 @@ test.describe('Share lifecycle (D2)', () => {
   test('oversized share shows an error toast and leaves the clipboard alone', async ({ page }) => {
     const big = Array.from({ length: 4000 }, (_, i) => `line-${i}-${(i * 7919) % 104729}-${(i * 104729).toString(36)}`).join('\n')
     await page.evaluate(() => navigator.clipboard.writeText('sentinel'))
-    await page.locator('textarea').first().fill(big)
-    await page.locator('textarea').nth(1).fill(big + 'diff')
+    // Programmatic set + 'input' dispatch (drives v-model) instead of .fill(): filling this 4000-line string via .fill() blows the 30s test timeout
+    await page.locator('textarea').nth(1).waitFor()
+    await page.evaluate((text) => {
+      const tas = document.querySelectorAll('textarea')
+      tas[0].value = text
+      tas[0].dispatchEvent(new Event('input', { bubbles: true }))
+      tas[1].value = text + 'diff'
+      tas[1].dispatchEvent(new Event('input', { bubbles: true }))
+    }, big)
     await page.locator('.share-btn').click()
     await expect(page.locator('.toast-message', { hasText: 'Too large' })).toBeVisible()
     expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('sentinel')
