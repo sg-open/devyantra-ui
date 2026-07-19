@@ -45,7 +45,7 @@ export const SEO_CONFIG = {
   organization: {
     name: 'DEVYANTRA',
     url: 'https://devyantra.app',
-    logo: 'https://devyantra.app/logo.png',
+    logo: 'https://devyantra.app/og-image.png',
     description: 'Professional developer tools collection offering free online utilities for text processing, encoding, hashing, and data manipulation.',
     email: 'contact@devyantra.app',
     sameAs: [
@@ -264,12 +264,12 @@ export const SEO_CONFIG = {
     bingbot: 'index,follow',
     viewport: 'width=device-width,initial-scale=1',
     'format-detection': 'telephone=no',
-    'theme-color': '#3b82f6',
+    'theme-color': '#F5F0E8',
     'apple-mobile-web-app-capable': 'yes',
     'apple-mobile-web-app-status-bar-style': 'default',
     'apple-mobile-web-app-title': 'DEVYANTRA',
     'application-name': 'DEVYANTRA',
-    'msapplication-TileColor': '#3b82f6',
+    'msapplication-TileColor': '#8B4513',
     'msapplication-config': '/browserconfig.xml'
   },
 

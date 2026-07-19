@@ -58,7 +58,7 @@ export function useSEO() {
     url: window.location.origin,
     logo: {
       "@type": "ImageObject",
-      url: `${window.location.origin}/logo.png`
+      url: `${window.location.origin}/og-image.png`
     },
     description: "Professional developer tools collection offering free online utilities for text processing, encoding, hashing, and data manipulation.",
     sameAs: [

@@ -4,8 +4,8 @@
   "description": "Professional developer tools for text comparison, JSON formatting, encoding, hashing, and data manipulation. All processing done locally for privacy.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#fafbff",
-  "theme_color": "#3b82f6",
+  "background_color": "#F5F0E8",
+  "theme_color": "#F5F0E8",
   "icons": [
     {
       "src": "/favicon.svg",

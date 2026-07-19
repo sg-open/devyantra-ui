@@ -65,7 +65,7 @@ onMounted(() => {
       twitterTitle: SEO_CONFIG.site.title,
       twitterDescription: SEO_CONFIG.site.description,
       twitterCard: 'summary_large_image',
-      twitterImage: `${window.location.origin}/twitter-image.png`
+      twitterImage: `${window.location.origin}/og-image.png`
     })
   }
 
