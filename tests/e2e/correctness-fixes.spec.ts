@@ -251,3 +251,16 @@ test.describe('Upload validation (D7)', () => {
     await expect(page.locator('.toast-message', { hasText: 'empty' })).toBeVisible()
   })
 })
+
+test.describe('Router guard (D7)', () => {
+  test('navigating between tools produces no deprecation warnings', async ({ page, devyantra }) => {
+    const warnings: string[] = []
+    page.on('console', (msg) => {
+      if (msg.type() === 'warning' && msg.text().includes('next() callback')) warnings.push(msg.text())
+    })
+    await devyantra.navigateToTool('text-compare')
+    await page.locator('a[href="/tools/hash-generator"]').first().click()
+    await page.waitForURL('**/tools/hash-generator')
+    expect(warnings).toEqual([])
+  })
+})

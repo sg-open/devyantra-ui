@@ -178,7 +178,7 @@ function updateMeta(attribute: string, name: string, content: string) {
 }
 
 // Global navigation guard for SEO meta updates
-router.beforeEach((to, from, next) => {
+router.beforeEach((to) => {
   const title = to.meta?.title as string | undefined
   const description = to.meta?.description as string | undefined
   const canonical = to.meta?.canonical as string | undefined
@@ -225,8 +225,6 @@ router.beforeEach((to, from, next) => {
 
   // Ensure robots meta is present
   updateMeta('name', 'robots', 'index,follow,max-snippet:-1,max-image-preview:large')
-
-  next()
 })
 
 export default router
