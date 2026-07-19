@@ -228,7 +228,9 @@ const getRelativeTime = (date: Date): string => {
 }
 
 const convertTimestamp = () => {
-  if (!inputTimestamp.value) {
+  // v-model on a type="number" input yields a number — 0 is a valid epoch,
+  // so only empty/null counts as "no input".
+  if (inputTimestamp.value === '' || inputTimestamp.value === null || inputTimestamp.value === undefined) {
     convertedDate.value = ''
     convertedISO.value = ''
     relativeTime.value = ''
@@ -236,7 +238,7 @@ const convertTimestamp = () => {
   }
 
   try {
-    const ts = parseInt(inputTimestamp.value)
+    const ts = Number(inputTimestamp.value)
     const ms = tsUnit.value === 'seconds' ? ts * 1000 : ts
     const date = new Date(ms)
 

@@ -197,3 +197,23 @@ test.describe('Formatter honest errors (D6)', () => {
     await expect(page.locator('.p-message-error .p-message-text')).toBeVisible()
   })
 })
+
+test.describe('Timestamp zero and Base64 stale output (D7)', () => {
+  test('epoch 0 converts to 1970-01-01', async ({ page, devyantra }) => {
+    await devyantra.navigateToTool('timestamp-converter')
+    await page.locator('.timestamp-input').fill('0')
+    await expect(page.locator('.result-item code', { hasText: '1970-01-01T00:00:00.000Z' })).toBeVisible()
+  })
+
+  test('Base64 decode error clears the previous output', async ({ page, devyantra }) => {
+    await devyantra.navigateToTool('base64-tools')
+    await page.locator('textarea').first().fill('aGVsbG8=')
+    await page.locator('button', { hasText: 'Decode' }).click()
+    await expect(page.locator('.output-text')).toHaveValue('hello')
+
+    await page.locator('textarea').first().fill('not@@base64!!')
+    await page.locator('button', { hasText: 'Decode' }).click()
+    await expect(page.locator('.error-message')).toBeVisible()
+    await expect(page.locator('.output-text')).toHaveCount(0) // stale output gone
+  })
+})

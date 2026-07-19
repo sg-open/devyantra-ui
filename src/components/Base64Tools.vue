@@ -137,8 +137,8 @@ const encode = () => {
     }
 
     outputText.value = result
-  } catch (error) {
-    console.error('Encoding error:', error)
+  } catch {
+    outputText.value = ''
     errorMessage.value = 'Failed to encode text'
   }
 }
@@ -162,8 +162,8 @@ const decode = () => {
       bytes[i] = binary.charCodeAt(i)
     }
     outputText.value = new TextDecoder().decode(bytes)
-  } catch (error) {
-    console.error('Decoding error:', error)
+  } catch {
+    outputText.value = ''
     errorMessage.value = 'Invalid Base64 string'
   }
 }
