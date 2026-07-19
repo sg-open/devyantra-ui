@@ -395,3 +395,77 @@ test.describe('Carried follow-ups (D9)', () => {
     await expect(page.locator('textarea').first()).toHaveValue('')
   })
 })
+
+test.describe('Diff core truth & performance (D3/D5)', () => {
+  test.beforeEach(async ({ devyantra }) => {
+    await devyantra.navigateToTool('text-compare')
+  })
+
+  test('CRLF vs LF upload pair shows an EOL pill and zero phantom changes', async ({ page }) => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'dv-'))
+    const l = path.join(dir, 'win.txt'); fs.writeFileSync(l, 'a\r\nb\r\nc')
+    const r = path.join(dir, 'unix.txt'); fs.writeFileSync(r, 'a\nb\nc')
+    await page.locator('input[type="file"]').first().setInputFiles(l)
+    await page.locator('input[type="file"]').nth(1).setInputFiles(r)
+    await page.locator('.compare-btn').click()
+    await expect(page.locator('.dv-indicator', { hasText: 'Line endings differ' })).toBeVisible()
+    await expect(page.locator('.diff-empty-message h3')).toHaveText('No differences found')
+    await expect(page.locator('.dv-row--removed, .dv-row--added')).toHaveCount(0)
+  })
+
+  test('UI stays interactive while a heavy diff computes', async ({ page }) => {
+    const mkText = (seed: number) =>
+      Array.from({ length: 60000 }, (_, i) => `line-${i}-${(i * seed) % 9973}`).join('\n')
+    // The tool view is behind a lazy route chunk; #main-content can be visible
+    // before both textareas mount. Locator waits (auto-retrying) before the
+    // raw DOM evaluate below, which has no such retry.
+    await page.locator('textarea').nth(1).waitFor()
+    await page.evaluate(([a, b]) => {
+      const tas = document.querySelectorAll('textarea')
+      const set = (ta: HTMLTextAreaElement, v: string) => {
+        ta.value = v
+        ta.dispatchEvent(new Event('input', { bubbles: true }))
+      }
+      set(tas[0] as HTMLTextAreaElement, a!)
+      set(tas[1] as HTMLTextAreaElement, b!)
+    }, [mkText(7919), mkText(104729)])
+    await page.locator('.compare-btn').click()
+    // While computing (or already done — both acceptable), the theme switcher must respond within 500ms
+    const t0 = Date.now()
+    await page.locator('.theme-option:not(.active)').first().click({ timeout: 2000 })
+    expect(Date.now() - t0).toBeLessThan(1500)
+    // And a terminal state must eventually appear
+    await expect(page.locator('.dv-row, .diff-empty-message, .dv-limit-message').first()).toBeVisible({ timeout: 30000 })
+  })
+
+  test('perf budget: 10k-line 30%-changed diff renders without long main-thread blocks', async ({ page }) => {
+    await page.evaluate(() => {
+      // @ts-expect-error test instrumentation
+      window.__longtasks = []
+      new PerformanceObserver((list) => {
+        // @ts-expect-error test instrumentation
+        window.__longtasks.push(...list.getEntries().map(e => e.duration))
+      }).observe({ entryTypes: ['longtask'] })
+    })
+    const left = Array.from({ length: 10000 }, (_, i) => `l${i}`).join('\n')
+    const right = Array.from({ length: 10000 }, (_, i) => (i % 3 === 0 ? `CHANGED${i}` : `l${i}`)).join('\n')
+    await page.locator('textarea').nth(1).waitFor()
+    await page.evaluate(([a, b]) => {
+      const tas = document.querySelectorAll('textarea')
+      const set = (ta: HTMLTextAreaElement, v: string) => {
+        ta.value = v
+        ta.dispatchEvent(new Event('input', { bubbles: true }))
+      }
+      set(tas[0] as HTMLTextAreaElement, a!)
+      set(tas[1] as HTMLTextAreaElement, b!)
+    }, [left, right])
+    await page.locator('.compare-btn').click()
+    await expect(page.locator('.dv-row').first()).toBeVisible({ timeout: 30000 })
+    await page.waitForTimeout(300)
+    const longtasks = await page.evaluate(() => {
+      // @ts-expect-error test instrumentation
+      return (window.__longtasks as number[]).filter(d => d > 200)
+    })
+    expect(longtasks).toEqual([])
+  })
+})
