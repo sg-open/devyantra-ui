@@ -15,7 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - Text Compare: word/character-level highlighting is grapheme-cluster-safe (`Intl.Segmenter`) — emoji ZWJ sequences (e.g. family emoji) and combining-mark characters are treated as one unit and are no longer split mid-character
 - Text Compare: Copy and Export always rebuild from the original (unfolded) text at the currently displayed context setting, and use the real uploaded filenames in both the patch headers and the downloaded filename, instead of a fixed context and generic "original"/"modified" placeholders
 - Text Compare: split-view diff navigation (Prev/Next) now reaches change blocks that are pure insertions (nothing on the left/original side) — navigation is computed from the diff model instead of scanning the rendered left-side DOM, which had nothing to find for insertion-only blocks
-- Dependencies: removed the unused `diff2html` package. It had already been fully replaced by the new renderer and was never part of the production bundle (no `import`/`require` of it remained in `src/`, so Vite's module graph never included it) — this is a dependency-hygiene cleanup, not a bundle-size reduction: 0 KB change to `dist/`, but 6 fewer packages in `node_modules` and 69 fewer lines in `package-lock.json`
+- Dependencies: removes `diff2html` (and its transitive `hogan.js`) from the shipped app — `jsdiff` is now the only diff dependency; a dependency-hygiene cleanup rather than a bundle-size reduction (diff2html was already unused, so this is 0 KB change to `dist/`, but 6 fewer packages in `node_modules` and 69 fewer lines in `package-lock.json`)
 
 ### Fixed
 

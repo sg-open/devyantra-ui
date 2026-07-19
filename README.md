@@ -33,7 +33,7 @@ Built with Vue 3, TypeScript, and modern web APIs (Web Crypto, Compression Strea
 
 ## Features
 
-- [x] **Text Compare** — Side-by-side and unified diff views with word/character granularity, syntax highlighting, EOL/BOM/trailing-newline indicators instead of phantom "everything changed" diffs, diffing computed off the main thread in a Web Worker so large files (up to 5 MB per side) never freeze the UI, file upload, shareable URLs (LZ-string compression), and `.patch` exports/copies that honor the displayed context and the real uploaded filenames
+- [x] **Text Compare** — Side-by-side and unified diff views with word/character granularity, EOL/BOM/trailing-newline indicators instead of phantom "everything changed" diffs, diffing computed off the main thread in a Web Worker so large files (up to 5 MB per side) never freeze the UI, file upload, shareable URLs (LZ-string compression), and `.patch` exports/copies that honor the displayed context and the real uploaded filenames
 - [x] **Code Formatter** — Beautify and minify JSON, SQL, XML, CSS, and JavaScript with automatic language detection
 - [x] **Hash Generator** — MD5, SHA-1, SHA-256, SHA-384, SHA-512 via the Web Crypto API with one-click copy
 - [x] **Base64 Tools** — Encode and decode with standard and URL-safe variants, real-time conversion

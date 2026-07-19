@@ -469,3 +469,117 @@ test.describe('Diff core truth & performance (D3/D5)', () => {
     expect(longtasks).toEqual([])
   })
 })
+
+test.describe('Virtualized navigation scroll (D7)', () => {
+  test.beforeEach(async ({ devyantra }) => {
+    await devyantra.navigateToTool('text-compare')
+  })
+
+  test('C3: clicking next twice scrolls the active row into view under virtualization, with sane gutter numbers at both ends', async ({ page }) => {
+    const total = 2000
+    const leftLines = Array.from({ length: total }, (_, i) => `line ${i + 1}`)
+    const rightLines = [...leftLines]
+    rightLines[99] = 'line 100 CHANGED'
+    rightLines[1899] = 'line 1900 CHANGED'
+    const left = leftLines.join('\n') + '\n'
+    const right = rightLines.join('\n') + '\n'
+
+    await page.locator('textarea').nth(1).waitFor()
+    await page.evaluate(([a, b]) => {
+      const tas = document.querySelectorAll('textarea')
+      const set = (ta: HTMLTextAreaElement, v: string) => {
+        ta.value = v
+        ta.dispatchEvent(new Event('input', { bubbles: true }))
+      }
+      set(tas[0] as HTMLTextAreaElement, a!)
+      set(tas[1] as HTMLTextAreaElement, b!)
+    }, [left, right])
+
+    await page.locator('.compare-btn').click()
+    await expect(page.locator('.diff-renderer')).toBeVisible()
+    await page.locator('.diff-segment', { hasText: /split/i }).click()
+
+    // Default context (3) collapses almost everything behind gap rows, well
+    // under the virtualization threshold — All context is what actually
+    // renders all 2,000+ rows, so the virtualizer (not just plain DOM
+    // scrollIntoView) is what this test exercises ("no-op under virtualization
+    // threshold" from the audit).
+    await page.locator('.diff-context-select').selectOption({ label: 'All' })
+    await expect(page.locator('.diff-loading')).toHaveCount(0)
+
+    const navCounter = page.locator('.diff-nav-counter')
+    await expect(navCounter).toHaveText('–/2')
+
+    await page.locator('.diff-nav-btn').last().click() // next -> block 1 (line 100)
+    await page.locator('.diff-nav-btn').last().click() // next -> block 2 (line 1900)
+    await expect(navCounter).toHaveText('2/2')
+
+    // Bring the scrollable diff viewport itself into the browser's viewport
+    // (handles any outer/ancestor scrolling) so the assertion below isolates
+    // exactly what this fix is about: the INNER virtualizer scroll position.
+    await page.locator('.dv-rows').scrollIntoViewIfNeeded()
+
+    const active = page.locator('.dv-row--active').first()
+    await expect(active).toBeVisible()
+    await expect(active).toBeInViewport()
+
+    // Sane gutter numbers at both ends of the rendered window after scrolling
+    // near the end of a 2,000-line virtualized list — not still stuck at the top.
+    const gutterTexts = await page.locator('.dv-gutter').allInnerTexts()
+    const nums = gutterTexts.map((t) => t.trim()).filter((t) => t !== '').map(Number)
+    expect(nums.length).toBeGreaterThan(0)
+    expect(Math.min(...nums)).toBeGreaterThan(0)
+    expect(Math.max(...nums)).toBeLessThanOrEqual(total)
+    expect(Math.min(...nums)).toBeLessThanOrEqual(Math.max(...nums))
+    expect(Math.max(...nums)).toBeGreaterThan(1000) // proves it actually scrolled near the 2nd block
+  })
+
+  test('I8: long lines stay contained within their own split pane, never crossing the divider', async ({ page }) => {
+    const longLine = `${'x'.repeat(200)}MIDDLE${'y'.repeat(194)}`
+    const changedLine = `${'x'.repeat(200)}CHANGED${'y'.repeat(194)}`
+    await page.locator('textarea').first().fill(`before\n${longLine}\nafter`)
+    await page.locator('textarea').nth(1).fill(`before\n${changedLine}\nafter`)
+    await page.locator('.compare-btn').click()
+    await expect(page.locator('.diff-renderer')).toBeVisible()
+    await page.locator('.diff-segment', { hasText: /split/i }).click()
+
+    const removedCell = page.locator('.dv-cell.dv-row--removed').first()
+    const addedCell = page.locator('.dv-cell.dv-row--added').first()
+    await expect(removedCell).toBeVisible()
+    await expect(addedCell).toBeVisible()
+
+    const leftBox = await removedCell.boundingBox()
+    const rightBox = await addedCell.boundingBox()
+    expect(leftBox).not.toBeNull()
+    expect(rightBox).not.toBeNull()
+    // The left pane's long line must stay inside its own box — each cell
+    // scrolls its own overflow now, instead of stretching the row and
+    // spilling across the divider into the right pane.
+    expect(leftBox!.x + leftBox!.width).toBeLessThanOrEqual(rightBox!.x + 1)
+  })
+
+  test('I9: Cancel reaches a recoverable idle state instead of a dead end', async ({ page }) => {
+    const mkText = (seed: number) =>
+      Array.from({ length: 60000 }, (_, i) => `line-${i}-${(i * seed) % 9973}`).join('\n')
+    await page.locator('textarea').nth(1).waitFor()
+    await page.evaluate(([a, b]) => {
+      const tas = document.querySelectorAll('textarea')
+      const set = (ta: HTMLTextAreaElement, v: string) => {
+        ta.value = v
+        ta.dispatchEvent(new Event('input', { bubbles: true }))
+      }
+      set(tas[0] as HTMLTextAreaElement, a!)
+      set(tas[1] as HTMLTextAreaElement, b!)
+    }, [mkText(7919), mkText(104729)])
+    await page.locator('.compare-btn').click()
+
+    const cancelBtn = page.locator('.diff-loading .diff-action-btn', { hasText: 'Cancel' })
+    await expect(cancelBtn).toBeVisible({ timeout: 5000 })
+    await cancelBtn.click()
+
+    await expect(page.locator('.dv-idle-message', { hasText: 'Computation cancelled.' })).toBeVisible()
+
+    await page.locator('.dv-idle-message .diff-action-btn', { hasText: 'Compute again' }).click()
+    await expect(page.locator('.dv-row, .diff-empty-message, .dv-limit-message').first()).toBeVisible({ timeout: 30000 })
+  })
+})
