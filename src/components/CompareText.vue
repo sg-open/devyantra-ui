@@ -624,7 +624,10 @@ const isFileAllowed = (file: File): string | null => {
     return `File too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Maximum size is 5MB.`
   }
 
-  const ext = file.name.split('.').pop()?.toLowerCase()
+  // Only enforce the allowlist when the file actually has an extension.
+  // "Makefile" has none; ".gitignore" is a dotfile, not a ".gitignore" type.
+  const base = file.name.replace(/^\.+/, '')
+  const ext = base.includes('.') ? base.split('.').pop()!.toLowerCase() : null
   if (ext && !ALLOWED_EXTENSIONS.includes(ext)) {
     return `File type .${ext} is not supported. Use text-based files only.`
   }
@@ -646,6 +649,7 @@ const isBinaryContent = (text: string): boolean => {
     if (code === 0) return true
     if (code < 32 && code !== 9 && code !== 10 && code !== 13) nonPrintable++
   }
+  if (sample.length === 0) return false
   return nonPrintable / sample.length > 0.1
 }
 
@@ -657,7 +661,30 @@ const loadFile = async (file: File, side: 'left' | 'right') => {
   }
 
   try {
-    const text = await file.text()
+    if (file.size === 0) {
+      toast.add({ severity: 'info', summary: 'Empty file', detail: `"${file.name}" has no content.`, life: 4000 })
+      if (side === 'left') {
+        text1Content.value = ''
+        onText1Input()
+      } else {
+        text2Content.value = ''
+        onText2Input()
+      }
+      return
+    }
+
+    // Decode with BOM awareness — file.text() assumes UTF-8 and turns
+    // UTF-16 files into NUL-laden strings that trip the binary sniff.
+    const buffer = await file.arrayBuffer()
+    const bytes = new Uint8Array(buffer)
+    let text: string
+    if (bytes.length >= 2 && bytes[0] === 0xff && bytes[1] === 0xfe) {
+      text = new TextDecoder('utf-16le').decode(buffer)
+    } else if (bytes.length >= 2 && bytes[0] === 0xfe && bytes[1] === 0xff) {
+      text = new TextDecoder('utf-16be').decode(buffer)
+    } else {
+      text = new TextDecoder().decode(buffer)
+    }
 
     if (isBinaryContent(text)) {
       toast.add({

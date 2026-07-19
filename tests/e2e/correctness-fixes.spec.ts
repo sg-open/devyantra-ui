@@ -1,4 +1,7 @@
 import { test, expect } from './fixtures/base'
+import path from 'path'
+import fs from 'fs'
+import os from 'os'
 
 test.use({ permissions: ['clipboard-read', 'clipboard-write'] })
 
@@ -215,5 +218,36 @@ test.describe('Timestamp zero and Base64 stale output (D7)', () => {
     await page.locator('button', { hasText: 'Decode' }).click()
     await expect(page.locator('.error-message')).toBeVisible()
     await expect(page.locator('.output-text')).toHaveCount(0) // stale output gone
+  })
+})
+
+test.describe('Upload validation (D7)', () => {
+  test.beforeEach(async ({ devyantra }) => {
+    await devyantra.navigateToTool('text-compare')
+  })
+
+  test('extensionless text file (Makefile) uploads fine', async ({ page }) => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'dy-'))
+    const file = path.join(dir, 'Makefile')
+    fs.writeFileSync(file, 'all:\n\techo hi\n')
+    await page.locator('input[type="file"]').first().setInputFiles(file)
+    await expect(page.locator('textarea').first()).toHaveValue('all:\n\techo hi\n')
+  })
+
+  test('UTF-16LE text file decodes as text, not "binary"', async ({ page }) => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'dy-'))
+    const file = path.join(dir, 'utf16.txt')
+    // BOM FF FE + "hi" in UTF-16LE
+    fs.writeFileSync(file, Buffer.from([0xff, 0xfe, 0x68, 0x00, 0x69, 0x00]))
+    await page.locator('input[type="file"]').first().setInputFiles(file)
+    await expect(page.locator('textarea').first()).toHaveValue('hi')
+  })
+
+  test('empty file loads as empty with an info toast, not silently', async ({ page }) => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'dy-'))
+    const file = path.join(dir, 'empty.txt')
+    fs.writeFileSync(file, '')
+    await page.locator('input[type="file"]').first().setInputFiles(file)
+    await expect(page.locator('.toast-message', { hasText: 'empty' })).toBeVisible()
   })
 })
