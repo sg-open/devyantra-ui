@@ -264,3 +264,37 @@ test.describe('Router guard (D7)', () => {
     expect(warnings).toEqual([])
   })
 })
+
+test.describe('Navigation reaches insertions (№8)', () => {
+  test.beforeEach(async ({ devyantra }) => {
+    await devyantra.navigateToTool('text-compare')
+  })
+
+  test('split view nav reaches a pure trailing insertion; unified shows the same count', async ({ page }) => {
+    await page.locator('textarea').first().fill('a\nb')
+    await page.locator('textarea').nth(1).fill('a\nb\nc\nd')
+    await page.locator('.compare-btn').click()
+
+    const diffRenderer = page.locator('.diff-renderer')
+    await expect(diffRenderer).toBeVisible({ timeout: 5000 })
+
+    // Explicit split, even though it's DiffRenderer's default.
+    await page.locator('.diff-segment', { hasText: /split/i }).click()
+
+    // A pure trailing insertion is ONE block — the old DOM-scanning nav (which
+    // only ever scanned the left/original side) never saw it at all.
+    const navCounter = page.locator('.diff-nav-counter')
+    await expect(navCounter).toBeVisible()
+    await expect(navCounter).toHaveText('–/1')
+
+    await page.locator('.diff-nav-btn').last().click() // next
+    await expect(page.locator('.dv-row--active')).toBeVisible()
+    await expect(navCounter).toHaveText('1/1')
+
+    // Switching view mode re-renders the same cached model — no recompute,
+    // no navigation reset — so the counter must read identically.
+    await page.locator('.diff-segment', { hasText: /unified/i }).click()
+    await expect(navCounter).toHaveText('1/1')
+    await expect(page.locator('.dv-row--active')).toBeVisible()
+  })
+})

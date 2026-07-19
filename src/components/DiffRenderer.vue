@@ -96,18 +96,19 @@
         </button>
       </div>
 
-      <!-- Navigation placeholder — Task 9 replaces these internals with real
-           model-driven hunk tracking (activeRowIndex + DiffRows.scrollToRow). -->
-      <div v-if="hasChanges" class="diff-nav">
+      <!-- Navigation — model-driven via useDiffNavigation(modelRows). Visible
+           whenever the model has at least one removed/added block, which is
+           true for pure insertions/deletions too (audit №8). -->
+      <div v-if="totalBlocks > 0" class="diff-nav">
         <button
           class="diff-nav-btn"
-          @click="navPrev"
+          @click="prevChange"
           title="Previous change (Alt+Up)"
         >&#x25B2;</button>
-        <span class="diff-nav-counter">–/–</span>
+        <span class="diff-nav-counter">{{ navCounterText }}</span>
         <button
           class="diff-nav-btn"
-          @click="navNext"
+          @click="nextChange"
           title="Next change (Alt+Down)"
         >&#x25BC;</button>
       </div>
@@ -144,7 +145,13 @@
       <template v-else-if="model">
         <DiffIndicators :indicators="model.indicators" />
 
-        <DiffRows v-if="hasChanges" :rows="model.rows" :mode="mode" :active-row-index="null" />
+        <DiffRows
+          v-if="hasChanges"
+          ref="diffRowsRef"
+          :rows="model.rows"
+          :mode="mode"
+          :active-row-index="activeRowIndex"
+        />
 
         <div v-else class="diff-empty-state">
           <div class="diff-empty-icon">
@@ -165,9 +172,10 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import DiffRows from '@/components/diff/DiffRows.vue'
 import DiffIndicators from '@/components/diff/DiffIndicators.vue'
 import { useDiffWorker } from '@/composables/useDiffWorker'
+import { useDiffNavigation } from '@/composables/useDiffNavigation'
 import { useClipboard } from '@/composables/useClipboard'
 import { buildPatch } from '@/lib/diff/patch'
-import type { DiffStats } from '@/lib/diff/model'
+import type { DiffStats, DiffRow } from '@/lib/diff/model'
 
 // Props
 interface Props {
@@ -239,6 +247,38 @@ const stats = computed<DiffStats>(() => model.value?.stats ?? { added: 0, remove
 const hasChanges = computed(() =>
   model.value !== null && stats.value.added + stats.value.removed + stats.value.modified > 0
 )
+
+// Model-driven navigation (audit №8) — a plain ref, not a computed, because
+// useDiffNavigation's param is Ref<DiffRow[] | null>; reassigned wholesale
+// on every model change so its internal "rows changed" reset fires and
+// currentBlock drops back to -1 instead of carrying a stale selection into
+// a diff it no longer describes.
+const modelRows = ref<DiffRow[] | null>(null)
+watch(
+  model,
+  (m) => {
+    modelRows.value = m?.rows ?? null
+  },
+  { immediate: true }
+)
+
+const { totalBlocks, currentBlock, activeRowIndex, nextChange, prevChange } = useDiffNavigation(modelRows)
+
+const navCounterText = computed(() =>
+  currentBlock.value === -1 ? `–/${totalBlocks.value}` : `${currentBlock.value + 1}/${totalBlocks.value}`
+)
+
+// Template ref to DiffRows' exposed scrollToRow(). DiffRows only mounts while
+// hasChanges is true, which is exactly when totalBlocks can be nonzero, so
+// diffRowsRef is always populated by the time activeRowIndex goes non-null.
+const diffRowsRef = ref<InstanceType<typeof DiffRows> | null>(null)
+
+// Split view resolves the active row through DiffRows' own WeakMap-based
+// index lookup (keyed off `rows`, not the split-expanded array), so a single
+// activeRowIndex works unchanged for both view modes.
+watch(activeRowIndex, (idx) => {
+  if (idx !== null) diffRowsRef.value?.scrollToRow(idx)
+})
 
 const clipboard = useClipboard()
 
@@ -320,11 +360,6 @@ const emitOptionsChanged = (partialOptions?: Partial<DiffOptions>): void => {
   emit('options-changed', options)
 }
 
-// Navigation placeholder — Task 9 replaces these internals with real
-// model-driven hunk tracking (activeRowIndex + DiffRows.scrollToRow()).
-const navPrev = (): void => {}
-const navNext = (): void => {}
-
 // Keyboard shortcuts for navigation.
 // Alt+Arrow diff navigation must not fire while typing: on macOS,
 // Option+Arrow is word-navigation inside inputs.
@@ -337,10 +372,10 @@ const handleKeydown = (event: KeyboardEvent): void => {
   if (!event.altKey || isEditableTarget(event.target)) return
   if (event.key === 'ArrowDown') {
     event.preventDefault()
-    navNext()
+    nextChange()
   } else if (event.key === 'ArrowUp') {
     event.preventDefault()
-    navPrev()
+    prevChange()
   }
 }
 
