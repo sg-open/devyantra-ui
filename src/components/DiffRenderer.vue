@@ -141,6 +141,15 @@
         <button class="diff-action-btn" @click="runCompute">Retry</button>
       </div>
 
+      <!-- Idle State: only reachable after Cancel (the initial mount always
+           starts computing synchronously) — without this, cancelling left the
+           content area blank with no way back in (I9). -->
+      <div v-else-if="state === 'idle'" class="dv-idle-message">
+        <i class="pi pi-info-circle"></i>
+        <span>Computation cancelled.</span>
+        <button class="diff-action-btn" @click="runCompute">Compute again</button>
+      </div>
+
       <!-- Done State: model-driven rows, or the empty state when there's nothing to show -->
       <template v-else-if="model">
         <DiffIndicators :indicators="model.indicators" />
@@ -282,11 +291,17 @@ watch(activeRowIndex, (idx) => {
 
 const clipboard = useClipboard()
 
-const patchActionTitle = computed(() =>
-  props.ignoreWhitespace || props.ignoreCase
+const patchActionTitle = computed(() => {
+  const base = props.ignoreWhitespace || props.ignoreCase
     ? 'Patch of the original texts — includes differences the active ignore options hide'
     : 'Unified diff of the compared texts'
-)
+  // Name the actual files once both are known, same "both or neither" gate
+  // buildDownloadFilename() uses — one uploaded side alone isn't enough to
+  // disambiguate which file is which in the tooltip.
+  return props.leftFilename && props.rightFilename
+    ? `${base} — exporting ${props.leftFilename} vs ${props.rightFilename}`
+    : base
+})
 
 // Copy/Export always build fresh from the ORIGINAL texts at the displayed
 // context — never the folded/normalized comparison text — so exported
@@ -712,9 +727,10 @@ onUnmounted(() => {
   margin-top: calc(-1 * var(--space-md));
 }
 
-/* ===== TOO-LARGE / ERROR STATES ===== */
+/* ===== TOO-LARGE / ERROR / IDLE STATES ===== */
 .dv-limit-message,
-.dv-error-message {
+.dv-error-message,
+.dv-idle-message {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -727,7 +743,8 @@ onUnmounted(() => {
 }
 
 .dv-limit-message i,
-.dv-error-message i {
+.dv-error-message i,
+.dv-idle-message i {
   font-size: var(--text-3xl);
 }
 
@@ -739,8 +756,13 @@ onUnmounted(() => {
   color: var(--dt-danger);
 }
 
+.dv-idle-message {
+  color: var(--dt-text-secondary);
+}
+
 .dv-limit-message span,
-.dv-error-message span {
+.dv-error-message span,
+.dv-idle-message span {
   color: var(--dt-text-primary);
   font-size: var(--text-base);
   line-height: var(--leading-normal);
