@@ -1,35 +1,35 @@
 <!--
-  DiffRenderer.vue - Diff renderer powered by diff2html
+  DiffRenderer.vue - Orchestrator over the diff core.
+
+  Computes via useDiffWorker() (worker-backed with a sync fallback) and
+  renders the resulting DiffModel through DiffRows/DiffIndicators — no
+  v-html, no HTML re-parsing, no diff2html.
 
   Props:
-  - leftText: string - Original text content
-  - rightText: string - Modified text content
-  - mode: 'split' | 'unified' - Display mode
-  - ignoreWhitespace: boolean - Ignore whitespace differences
-  - ignoreCase: boolean - Ignore case differences
-  - language: string - Programming language for syntax highlighting
+  - leftText, rightText: string - compared texts
+  - mode: 'split' | 'unified' - display mode (parent-controlled)
+  - ignoreWhitespace, ignoreCase: boolean - compare options
+  - language: string - unused internally; kept for the external contract
+  - leftFilename, rightFilename: optional patch header names (wired by callers in Task 10)
 
   Events:
-  - @diff-computed: Emitted when diff computation is complete
-  - @mode-changed: Emitted when display mode changes
-  - @options-changed: Emitted when diff options change
+  - @diff-computed: emitted with the model's stats after each successful compute
+  - @mode-changed: requests a mode change (the parent owns `mode`)
+  - @options-changed: requests an ignoreWhitespace/ignoreCase change
 -->
 
 <template>
   <div class="diff-renderer" :class="{ [`diff-renderer--${mode}`]: true }">
-    <!-- Stats Bar (above diff) — hides zero-count chips -->
-    <div v-if="displayStats" class="diff-stats-bar">
-      <span v-if="displayStats.additions > 0" class="diff-stat-chip diff-stat-chip--added">
-        +{{ displayStats.additions }} added
+    <!-- Stats Bar (above toolbar) — hides zero-count chips -->
+    <div v-if="hasChanges" class="diff-stats-bar">
+      <span v-if="stats.added > 0" class="diff-stat-chip diff-stat-chip--added">
+        +{{ stats.added }} added
       </span>
-      <span v-if="displayStats.deletions > 0" class="diff-stat-chip diff-stat-chip--removed">
-        -{{ displayStats.deletions }} removed
+      <span v-if="stats.removed > 0" class="diff-stat-chip diff-stat-chip--removed">
+        -{{ stats.removed }} removed
       </span>
-      <span v-if="displayStats.modifications > 0" class="diff-stat-chip diff-stat-chip--modified">
-        ~{{ displayStats.modifications }} modified
-      </span>
-      <span class="diff-stat-chip diff-stat-chip--time">
-        {{ displayStats.computeTime }}ms
+      <span v-if="stats.modified > 0" class="diff-stat-chip diff-stat-chip--modified">
+        ~{{ stats.modified }} modified
       </span>
     </div>
 
@@ -78,7 +78,7 @@
       <div class="diff-actions">
         <button
           class="diff-action-btn"
-          :disabled="!lastPatch"
+          :disabled="!hasChanges"
           @click="copyDiffToClipboard"
           :title="patchActionTitle"
         >
@@ -87,7 +87,7 @@
         </button>
         <button
           class="diff-action-btn"
-          :disabled="!lastPatch"
+          :disabled="!hasChanges"
           @click="downloadPatch"
           :title="patchActionTitle"
         >
@@ -96,70 +96,78 @@
         </button>
       </div>
 
-      <!-- Navigation -->
-      <div v-if="navigation.hasChanges.value" class="diff-nav">
+      <!-- Navigation placeholder — Task 9 replaces these internals with real
+           model-driven hunk tracking (activeRowIndex + DiffRows.scrollToRow). -->
+      <div v-if="hasChanges" class="diff-nav">
         <button
           class="diff-nav-btn"
-          @click="navigation.prevChange()"
+          @click="navPrev"
           title="Previous change (Alt+Up)"
         >&#x25B2;</button>
-        <span class="diff-nav-counter">
-          {{ navigation.currentIndex.value >= 0 ? `${navigation.currentIndex.value + 1}/${navigation.totalChanges.value}` : `–/${navigation.totalChanges.value}` }}
-        </span>
+        <span class="diff-nav-counter">–/–</span>
         <button
           class="diff-nav-btn"
-          @click="navigation.nextChange()"
+          @click="navNext"
           title="Next change (Alt+Down)"
         >&#x25BC;</button>
       </div>
     </div>
 
     <!-- Diff Content -->
-    <div class="diff-content" :class="{ 'diff-content--loading': isLoading }">
-      <!-- Loading State -->
-      <div v-if="isLoading" class="diff-loading">
+    <div class="diff-content" :class="{ 'diff-content--loading': state === 'computing' }">
+      <!-- Computing State -->
+      <div v-if="state === 'computing'" class="diff-loading">
         <div class="diff-loading-spinner"></div>
         <span class="diff-loading-text">Computing differences...</span>
+        <span class="diff-loading-elapsed">{{ elapsedSeconds }}s</span>
+        <button
+          v-if="elapsedMs >= 300"
+          class="diff-action-btn"
+          @click="diffWorker.cancel()"
+        >Cancel</button>
       </div>
 
-      <!-- diff2html Renderer -->
-      <div
-        v-else-if="shouldShowDiff"
-        class="diff-container"
-        ref="diffContainerRef"
-        v-html="diffOutputHtml"
-      />
-
-      <!-- Empty State -->
-      <div v-else class="diff-empty-state">
-        <div class="diff-empty-icon">
-          <i class="pi pi-info-circle"></i>
-        </div>
-        <div class="diff-empty-message">
-          <h3>No differences found</h3>
-          <p>The texts are identical with the current settings.</p>
-        </div>
+      <!-- Too-Large State -->
+      <div v-else-if="state === 'too-large'" class="dv-limit-message">
+        <i class="pi pi-exclamation-triangle"></i>
+        <span>{{ errorDetail }}</span>
       </div>
+
+      <!-- Error State -->
+      <div v-else-if="state === 'error'" class="dv-error-message">
+        <i class="pi pi-times-circle"></i>
+        <span>{{ errorDetail }}</span>
+        <button class="diff-action-btn" @click="runCompute">Retry</button>
+      </div>
+
+      <!-- Done State: model-driven rows, or the empty state when there's nothing to show -->
+      <template v-else-if="model">
+        <DiffIndicators :indicators="model.indicators" />
+
+        <DiffRows v-if="hasChanges" :rows="model.rows" :mode="mode" :active-row-index="null" />
+
+        <div v-else class="diff-empty-state">
+          <div class="diff-empty-icon">
+            <i class="pi pi-info-circle"></i>
+          </div>
+          <div class="diff-empty-message">
+            <h3>No differences found</h3>
+            <p>The texts are identical with the current settings.</p>
+          </div>
+        </div>
+      </template>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
-import { createTwoFilesPatch } from 'diff'
-import { html as diff2htmlHtml, parse as diff2htmlParse } from 'diff2html'
-import 'diff2html/bundles/css/diff2html.min.css'
-import { useDiffNavigation } from '@/composables/useDiffNavigation'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import DiffRows from '@/components/diff/DiffRows.vue'
+import DiffIndicators from '@/components/diff/DiffIndicators.vue'
+import { useDiffWorker } from '@/composables/useDiffWorker'
 import { useClipboard } from '@/composables/useClipboard'
-import type { DiffFile } from 'diff2html/lib/types'
-
-export interface DiffStats {
-  additions: number
-  deletions: number
-  modifications: number
-  totalLines: number
-  computeTime: number
-}
+import { buildPatch } from '@/lib/diff/patch'
+import type { DiffStats } from '@/lib/diff/model'
 
 // Props
 interface Props {
@@ -169,6 +177,8 @@ interface Props {
   ignoreWhitespace?: boolean
   ignoreCase?: boolean
   language?: string
+  leftFilename?: string
+  rightFilename?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -192,15 +202,43 @@ interface Emits {
 
 const emit = defineEmits<Emits>()
 
-// State
-const isLoading = ref(false)
-const diffOutputHtml = ref('')
-const diffContainerRef = ref<HTMLElement>()
-const contextLines = ref(3)
-const lastPatch = ref('')
+// Compute — one worker-backed pipeline; no HTML re-parse.
+const diffWorker = useDiffWorker()
+const { state, model, errorDetail, elapsedMs } = diffWorker
 
-// Navigation
-const navigation = useDiffNavigation(diffContainerRef)
+const contextLines = ref(3)
+
+const runCompute = (): void => {
+  diffWorker.compute(props.leftText, props.rightText, {
+    ignoreWhitespace: props.ignoreWhitespace,
+    ignoreCase: props.ignoreCase,
+    context: contextLines.value
+  })
+}
+
+// ONE watch drives every recompute. `mode` is deliberately excluded:
+// switching Split/Unified re-renders the cached model through DiffRows and
+// never recomputes. No onMounted compute call either — the immediate watch
+// already runs synchronously during setup, so an onMounted call would
+// double-compute on first mount.
+watch(
+  [() => props.leftText, () => props.rightText, () => props.ignoreWhitespace, () => props.ignoreCase, contextLines],
+  runCompute,
+  { immediate: true }
+)
+
+// Fires once per successful compute. Never fires for too-large/error, since
+// model is null in both of those states.
+watch(model, (m) => {
+  if (m) emit('diff-computed', m.stats)
+})
+
+const elapsedSeconds = computed(() => (elapsedMs.value / 1000).toFixed(1))
+
+const stats = computed<DiffStats>(() => model.value?.stats ?? { added: 0, removed: 0, modified: 0 })
+const hasChanges = computed(() =>
+  model.value !== null && stats.value.added + stats.value.removed + stats.value.modified > 0
+)
 
 const clipboard = useClipboard()
 
@@ -210,10 +248,38 @@ const patchActionTitle = computed(() =>
     : 'Unified diff of the compared texts'
 )
 
+// Copy/Export always build fresh from the ORIGINAL texts at the displayed
+// context — never the folded/normalized comparison text — so exported
+// patches stay appliable regardless of the active ignore options.
+const buildCurrentPatch = (): string =>
+  buildPatch(props.leftText, props.rightText, {
+    context: contextLines.value,
+    leftName: props.leftFilename,
+    rightName: props.rightFilename
+  })
+
+const copyDiffToClipboard = async (): Promise<void> => {
+  if (!hasChanges.value) return
+  await clipboard.copyWithFeedback(buildCurrentPatch(), 'Diff')
+}
+
+const downloadPatch = (): void => {
+  if (!hasChanges.value) return
+  const blob = new Blob([buildCurrentPatch()], { type: 'text/plain' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = 'diff.patch'
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
+
 // Configuration
 const viewModes = [
-  { value: 'split', label: 'Split', icon: '\u2016', title: 'Side-by-side view' },
-  { value: 'unified', label: 'Unified', icon: '\u2261', title: 'Unified diff view' }
+  { value: 'split', label: 'Split', icon: '‖', title: 'Side-by-side view' },
+  { value: 'unified', label: 'Unified', icon: '≡', title: 'Unified diff view' }
 ]
 
 // Toggle options
@@ -232,164 +298,20 @@ const toggleOptions = computed(() => [
   }
 ])
 
-const renderedStats = ref<DiffStats | null>(null)
-
-const shouldShowDiff = computed(() => {
-  return diffOutputHtml.value.length > 0
-})
-
-const displayStats = computed(() => renderedStats.value)
-
-// Compute stats from the diff2html parsed output (same source as the rendered diff)
-const computeStatsFromParsed = (diffJson: DiffFile[], computeTime: number): DiffStats => {
-  let additions = 0
-  let deletions = 0
-  let modifications = 0
-  let contextLines = 0
-
-  for (const file of diffJson) {
-    for (const block of file.blocks) {
-      let pendingDels = 0
-
-      for (const line of block.lines) {
-        if (line.type === 'delete') {
-          pendingDels++
-        } else if (line.type === 'insert') {
-          if (pendingDels > 0) {
-            // Paired delete+insert = modification
-            modifications++
-            pendingDels--
-          } else {
-            additions++
-          }
-        } else {
-          // context line — flush pending deletes as pure deletions
-          deletions += pendingDels
-          pendingDels = 0
-          contextLines++
-        }
-      }
-
-      // Flush remaining deletes at end of block
-      deletions += pendingDels
-    }
-  }
-
-  // totalLines = original file's line count (unchanged + deleted + modified)
-  const totalLines = contextLines + deletions + modifications
-
-  return { additions, deletions, modifications, totalLines, computeTime }
-}
-
-// Methods
-// Folding affects the compared/displayed diff only. Exported patches
-// never use folded text — see the lastPatch assignment below.
-const foldText = (text: string): string => {
-  let t = props.ignoreCase ? text.toLowerCase() : text
-  if (props.ignoreWhitespace) {
-    t = t
-      .replace(/\t/g, ' ')
-      .replace(/ {2,}/g, ' ')
-      .replace(/^ +| +$/gm, '')
-  }
-  return t
-}
-
-const computeDiff = async () => {
-  if (!props.leftText && !props.rightText) {
-    diffOutputHtml.value = ''
-    lastPatch.value = ''
-    renderedStats.value = null
-    return
-  }
-
-  isLoading.value = true
-  renderedStats.value = null
-
-  try {
-    await nextTick()
-
-    const startTime = performance.now()
-    const left = foldText(props.leftText)
-    const right = foldText(props.rightText)
-
-    // Full-context patch over the compared texts — source of truth for stats
-    const leftLineCount = left.split('\n').length
-    const rightLineCount = right.split('\n').length
-    const fullCtx = Math.max(leftLineCount, rightLineCount)
-
-    const fullPatch = createTwoFilesPatch(
-      'original', 'modified',
-      left, right,
-      '', '',
-      { context: fullCtx }
-    )
-
-    const fullDiffJson = diff2htmlParse(fullPatch)
-    const computeTime = Math.round(performance.now() - startTime)
-    const stats = computeStatsFromParsed(fullDiffJson, computeTime)
-
-    if (stats.additions === 0 && stats.deletions === 0 && stats.modifications === 0) {
-      // Identical under the current options — show empty state, and make sure
-      // Copy/Export cannot emit a stale patch from a previous comparison.
-      diffOutputHtml.value = ''
-      lastPatch.value = ''
-      return
-    }
-
-    renderedStats.value = stats
-
-    // Render with the user-chosen context lines
-    const renderCtx = contextLines.value === Infinity ? fullCtx : contextLines.value
-    let renderPatch = fullPatch
-    if (renderCtx !== fullCtx) {
-      renderPatch = createTwoFilesPatch(
-        'original', 'modified',
-        left, right,
-        '', '',
-        { context: renderCtx }
-      )
-    }
-
-    const renderDiffJson = diff2htmlParse(renderPatch)
-    diffOutputHtml.value = diff2htmlHtml(renderDiffJson, {
-      outputFormat: props.mode === 'split' ? 'side-by-side' : 'line-by-line',
-      drawFileList: false,
-      matching: 'lines',
-      renderNothingWhenEmpty: true
-    })
-
-    // Copy/Export always reflect the ORIGINAL texts (never case-folded, no
-    // ignore options) so exported patches stay appliable.
-    lastPatch.value = createTwoFilesPatch(
-      'original', 'modified',
-      props.leftText, props.rightText,
-      '', '',
-      { context: fullCtx }
-    )
-
-    emit('diff-computed', stats)
-  } catch (error) {
-    console.error('Error computing diff:', error)
-  } finally {
-    isLoading.value = false
-  }
-}
-
-const updateMode = (newMode: 'split' | 'unified') => {
+const updateMode = (newMode: 'split' | 'unified'): void => {
   emit('mode-changed', newMode)
   emitOptionsChanged()
 }
 
-const updateIgnoreWhitespace = (value: boolean) => {
+const updateIgnoreWhitespace = (value: boolean): void => {
   emitOptionsChanged({ ignoreWhitespace: value })
 }
 
-const updateIgnoreCase = (value: boolean) => {
+const updateIgnoreCase = (value: boolean): void => {
   emitOptionsChanged({ ignoreCase: value })
 }
 
-const emitOptionsChanged = (partialOptions?: Partial<DiffOptions>) => {
+const emitOptionsChanged = (partialOptions?: Partial<DiffOptions>): void => {
   const options: DiffOptions = {
     ignoreWhitespace: props.ignoreWhitespace,
     ignoreCase: props.ignoreCase,
@@ -398,50 +320,12 @@ const emitOptionsChanged = (partialOptions?: Partial<DiffOptions>) => {
   emit('options-changed', options)
 }
 
-// Copy & Export — uses the same patch that was rendered
-const copyDiffToClipboard = async () => {
-  if (!lastPatch.value) return
-  await clipboard.copyWithFeedback(lastPatch.value, 'Diff')
-}
+// Navigation placeholder — Task 9 replaces these internals with real
+// model-driven hunk tracking (activeRowIndex + DiffRows.scrollToRow()).
+const navPrev = (): void => {}
+const navNext = (): void => {}
 
-const downloadPatch = () => {
-  if (!lastPatch.value) return
-  const blob = new Blob([lastPatch.value], { type: 'text/plain' })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = 'diff.patch'
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  URL.revokeObjectURL(url)
-}
-
-// Watchers
-watch([() => props.leftText, () => props.rightText], () => {
-  computeDiff()
-}, { immediate: true })
-
-watch(
-  [() => props.ignoreWhitespace, () => props.ignoreCase, () => props.mode, contextLines],
-  () => {
-    computeDiff()
-  }
-)
-
-// Restart navigation observation whenever the diff container element changes.
-// When mode switches or text changes, computeDiff() sets isLoading=true which
-// destroys the old diff-container div. The old MutationObserver dies with it.
-// Watching the template ref ensures we start a fresh observer on the new element.
-watch(diffContainerRef, async (newEl) => {
-  navigation.stopObserving()
-  if (newEl) {
-    await nextTick()
-    navigation.startObserving()
-  }
-})
-
-// Keyboard shortcuts for navigation
+// Keyboard shortcuts for navigation.
 // Alt+Arrow diff navigation must not fire while typing: on macOS,
 // Option+Arrow is word-navigation inside inputs.
 const isEditableTarget = (t: EventTarget | null): boolean => {
@@ -449,19 +333,18 @@ const isEditableTarget = (t: EventTarget | null): boolean => {
   return !!el && (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT' || el.isContentEditable === true)
 }
 
-const handleKeydown = (event: KeyboardEvent) => {
+const handleKeydown = (event: KeyboardEvent): void => {
   if (!event.altKey || isEditableTarget(event.target)) return
   if (event.key === 'ArrowDown') {
     event.preventDefault()
-    navigation.nextChange()
+    navNext()
   } else if (event.key === 'ArrowUp') {
     event.preventDefault()
-    navigation.prevChange()
+    navPrev()
   }
 }
 
 onMounted(() => {
-  computeDiff()
   document.addEventListener('keydown', handleKeydown)
 
   // Auto-switch to unified on small screens
@@ -472,7 +355,6 @@ onMounted(() => {
 
 onUnmounted(() => {
   document.removeEventListener('keydown', handleKeydown)
-  navigation.stopObserving()
 })
 </script>
 
@@ -529,19 +411,6 @@ onUnmounted(() => {
   background: var(--dt-warning-light);
   border-color: rgba(245, 158, 11, 0.25);
   color: var(--dt-warning);
-}
-
-.diff-stat-chip--info {
-  background: var(--dt-surface-2);
-  border-color: var(--dt-border);
-  color: var(--dt-text-secondary);
-}
-
-.diff-stat-chip--time {
-  background: var(--dt-surface-2);
-  border-color: var(--dt-border);
-  color: var(--dt-text-tertiary);
-  margin-left: auto;
 }
 
 /* ===== STICKY TOOLBAR ===== */
@@ -761,7 +630,7 @@ onUnmounted(() => {
   align-items: center;
 }
 
-/* ===== LOADING STATE ===== */
+/* ===== COMPUTING STATE ===== */
 .diff-loading {
   display: flex;
   flex-direction: column;
@@ -790,11 +659,45 @@ onUnmounted(() => {
   font-weight: var(--font-weight-medium);
 }
 
-/* ===== DIFF CONTAINER ===== */
-.diff-container {
-  flex: 1;
-  position: relative;
-  background: var(--diff-code-bg);
+.diff-loading-elapsed {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--dt-text-tertiary);
+  margin-top: calc(-1 * var(--space-md));
+}
+
+/* ===== TOO-LARGE / ERROR STATES ===== */
+.dv-limit-message,
+.dv-error-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  padding: var(--space-3xl);
+  text-align: center;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.dv-limit-message i,
+.dv-error-message i {
+  font-size: var(--text-3xl);
+}
+
+.dv-limit-message {
+  color: var(--dt-warning);
+}
+
+.dv-error-message {
+  color: var(--dt-danger);
+}
+
+.dv-limit-message span,
+.dv-error-message span {
+  color: var(--dt-text-primary);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
 }
 
 /* ===== EMPTY STATE ===== */
@@ -882,278 +785,6 @@ onUnmounted(() => {
   .diff-stat-chip {
     font-size: 10px;
     padding: 1px 6px;
-  }
-}
-</style>
-
-<!-- diff2html theme integration — override CSS variables, not layout -->
-<style>
-/* ===== DIFF2HTML THEME OVERRIDES ===== */
-
-/*
- * Strategy: Override diff2html's CSS custom properties so its own layout
- * rules stay intact. This avoids breaking the absolute-positioned line
- * numbers and padding-based content alignment.
- */
-
-/* Prevent text-transform inheritance (terminal mode) */
-.diff-renderer,
-.diff-renderer * {
-  text-transform: none !important;
-}
-
-/* Map diff2html CSS variables to our design tokens */
-.diff-container {
-  /* Base */
-  --d2h-bg-color: var(--diff-gutter-bg);
-  --d2h-border-color: var(--dt-border);
-  --d2h-dim-color: var(--diff-gutter-text);
-  --d2h-line-border-color: var(--dt-border);
-
-  /* File header (hidden, but override anyway) */
-  --d2h-file-header-bg-color: var(--dt-surface-2);
-  --d2h-file-header-border-color: var(--dt-border);
-
-  /* Placeholders (empty side in side-by-side) */
-  --d2h-empty-placeholder-bg-color: var(--dt-surface-2);
-  --d2h-empty-placeholder-border-color: var(--dt-border);
-
-  /* Insertions */
-  --d2h-ins-bg-color: var(--diff-added-bg);
-  --d2h-ins-border-color: var(--diff-added-border);
-  --d2h-ins-highlight-bg-color: var(--diff-added-word-bg);
-
-  /* Deletions */
-  --d2h-del-bg-color: var(--diff-removed-bg);
-  --d2h-del-border-color: var(--diff-removed-border);
-  --d2h-del-highlight-bg-color: var(--diff-removed-word-bg);
-
-  /* Changes (modified lines — del side and ins side) */
-  --d2h-change-del-color: var(--diff-removed-bg);
-  --d2h-change-ins-color: var(--diff-added-bg);
-
-  /* Info / hunk headers */
-  --d2h-info-bg-color: var(--dt-surface-2);
-  --d2h-info-border-color: var(--dt-border);
-
-  /* Selected */
-  --d2h-selected-color: var(--dt-brand-light);
-
-  /* Dark scheme variables (mapped to same tokens — we force light class) */
-  --d2h-dark-bg-color: var(--diff-gutter-bg);
-  --d2h-dark-border-color: var(--dt-border);
-  --d2h-dark-dim-color: var(--diff-gutter-text);
-  --d2h-dark-line-border-color: var(--dt-border);
-  --d2h-dark-file-header-bg-color: var(--dt-surface-2);
-  --d2h-dark-file-header-border-color: var(--dt-border);
-  --d2h-dark-empty-placeholder-bg-color: var(--dt-surface-2);
-  --d2h-dark-empty-placeholder-border-color: var(--dt-border);
-  --d2h-dark-ins-bg-color: var(--diff-added-bg);
-  --d2h-dark-ins-border-color: var(--diff-added-border);
-  --d2h-dark-ins-highlight-bg-color: var(--diff-added-word-bg);
-  --d2h-dark-del-bg-color: var(--diff-removed-bg);
-  --d2h-dark-del-border-color: var(--diff-removed-border);
-  --d2h-dark-del-highlight-bg-color: var(--diff-removed-word-bg);
-  --d2h-dark-change-del-color: var(--diff-removed-bg);
-  --d2h-dark-change-ins-color: var(--diff-added-bg);
-  --d2h-dark-info-bg-color: var(--dt-surface-2);
-  --d2h-dark-info-border-color: var(--dt-border);
-}
-
-/* Hide file header (we show our own stats bar) */
-.diff-container .d2h-file-header {
-  display: none !important;
-}
-
-/* Remove file wrapper border/margin */
-.diff-container .d2h-file-wrapper {
-  border: none !important;
-  border-radius: 0 !important;
-  margin: 0 !important;
-}
-
-/* Font overrides — keep layout, change font */
-.diff-container .d2h-diff-table {
-  font-family: var(--font-mono) !important;
-}
-
-.diff-container .d2h-code-line-ctn {
-  font-family: var(--font-mono) !important;
-  color: var(--dt-text-primary) !important;
-}
-
-.diff-container .d2h-code-line-prefix {
-  font-family: var(--font-mono) !important;
-  color: var(--diff-gutter-text) !important;
-}
-
-/* Code line — transparent bg so td's del/ins color shows through uniformly */
-.diff-container .d2h-code-line,
-.diff-container .d2h-code-side-line {
-  background: transparent !important;
-  width: 100% !important;
-  box-sizing: border-box !important;
-  padding-right: 1em !important;
-}
-
-/* Unchanged rows — neutral background */
-.diff-container .d2h-cntx:not(.d2h-emptyplaceholder) {
-  background-color: var(--diff-code-bg) !important;
-}
-
-/* Scrollable panel background — matches neutral so no edge gap shows */
-.diff-container .d2h-file-side-diff,
-.diff-container .d2h-code-wrapper {
-  background: var(--diff-code-bg) !important;
-}
-
-/* Line number colors */
-.diff-container .d2h-code-linenumber,
-.diff-container .d2h-code-side-linenumber {
-  background-color: var(--diff-gutter-bg) !important;
-  color: var(--diff-gutter-text) !important;
-  border-color: var(--dt-border) !important;
-}
-
-/* Added line — line number gutter */
-.diff-container .d2h-ins .d2h-code-linenumber,
-.diff-container .d2h-ins .d2h-code-side-linenumber,
-.diff-container .d2h-ins.d2h-change .d2h-code-linenumber,
-.diff-container .d2h-ins.d2h-change .d2h-code-side-linenumber {
-  background-color: var(--diff-added-gutter-bg) !important;
-  border-color: var(--diff-added-border) !important;
-}
-
-/* Removed line — line number gutter */
-.diff-container .d2h-del .d2h-code-linenumber,
-.diff-container .d2h-del .d2h-code-side-linenumber,
-.diff-container .d2h-del.d2h-change .d2h-code-linenumber,
-.diff-container .d2h-del.d2h-change .d2h-code-side-linenumber {
-  background-color: var(--diff-removed-gutter-bg) !important;
-  border-color: var(--diff-removed-border) !important;
-}
-
-/* Word-level highlights */
-.diff-container .d2h-code-line del,
-.diff-container .d2h-code-side-line del {
-  background-color: var(--diff-removed-word-bg) !important;
-  text-decoration: none !important;
-  border-radius: 3px;
-  padding: 1px 2px;
-}
-
-.diff-container .d2h-code-line ins,
-.diff-container .d2h-code-side-line ins {
-  background-color: var(--diff-added-word-bg) !important;
-  text-decoration: none !important;
-  border-radius: 3px;
-  padding: 1px 2px;
-}
-
-/* ===== HIDE HUNK HEADERS ===== */
-.diff-container tr:has(> td.d2h-info) {
-  display: none !important;
-}
-
-/* ===== EMPTY FILLER ROWS — subtle diagonal stripe ===== */
-.diff-container .d2h-code-side-emptyplaceholder,
-.diff-container .d2h-emptyplaceholder {
-  background: repeating-linear-gradient(
-    -45deg,
-    var(--dt-surface-2),
-    var(--dt-surface-2) 3px,
-    var(--dt-border) 3px,
-    var(--dt-border) 4px
-  ) !important;
-}
-
-/* ===== VERTICAL SEPARATOR between left and right panels ===== */
-/* diff2html uses two separate .d2h-file-side-diff divs side-by-side */
-.diff-container .d2h-file-side-diff + .d2h-file-side-diff {
-  border-left: 2px solid var(--dt-border) !important;
-}
-
-/* ===== +/- SIGN PREFIX — bolder and colored ===== */
-.diff-container .d2h-code-line-prefix {
-  font-weight: 700 !important;
-  user-select: none;
-}
-
-.diff-container .d2h-del .d2h-code-line-prefix {
-  color: var(--dt-danger) !important;
-}
-
-.diff-container .d2h-ins .d2h-code-line-prefix {
-  color: var(--dt-success) !important;
-}
-
-/* ===== GUTTER — distinct background + right border ===== */
-.diff-container .d2h-code-side-linenumber,
-.diff-container .d2h-code-linenumber {
-  background-color: var(--diff-gutter-bg) !important;
-  color: var(--diff-gutter-text) !important;
-  border-right: 1px solid var(--dt-border) !important;
-  font-weight: 500 !important;
-}
-
-/* Row hover */
-.diff-container tr:hover .d2h-code-line,
-.diff-container tr:hover .d2h-code-side-line {
-  background: var(--diff-row-hover-bg) !important;
-}
-
-.diff-container tr:hover .d2h-code-linenumber,
-.diff-container tr:hover .d2h-code-side-linenumber {
-  background-color: var(--dt-surface-2) !important;
-}
-
-/* ===== NAVIGATION HIGHLIGHT ===== */
-.diff-nav-highlight {
-  outline: 2px solid var(--diff-highlight-ring);
-  outline-offset: -2px;
-  border-radius: 2px;
-  animation: diff-highlight-pulse 1.5s ease-out;
-}
-
-@keyframes diff-highlight-pulse {
-  0% {
-    outline-color: var(--diff-highlight-ring);
-    outline-width: 2px;
-  }
-  30% {
-    outline-color: var(--dt-brand);
-    outline-width: 3px;
-  }
-  100% {
-    outline-color: var(--diff-highlight-ring);
-    outline-width: 2px;
-  }
-}
-
-/* ===== SCROLLBAR STYLING ===== */
-.diff-container ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-
-.diff-container ::-webkit-scrollbar-track {
-  background: var(--dt-surface-1);
-}
-
-.diff-container ::-webkit-scrollbar-thumb {
-  background: var(--dt-text-tertiary);
-  border: 2px solid var(--dt-surface-1);
-  border-radius: 4px;
-}
-
-.diff-container ::-webkit-scrollbar-thumb:hover {
-  background: var(--dt-text-secondary);
-}
-
-/* ===== REDUCED MOTION ===== */
-@media (prefers-reduced-motion: reduce) {
-  .diff-nav-highlight {
-    animation: none;
   }
 }
 </style>

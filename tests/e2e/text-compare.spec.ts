@@ -37,8 +37,8 @@ test.describe('Text Comparison Tool', () => {
     const diffContainer = page.locator('.diff-renderer')
     await expect(diffContainer).toBeVisible({ timeout: 5000 })
 
-    // diff2html renders rows with these classes for changes
-    const changedCells = page.locator('.d2h-del, .d2h-ins')
+    // The diff core renders rows with these classes for changes
+    const changedCells = page.locator('.dv-row--removed, .dv-row--added')
     await expect(changedCells.first()).toBeVisible({ timeout: 5000 })
   })
 

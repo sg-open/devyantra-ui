@@ -14,21 +14,21 @@ test.describe('Ignore toggles actually change the diff (D1)', () => {
     await page.locator('textarea').first().fill('Hello World')
     await page.locator('textarea').nth(1).fill('hello world')
     await page.locator('.compare-btn').click()
-    await expect(page.locator('.d2h-del, .d2h-ins').first()).toBeVisible()
+    await expect(page.locator('.dv-row--removed, .dv-row--added').first()).toBeVisible()
 
     await page.locator('.diff-toggle', { hasText: /case/i }).locator('input').check()
     await expect(page.locator('.diff-empty-message h3')).toHaveText('No differences found')
 
     // and back
     await page.locator('.diff-toggle', { hasText: /case/i }).locator('input').uncheck()
-    await expect(page.locator('.d2h-del, .d2h-ins').first()).toBeVisible()
+    await expect(page.locator('.dv-row--removed, .dv-row--added').first()).toBeVisible()
   })
 
   test('Whitespace toggle makes whitespace-only differences disappear', async ({ page }) => {
     await page.locator('textarea').first().fill('a        b\nline two')
     await page.locator('textarea').nth(1).fill('a b\nline two')
     await page.locator('.compare-btn').click()
-    await expect(page.locator('.d2h-del, .d2h-ins').first()).toBeVisible()
+    await expect(page.locator('.dv-row--removed, .dv-row--added').first()).toBeVisible()
 
     await page.locator('.diff-toggle', { hasText: /whitespace/i }).locator('input').check()
     await expect(page.locator('.diff-empty-message h3')).toHaveText('No differences found')
@@ -38,7 +38,7 @@ test.describe('Ignore toggles actually change the diff (D1)', () => {
     await page.locator('textarea').first().fill('Alpha\nSame')
     await page.locator('textarea').nth(1).fill('alpha\nSame')
     await page.locator('.compare-btn').click()
-    await expect(page.locator('.d2h-del, .d2h-ins').first()).toBeVisible()
+    await expect(page.locator('.dv-row--removed, .dv-row--added').first()).toBeVisible()
 
     // Patch always carries ORIGINAL case even while viewing a case-folded diff
     await page.locator('.diff-toggle', { hasText: /case/i }).locator('input').check()
@@ -48,7 +48,7 @@ test.describe('Ignore toggles actually change the diff (D1)', () => {
     await expect(page.locator('.diff-action-btn', { hasText: 'Export' })).toBeDisabled()
 
     await page.locator('.diff-toggle', { hasText: /case/i }).locator('input').uncheck()
-    await expect(page.locator('.d2h-del, .d2h-ins').first()).toBeVisible()
+    await expect(page.locator('.dv-row--removed, .dv-row--added').first()).toBeVisible()
     await page.locator('.diff-action-btn', { hasText: 'Copy' }).click()
     const patch = await page.evaluate(() => navigator.clipboard.readText())
     expect(patch).toContain('-Alpha')
@@ -187,7 +187,7 @@ test.describe('One-sided compares (D7)', () => {
     await page.locator('textarea').nth(1).fill('brand new line 1\nbrand new line 2')
     await expect(page.locator('.compare-btn')).toBeEnabled()
     await page.locator('.compare-btn').click()
-    await expect(page.locator('.d2h-ins').first()).toBeVisible()
+    await expect(page.locator('.dv-row--added').first()).toBeVisible()
     await expect(page.locator('.diff-stat-chip--added')).toContainText('+2 added')
   })
 })
