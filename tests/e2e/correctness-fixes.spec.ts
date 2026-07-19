@@ -170,3 +170,14 @@ test.describe('Keyboard shortcuts and undoable clears (D5)', () => {
     await expect(ta).toBeFocused()
   })
 })
+
+test.describe('One-sided compares (D7)', () => {
+  test('empty left vs content right renders an all-added diff', async ({ page, devyantra }) => {
+    await devyantra.navigateToTool('text-compare')
+    await page.locator('textarea').nth(1).fill('brand new line 1\nbrand new line 2')
+    await expect(page.locator('.compare-btn')).toBeEnabled()
+    await page.locator('.compare-btn').click()
+    await expect(page.locator('.d2h-ins').first()).toBeVisible()
+    await expect(page.locator('.diff-stat-chip--added')).toContainText('+2 added')
+  })
+})

@@ -176,7 +176,7 @@
 
       <!-- Compare Button -->
       <div class="compare-action">
-        <button class="p-button compare-btn" :disabled="!text1Content.trim() || !text2Content.trim()" @click="onCompare">
+        <button class="p-button compare-btn" :disabled="!hasAnyInput" @click="onCompare">
           <i class="pi pi-search"></i>
           Compare
         </button>
@@ -188,7 +188,7 @@
       </div>
 
       <!-- Diff Renderer (shown after clicking Compare) -->
-      <div v-if="showDiff && hasBothInputs" class="comparison-results">
+      <div v-if="showDiff && hasAnyInput" class="comparison-results">
         <hr class="p-divider" />
         <DiffRenderer
           :left-text="text1Content"
@@ -289,7 +289,9 @@ const shareState = useShareState(text1Content, text2Content, diffOptions, {
   autoLoad: true
 })
 
-const hasBothInputs = computed(() => text1Content.value.trim().length > 0 && text2Content.value.trim().length > 0)
+// One populated side is enough: empty-vs-content is a legitimate
+// "everything added / everything removed" diff. Whitespace-only counts too.
+const hasAnyInput = computed(() => text1Content.value.length > 0 || text2Content.value.length > 0)
 
 // Text types
 const text1Type = ref<TextType>('text')
