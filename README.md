@@ -46,7 +46,7 @@ Built with Vue 3, TypeScript, and modern web APIs (Web Crypto, Compression Strea
 
 - **Command palette** (<kbd>Cmd</kbd>+<kbd>K</kbd> / <kbd>Ctrl</kbd>+<kbd>K</kbd>) for instant tool switching
 - **Dark / light theme** with system preference detection
-- **Keyboard shortcuts** throughout the app
+- **Keyboard shortcuts** — ⌘K command palette; in Text Compare: ⌘⇧1/⌘⇧2 copy panes, ⌘⇧X swap, ⌘⇧U sample, Alt+↑/↓ jump between changes
 - **Responsive design** for desktop, tablet, and mobile
 - **Shareable URLs** with compressed state
 
