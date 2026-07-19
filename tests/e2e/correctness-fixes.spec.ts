@@ -298,3 +298,72 @@ test.describe('Navigation reaches insertions (№8)', () => {
     await expect(page.locator('.dv-row--active')).toBeVisible()
   })
 })
+
+test.describe('Export fidelity (D6)', () => {
+  test('Export honors the displayed context and real filenames; Copy matches Export', async ({ page, devyantra }) => {
+    await devyantra.navigateToTool('text-compare')
+
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'dy-'))
+    const alphaPath = path.join(dir, 'alpha.txt')
+    const betaPath = path.join(dir, 'beta.txt')
+
+    const alphaLines = Array.from({ length: 10 }, (_, i) => `line ${i + 1}`)
+    const betaLines = [...alphaLines]
+    betaLines[3] = 'line 4 CHANGED'
+    betaLines[6] = 'line 7 CHANGED'
+    const alphaText = alphaLines.join('\n') + '\n'
+    const betaText = betaLines.join('\n') + '\n'
+
+    fs.writeFileSync(alphaPath, alphaText)
+    fs.writeFileSync(betaPath, betaText)
+
+    const fileInputs = page.locator('input[type="file"]')
+    await fileInputs.nth(0).setInputFiles(alphaPath)
+    await expect(page.locator('textarea').first()).toHaveValue(alphaText)
+    await fileInputs.nth(1).setInputFiles(betaPath)
+    await expect(page.locator('textarea').nth(1)).toHaveValue(betaText)
+
+    await page.locator('.compare-btn').click()
+    await expect(page.locator('.diff-renderer')).toBeVisible()
+
+    // Context = 0: only the changed lines, no leading-space context lines at all
+    await page.locator('.diff-context-select').selectOption('0')
+    await expect(page.locator('.diff-loading')).toHaveCount(0)
+
+    const [download0] = await Promise.all([
+      page.waitForEvent('download'),
+      page.locator('.diff-action-btn', { hasText: 'Export' }).click()
+    ])
+    expect(download0.suggestedFilename()).toBe('diff-alpha.txt-beta.txt.patch')
+    const downloadedPath0 = await download0.path()
+    const content0 = fs.readFileSync(downloadedPath0!, 'utf-8')
+
+    expect(content0).toContain('--- alpha.txt')
+    expect(content0).toContain('+++ beta.txt')
+    expect(content0).toContain('-line 4')
+    expect(content0).toContain('+line 4 CHANGED')
+    expect(content0).toContain('-line 7')
+    expect(content0).toContain('+line 7 CHANGED')
+    expect(content0.split('\n').some((line) => line.startsWith(' '))).toBe(false)
+
+    // Context = All: same changes, now surrounded by unchanged context lines
+    await page.locator('.diff-context-select').selectOption({ label: 'All' })
+    await expect(page.locator('.diff-loading')).toHaveCount(0)
+
+    const [download1] = await Promise.all([
+      page.waitForEvent('download'),
+      page.locator('.diff-action-btn', { hasText: 'Export' }).click()
+    ])
+    const downloadedPath1 = await download1.path()
+    const content1 = fs.readFileSync(downloadedPath1!, 'utf-8')
+
+    expect(content1).toContain('--- alpha.txt')
+    expect(content1).toContain('+++ beta.txt')
+    expect(content1.split('\n').some((line) => line.startsWith(' '))).toBe(true)
+
+    // Copy at the same (All) context must match the second export byte-for-byte
+    await page.locator('.diff-action-btn', { hasText: 'Copy' }).click()
+    const clipboardText = await page.evaluate(() => navigator.clipboard.readText())
+    expect(clipboardText).toBe(content1)
+  })
+})

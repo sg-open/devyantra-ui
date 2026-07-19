@@ -303,13 +303,24 @@ const copyDiffToClipboard = async (): Promise<void> => {
   await clipboard.copyWithFeedback(buildCurrentPatch(), 'Diff')
 }
 
+// Export filename embeds both original filenames when known — 'diff.patch'
+// otherwise (a manual edit, sample data, or only one side loaded from a file
+// clears the corresponding name back in CompareText). Path separators are
+// stripped so a stray '/' or '\' in a filename ref can never affect the
+// downloaded file's directory.
+const buildDownloadFilename = (): string => {
+  if (!props.leftFilename || !props.rightFilename) return 'diff.patch'
+  const strip = (name: string): string => name.replace(/[\\/]/g, '_')
+  return `diff-${strip(props.leftFilename)}-${strip(props.rightFilename)}.patch`
+}
+
 const downloadPatch = (): void => {
   if (!hasChanges.value) return
   const blob = new Blob([buildCurrentPatch()], { type: 'text/plain' })
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
-  link.download = 'diff.patch'
+  link.download = buildDownloadFilename()
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)

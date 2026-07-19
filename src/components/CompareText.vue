@@ -197,6 +197,8 @@
           :ignore-whitespace="diffOptions.ignoreWhitespace"
           :ignore-case="diffOptions.ignoreCase"
           :language="detectedLanguage"
+          :left-filename="leftFilename"
+          :right-filename="rightFilename"
           @mode-changed="diffViewMode = $event"
           @options-changed="diffOptions = $event"
           class="enhanced-diff"
@@ -264,6 +266,13 @@ const clipboard = useClipboard()
 // Text content
 const text1Content = ref('')
 const text2Content = ref('')
+
+// Filenames — set when a side is loaded from an uploaded file; cleared on any
+// manual edit or clear (an edited file no longer matches its original name)
+// and swapped together with the text in swapTexts. Passed through to
+// DiffRenderer so Export/Copy can name the patch after the real files.
+const leftFilename = ref('')
+const rightFilename = ref('')
 
 // File upload refs
 const fileInput1 = ref<HTMLInputElement>()
@@ -365,6 +374,7 @@ const onShareClick = async () => {
 
 const onText1Input = () => {
   showDiff.value = false
+  leftFilename.value = ''
   if (text1Timer) clearTimeout(text1Timer)
   text1Timer = setTimeout(async () => {
     text1Type.value = await textProcessor.detectType(text1Content.value)
@@ -373,6 +383,7 @@ const onText1Input = () => {
 
 const onText2Input = () => {
   showDiff.value = false
+  rightFilename.value = ''
   if (text2Timer) clearTimeout(text2Timer)
   text2Timer = setTimeout(async () => {
     text2Type.value = await textProcessor.detectType(text2Content.value)
@@ -503,8 +514,10 @@ const copyText2 = async () => {
 
 const clearText1 = () => {
   const previous = text1Content.value
+  const previousFilename = leftFilename.value
   text1Content.value = ''
   text1Type.value = 'text'
+  leftFilename.value = ''
   smartSuggestion1.value = null
   if (previous) {
     toast.add({
@@ -516,6 +529,7 @@ const clearText1 = () => {
         handler: () => {
           text1Content.value = previous
           onText1Input()
+          leftFilename.value = previousFilename
         }
       }
     })
@@ -524,8 +538,10 @@ const clearText1 = () => {
 
 const clearText2 = () => {
   const previous = text2Content.value
+  const previousFilename = rightFilename.value
   text2Content.value = ''
   text2Type.value = 'text'
+  rightFilename.value = ''
   smartSuggestion2.value = null
   if (previous) {
     toast.add({
@@ -537,6 +553,7 @@ const clearText2 = () => {
         handler: () => {
           text2Content.value = previous
           onText2Input()
+          rightFilename.value = previousFilename
         }
       }
     })
@@ -551,6 +568,10 @@ const swapTexts = () => {
   const tempType = text1Type.value
   text1Type.value = text2Type.value
   text2Type.value = tempType
+
+  const tempFilename = leftFilename.value
+  leftFilename.value = rightFilename.value
+  rightFilename.value = tempFilename
 
   // Clear suggestions when swapping
   smartSuggestion1.value = null
@@ -666,9 +687,11 @@ const loadFile = async (file: File, side: 'left' | 'right') => {
       if (side === 'left') {
         text1Content.value = ''
         onText1Input()
+        leftFilename.value = file.name
       } else {
         text2Content.value = ''
         onText2Input()
+        rightFilename.value = file.name
       }
       return
     }
@@ -699,9 +722,11 @@ const loadFile = async (file: File, side: 'left' | 'right') => {
     if (side === 'left') {
       text1Content.value = text
       onText1Input()
+      leftFilename.value = file.name
     } else {
       text2Content.value = text
       onText2Input()
+      rightFilename.value = file.name
     }
 
   } catch {
@@ -732,10 +757,14 @@ const handleDrop = (event: DragEvent, side: 'left' | 'right') => {
 const clearAll = () => {
   const previous1 = text1Content.value
   const previous2 = text2Content.value
+  const previousFilename1 = leftFilename.value
+  const previousFilename2 = rightFilename.value
   text1Content.value = ''
   text2Content.value = ''
   text1Type.value = 'text'
   text2Type.value = 'text'
+  leftFilename.value = ''
+  rightFilename.value = ''
   showDiff.value = false
   smartSuggestion1.value = null
   smartSuggestion2.value = null
@@ -755,6 +784,8 @@ const clearAll = () => {
           text2Content.value = previous2
           onText1Input()
           onText2Input()
+          leftFilename.value = previousFilename1
+          rightFilename.value = previousFilename2
         }
       }
     })
