@@ -120,3 +120,53 @@ test.describe('Share lifecycle (D2)', () => {
     await expect(page.locator('textarea').nth(1)).toHaveValue('')
   })
 })
+
+test.describe('Keyboard shortcuts and undoable clears (D5)', () => {
+  test.beforeEach(async ({ devyantra }) => {
+    await devyantra.navigateToTool('text-compare')
+  })
+
+  test('Mod+Shift+Digit1 copies the left pane (event.code matching)', async ({ page }) => {
+    await page.locator('textarea').first().fill('left pane content')
+    await page.locator('body').click() // focus outside the textarea
+    await page.keyboard.press('ControlOrMeta+Shift+Digit1')
+    await expect(page.locator('.toast-message', { hasText: 'copied' })).toBeVisible()
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('left pane content')
+  })
+
+  test('Mod+Shift+X swaps panes; Mod+Shift+R no longer clears anything', async ({ page }) => {
+    await page.locator('textarea').first().fill('AAA')
+    await page.locator('textarea').nth(1).fill('BBB')
+    await page.keyboard.press('ControlOrMeta+Shift+KeyX')
+    await expect(page.locator('textarea').first()).toHaveValue('BBB')
+    await expect(page.locator('textarea').nth(1)).toHaveValue('AAA')
+
+    // The old destructive binding must be gone
+    await page.keyboard.press('ControlOrMeta+Shift+KeyR')
+    await expect(page.locator('textarea').first()).toHaveValue('BBB')
+  })
+
+  test('Clear button shows an Undo toast that restores the text', async ({ page }) => {
+    await page.locator('textarea').first().fill('do not lose me')
+    await page.locator('.left-actions .clear-btn').click()
+    await expect(page.locator('textarea').first()).toHaveValue('')
+
+    const undo = page.locator('.toast-action', { hasText: 'Undo' })
+    await expect(undo).toBeVisible()
+    await undo.click()
+    await expect(page.locator('textarea').first()).toHaveValue('do not lose me')
+  })
+
+  test('Alt+ArrowUp inside a textarea is NOT hijacked by diff navigation', async ({ page }) => {
+    await page.locator('textarea').first().fill('line1\nline2')
+    await page.locator('textarea').nth(1).fill('line1\nline9')
+    await page.locator('.compare-btn').click()
+    await expect(page.locator('.diff-renderer')).toBeVisible()
+
+    const ta = page.locator('textarea').first()
+    await ta.click()
+    await page.keyboard.press('Alt+ArrowUp')
+    // Focus must remain in the textarea (no scroll-jump/nav side effect steals it)
+    await expect(ta).toBeFocused()
+  })
+})

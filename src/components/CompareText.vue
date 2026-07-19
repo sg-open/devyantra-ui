@@ -74,15 +74,15 @@
               <i class="pi pi-copy"></i>
               Copy
             </button>
-            <button class="p-button p-button-sm p-button-outlined p-button-secondary quick-btn clear-btn" :disabled="!text1Content.trim()" @click="clearText1" v-tooltip="'Clear (Cmd+Shift+R)'">
+            <button class="p-button p-button-sm p-button-outlined p-button-secondary quick-btn clear-btn" :disabled="!text1Content.trim()" @click="clearText1" v-tooltip="'Clear'">
               <i class="pi pi-trash"></i>
               Clear
             </button>
-            <button class="p-button p-button-sm p-button-outlined quick-btn sample-btn" @click="loadSampleData" v-tooltip="'Load Sample (Cmd+Shift+L)'">
+            <button class="p-button p-button-sm p-button-outlined quick-btn sample-btn" @click="loadSampleData" v-tooltip="'Load Sample (Cmd+Shift+U)'">
               <i class="pi pi-file"></i>
               Sample
             </button>
-            <button class="p-button p-button-sm p-button-outlined quick-btn swap-btn" :disabled="!text1Content.trim() && !text2Content.trim()" @click="swapTexts" v-tooltip="'Swap Sides (Cmd+Shift+S)'">
+            <button class="p-button p-button-sm p-button-outlined quick-btn swap-btn" :disabled="!text1Content.trim() && !text2Content.trim()" @click="swapTexts" v-tooltip="'Swap Sides (Cmd+Shift+X)'">
               <i class="pi pi-arrow-right-arrow-left"></i>
               Swap
             </button>
@@ -158,7 +158,7 @@
               <i class="pi pi-copy"></i>
               Copy
             </button>
-            <button class="p-button p-button-sm p-button-outlined p-button-secondary quick-btn clear-btn" :disabled="!text2Content.trim()" @click="clearText2" v-tooltip="'Clear (Cmd+Shift+E)'">
+            <button class="p-button p-button-sm p-button-outlined p-button-secondary quick-btn clear-btn" :disabled="!text2Content.trim()" @click="clearText2" v-tooltip="'Clear'">
               <i class="pi pi-trash"></i>
               Clear
             </button>
@@ -253,11 +253,13 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useToast } from '@/composables/useToast'
 import { useTextProcessor, type TextType } from '@/composables/useTextProcessor'
+import { useClipboard } from '@/composables/useClipboard'
 import { useShareState } from '@/composables/useShareState'
 import DiffRenderer from '@/components/DiffRenderer.vue'
 
 const toast = useToast()
 const textProcessor = useTextProcessor()
+const clipboard = useClipboard()
 
 // Text content
 const text1Content = ref('')
@@ -489,34 +491,54 @@ const applySuggestion2 = async () => {
 // Quick action methods
 const copyText1 = async () => {
   if (!text1Content.value.trim()) return
-
-  try {
-    await navigator.clipboard.writeText(text1Content.value)
-  } catch (err) {
-    console.error('Copy failed:', err)
-  }
+  await clipboard.copyWithFeedback(text1Content.value, 'Original text')
 }
 
 const copyText2 = async () => {
   if (!text2Content.value.trim()) return
-
-  try {
-    await navigator.clipboard.writeText(text2Content.value)
-  } catch (err) {
-    console.error('Copy failed:', err)
-  }
+  await clipboard.copyWithFeedback(text2Content.value, 'Changed text')
 }
 
 const clearText1 = () => {
+  const previous = text1Content.value
   text1Content.value = ''
   text1Type.value = 'text'
   smartSuggestion1.value = null
+  if (previous) {
+    toast.add({
+      severity: 'info',
+      summary: 'Original text cleared',
+      life: 10000,
+      action: {
+        label: 'Undo',
+        handler: () => {
+          text1Content.value = previous
+          onText1Input()
+        }
+      }
+    })
+  }
 }
 
 const clearText2 = () => {
+  const previous = text2Content.value
   text2Content.value = ''
   text2Type.value = 'text'
   smartSuggestion2.value = null
+  if (previous) {
+    toast.add({
+      severity: 'info',
+      summary: 'Changed text cleared',
+      life: 10000,
+      action: {
+        label: 'Undo',
+        handler: () => {
+          text2Content.value = previous
+          onText2Input()
+        }
+      }
+    })
+  }
 }
 
 const swapTexts = () => {
@@ -558,41 +580,30 @@ const loadSampleData = () => {
   onText2Input()
 }
 
-// Keyboard shortcut handler
+// Keyboard shortcuts. Matching uses event.code because with Shift held,
+// event.key becomes '!'/'@' on most layouts — the old key-based matching
+// could never fire. Destructive clears have no shortcuts by design:
+// Mod+Shift+R is browser hard-reload; hijacking it to destroy text was hostile.
 const handleKeyboardShortcuts = (event: KeyboardEvent) => {
-  if (event.metaKey || event.ctrlKey) {
-    if (event.shiftKey) {
-      switch (event.key) {
-        case '1':
-          event.preventDefault()
-          copyText1()
-          break
-        case '2':
-          event.preventDefault()
-          copyText2()
-          break
-        case 'R':
-        case 'r':
-          event.preventDefault()
-          clearText1()
-          break
-        case 'E':
-        case 'e':
-          event.preventDefault()
-          clearText2()
-          break
-        case 'S':
-        case 's':
-          event.preventDefault()
-          swapTexts()
-          break
-        case 'L':
-        case 'l':
-          event.preventDefault()
-          loadSampleData()
-          break
-      }
-    }
+  if (!(event.metaKey || event.ctrlKey) || !event.shiftKey) return
+
+  switch (event.code) {
+    case 'Digit1':
+      event.preventDefault()
+      copyText1()
+      break
+    case 'Digit2':
+      event.preventDefault()
+      copyText2()
+      break
+    case 'KeyX':
+      event.preventDefault()
+      swapTexts()
+      break
+    case 'KeyU':
+      event.preventDefault()
+      loadSampleData()
+      break
   }
 }
 
@@ -690,6 +701,8 @@ const handleDrop = (event: DragEvent, side: 'left' | 'right') => {
 }
 
 const clearAll = () => {
+  const previous1 = text1Content.value
+  const previous2 = text2Content.value
   text1Content.value = ''
   text2Content.value = ''
   text1Type.value = 'text'
@@ -700,6 +713,23 @@ const clearAll = () => {
 
   if (text1Timer) clearTimeout(text1Timer)
   if (text2Timer) clearTimeout(text2Timer)
+
+  if (previous1 || previous2) {
+    toast.add({
+      severity: 'info',
+      summary: 'Both panes cleared',
+      life: 10000,
+      action: {
+        label: 'Undo',
+        handler: () => {
+          text1Content.value = previous1
+          text2Content.value = previous2
+          onText1Input()
+          onText2Input()
+        }
+      }
+    })
+  }
 
   // Persist the cleared state immediately — a reload inside the 1s autosave
   // debounce used to resurrect the cleared text.

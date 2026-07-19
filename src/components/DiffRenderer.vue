@@ -442,15 +442,21 @@ watch(diffContainerRef, async (newEl) => {
 })
 
 // Keyboard shortcuts for navigation
+// Alt+Arrow diff navigation must not fire while typing: on macOS,
+// Option+Arrow is word-navigation inside inputs.
+const isEditableTarget = (t: EventTarget | null): boolean => {
+  const el = t as HTMLElement | null
+  return !!el && (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT' || el.isContentEditable === true)
+}
+
 const handleKeydown = (event: KeyboardEvent) => {
-  if (event.altKey) {
-    if (event.key === 'ArrowDown') {
-      event.preventDefault()
-      navigation.nextChange()
-    } else if (event.key === 'ArrowUp') {
-      event.preventDefault()
-      navigation.prevChange()
-    }
+  if (!event.altKey || isEditableTarget(event.target)) return
+  if (event.key === 'ArrowDown') {
+    event.preventDefault()
+    navigation.nextChange()
+  } else if (event.key === 'ArrowUp') {
+    event.preventDefault()
+    navigation.prevChange()
   }
 }
 
