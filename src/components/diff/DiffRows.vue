@@ -13,11 +13,15 @@
     expanded array) that should carry `dv-row--active`, or null for none
 
   Exposes:
-  - scrollToRow(index) - forwarded from useVirtualRows, for Task 9's navigation
+  - scrollToRow(modelIndex) - translates a `rows` index into whatever is
+    actually rendered (unchanged in unified; the containing split-line index
+    in split mode, since a removed/added pair collapses two model rows into
+    one rendered line) and scrolls it into view, via the virtualizer when
+    active or a direct DOM scrollIntoView when every row is already mounted.
 -->
 
 <template>
-  <div class="dv-rows" :class="`dv-rows--${mode}`" v-bind="containerProps">
+  <div class="dv-rows" :class="`dv-rows--${mode}`" v-bind="containerProps" ref="containerRef">
     <div v-if="padTop" class="dv-pad" :style="{ height: `${padTop}px` }" />
 
     <template v-if="mode === 'unified'">
@@ -26,19 +30,20 @@
         :key="entry.key"
         class="dv-row"
         :class="[`dv-row--${entry.kind}`, { 'dv-row--active': entry.active }]"
+        :data-row-index="entry.key"
       >
         <template v-if="entry.kind === 'gap'">{{ entry.gapText }}</template>
         <template v-else>
-          <span class="dv-gutter">{{ entry.leftNo ?? '' }}</span>
-          <span class="dv-gutter">{{ entry.rightNo ?? '' }}</span>
+          <span class="dv-gutter" aria-hidden="true">{{ entry.leftNo ?? '' }}</span>
+          <span class="dv-gutter" aria-hidden="true">{{ entry.rightNo ?? '' }}</span>
+          <span class="dv-marker" :class="`dv-marker--${entry.kind}`">{{ entry.marker }}</span>
           <span class="dv-text">
             <template v-if="entry.segments">
-              <span
-                v-for="(seg, si) in entry.segments"
-                :key="si"
-                class="dv-seg"
-                :class="{ 'dv-seg--changed': seg.changed }"
-              >{{ seg.text }}</span>
+              <template v-for="(seg, si) in entry.segments" :key="si">
+                <ins v-if="seg.changed && entry.kind === 'added'" class="dv-seg dv-seg--changed">{{ seg.text }}</ins>
+                <del v-else-if="seg.changed && entry.kind === 'removed'" class="dv-seg dv-seg--changed">{{ seg.text }}</del>
+                <span v-else class="dv-seg">{{ seg.text }}</span>
+              </template>
             </template>
             <template v-else>{{ entry.text }}</template>
           </span>
@@ -47,7 +52,7 @@
     </template>
 
     <template v-else>
-      <div v-for="line in splitView" :key="line.key" class="dv-split-line">
+      <div v-for="line in splitView" :key="line.key" class="dv-split-line" :data-row-index="line.key">
         <div
           v-if="line.gapText !== null"
           class="dv-row dv-row--gap"
@@ -58,18 +63,18 @@
           <template v-for="(cell, ci) in [line.left, line.right]" :key="ci">
             <div
               v-if="cell"
-              class="dv-row"
+              class="dv-row dv-cell"
               :class="[`dv-row--${cell.kind}`, { 'dv-row--active': cell.active }]"
             >
-              <span class="dv-gutter">{{ cell.no ?? '' }}</span>
+              <span class="dv-gutter" aria-hidden="true">{{ cell.no ?? '' }}</span>
+              <span class="dv-marker" :class="`dv-marker--${cell.kind}`">{{ cell.marker }}</span>
               <span class="dv-text">
                 <template v-if="cell.segments">
-                  <span
-                    v-for="(seg, si) in cell.segments"
-                    :key="si"
-                    class="dv-seg"
-                    :class="{ 'dv-seg--changed': seg.changed }"
-                  >{{ seg.text }}</span>
+                  <template v-for="(seg, si) in cell.segments" :key="si">
+                    <ins v-if="seg.changed && cell.kind === 'added'" class="dv-seg dv-seg--changed">{{ seg.text }}</ins>
+                    <del v-else-if="seg.changed && cell.kind === 'removed'" class="dv-seg dv-seg--changed">{{ seg.text }}</del>
+                    <span v-else class="dv-seg">{{ seg.text }}</span>
+                  </template>
                 </template>
                 <template v-else>{{ cell.text }}</template>
               </span>
@@ -117,6 +122,19 @@ const isActive = (row: DiffRow): boolean =>
 
 const splitRows = computed<SplitRow[]>(() => toSplitRows(props.rows))
 
+// Reverse index for scrollToModelRow's split-mode translation: which rendered
+// split-line contains a given model row. A removed/added pair collapses two
+// `rows` entries into ONE split line, so "model index" and "rendered index"
+// diverge for every pair after the first (C3).
+const splitLineIndexOf = computed(() => {
+  const map = new WeakMap<DiffRow, number>()
+  splitRows.value.forEach((line, i) => {
+    if (line.left) map.set(line.left.row, i)
+    if (line.right) map.set(line.right.row, i)
+  })
+  return map
+})
+
 // A real Ref (not a ComputedRef) so it satisfies useVirtualRows' Ref<number> param.
 const totalRows = ref(0)
 watch(
@@ -127,10 +145,31 @@ watch(
   { immediate: true }
 )
 
-const { containerProps, start, end, padTop, padBottom, scrollToRow } = useVirtualRows(totalRows, {
+const { containerProps, containerRef, active, start, end, padTop, padBottom, scrollToRow } = useVirtualRows(totalRows, {
   rowHeight: ROW_HEIGHT,
   overscan: OVERSCAN
 })
+
+// model index (into `rows`) -> what's actually rendered. Unified renders `rows`
+// 1:1, so the index never changes. Split renders `splitRows`, where a paired
+// removed+added run collapses two model rows into one rendered line.
+const scrollToModelRow = (modelIndex: number): void => {
+  const row = props.rows[modelIndex]
+  if (!row) return
+  const renderedIndex = props.mode === 'split' ? (splitLineIndexOf.value.get(row) ?? modelIndex) : modelIndex
+
+  if (active.value) {
+    // Virtualized: the target row may not be mounted yet, so ask the
+    // virtualizer to move the window there (writes scrollTop directly).
+    scrollToRow(renderedIndex)
+    return
+  }
+
+  // Not virtualized: every row is already in the DOM, so find it directly.
+  containerRef.value
+    ?.querySelector<HTMLElement>(`[data-row-index="${renderedIndex}"]`)
+    ?.scrollIntoView({ block: 'center' })
+}
 
 // Refinement can produce a defined-but-empty segments array for a degenerate
 // empty/empty pairing; treat that the same as "no segments" (plain text).
@@ -138,6 +177,12 @@ const usableSegments = (row: DiffRow): Segment[] | undefined => {
   const segs = 'segments' in row ? row.segments : undefined
   return segs && segs.length > 0 ? segs : undefined
 }
+
+// Non-color add/remove semantics (I7): a visible +/−/space marker column,
+// restoring the old diff2html renderer's ± gutter, so kind isn't communicated
+// by background color alone. Gap rows render their own full-width text and
+// never reach this map.
+const MARKERS: Record<DiffRow['kind'], string> = { context: ' ', removed: '−', added: '+', gap: '' }
 
 interface RowEntry {
   key: number
@@ -147,6 +192,7 @@ interface RowEntry {
   rightNo: number | null
   text: string
   segments: Segment[] | undefined
+  marker: string
   active: boolean
 }
 
@@ -158,6 +204,7 @@ const toRowEntry = (row: DiffRow, key: number): RowEntry => ({
   rightNo: 'rightNo' in row ? row.rightNo : null,
   text: 'text' in row ? row.text : '',
   segments: usableSegments(row),
+  marker: MARKERS[row.kind],
   active: isActive(row)
 })
 
@@ -171,6 +218,7 @@ interface CellEntry {
   no: number | null
   text: string
   segments: Segment[] | undefined
+  marker: string
   active: boolean
 }
 
@@ -179,6 +227,7 @@ const toCellEntry = (row: DiffRow, side: 'left' | 'right'): CellEntry => ({
   no: side === 'left' ? ('leftNo' in row ? row.leftNo : null) : ('rightNo' in row ? row.rightNo : null),
   text: 'text' in row ? row.text : '',
   segments: usableSegments(row),
+  marker: MARKERS[row.kind],
   active: isActive(row)
 })
 
@@ -213,7 +262,7 @@ const splitView = computed<SplitLineEntry[]>(() => {
   return splitRows.value.slice(start.value, end.value).map((line, i) => toSplitLineEntry(line, start.value + i))
 })
 
-defineExpose({ scrollToRow })
+defineExpose({ scrollToRow: scrollToModelRow })
 </script>
 
 <style scoped>
@@ -236,6 +285,13 @@ defineExpose({ scrollToRow })
   height: 24px;
   line-height: 24px;
   white-space: pre;
+}
+
+/* Unified: the whole .dv-rows wrapper scrolls horizontally as one unit, so a
+   long line must be allowed to push the row wider than the viewport instead
+   of wrapping/clipping — every row stays aligned under one shared scrollbar. */
+.dv-rows--unified .dv-row {
+  min-width: max-content;
 }
 
 .dv-row--context {
@@ -300,6 +356,25 @@ defineExpose({ scrollToRow })
   border-color: var(--diff-added-border);
 }
 
+/* ===== MARKER (non-color add/remove semantics, I7) ===== */
+.dv-marker {
+  flex: 0 0 auto;
+  width: 1.5em;
+  text-align: center;
+  user-select: none;
+  color: var(--dt-text-tertiary);
+}
+
+.dv-marker--removed {
+  color: var(--dt-danger);
+  font-weight: var(--font-weight-semibold);
+}
+
+.dv-marker--added {
+  color: var(--dt-success);
+  font-weight: var(--font-weight-semibold);
+}
+
 /* ===== TEXT + SEGMENTS ===== */
 .dv-text {
   flex: 1 1 auto;
@@ -307,6 +382,12 @@ defineExpose({ scrollToRow })
   padding: 0 8px;
   color: var(--dt-text-primary);
   white-space: pre;
+}
+
+.dv-seg {
+  /* <ins>/<del> carry a UA-stylesheet underline/strikethrough by default —
+     changed-segment emphasis here is entirely the background highlight below. */
+  text-decoration: none;
 }
 
 .dv-row--removed .dv-seg--changed {
@@ -333,6 +414,15 @@ defineExpose({ scrollToRow })
 
 .dv-split-line > *:nth-child(2) {
   border-left: 2px solid var(--dt-border);
+}
+
+/* Split: each pane scrolls its OWN long lines independently (matches the old
+   two-panel behavior) instead of stretching the row and forcing one shared
+   horizontal scrollbar across both sides. Applies uniformly to a populated
+   cell (.dv-row.dv-cell) and the unmatched-side placeholder (.dv-cell--empty). */
+.dv-cell {
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .dv-cell--empty {

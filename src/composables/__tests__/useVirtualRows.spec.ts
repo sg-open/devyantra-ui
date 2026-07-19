@@ -69,7 +69,10 @@ describe('useVirtualRows', () => {
     const totalRows = ref(10000)
     const v = useVirtualRows(totalRows, opts)
     const { event, target } = fakeScroll(0)
-    v.containerProps.onScroll(event) // establishes the retained scroll target + viewportHeight
+    // containerRef simulates the template's `ref="containerRef"` binding — set
+    // once on mount, independent of whether a scroll event has ever fired.
+    v.containerRef.value = target as unknown as HTMLElement
+    v.containerProps.onScroll(event) // establishes scrollTop/viewportHeight window state
 
     v.scrollToRow(600)
 
@@ -80,11 +83,25 @@ describe('useVirtualRows', () => {
     const totalRows = ref(10000)
     const v = useVirtualRows(totalRows, opts)
     const { event, target } = fakeScroll(500)
+    v.containerRef.value = target as unknown as HTMLElement
     v.containerProps.onScroll(event)
 
     v.scrollToRow(2)
 
     expect(target.scrollTop).toBe(0) // 2 * 24 - 200 = -152, clamped to 0
+  })
+
+  it('C3: scrollToRow writes scrollTop even before any scroll event has ever fired (blank-viewport-pre-scroll fix)', () => {
+    const totalRows = ref(10000)
+    const v = useVirtualRows(totalRows, opts)
+    const target = { scrollTop: 0, clientHeight: VIEWPORT }
+    v.containerRef.value = target as unknown as HTMLElement // bound on mount, never scrolled
+
+    v.scrollToRow(600)
+
+    // viewportHeight still at its default (600) since onScroll never ran — the
+    // point is that the write itself must land regardless.
+    expect(target.scrollTop).toBe(14200) // 600 * 24 - 600 / 3
   })
 
   it('shrinking totalRows below the threshold flips active to false and resets pads', () => {

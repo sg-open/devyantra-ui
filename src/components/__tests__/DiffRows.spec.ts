@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import DiffRows from '../diff/DiffRows.vue'
 import DiffIndicators from '../diff/DiffIndicators.vue'
@@ -63,6 +63,46 @@ describe('DiffRows — unified mode', () => {
     expect(addedChanged[0]!.text()).toBe('baz')
   })
 
+  it('I7: gutters are aria-hidden, and each row carries a non-color +/-/space marker', () => {
+    const wrapper = mount(DiffRows, {
+      props: { rows, mode: 'unified', activeRowIndex: null }
+    })
+
+    const rowEls = wrapper.findAll('.dv-row')
+    for (const row of rowEls) {
+      for (const gutter of row.findAll('.dv-gutter')) {
+        expect(gutter.attributes('aria-hidden')).toBe('true')
+      }
+    }
+
+    const markers = wrapper.findAll('.dv-marker')
+    expect(markers).toHaveLength(4)
+    expect(markers[0]!.element.textContent).toBe(' ') // context
+    expect(markers[0]!.classes()).toContain('dv-marker--context')
+    expect(markers[1]!.text()).toBe('−') // removed
+    expect(markers[1]!.classes()).toContain('dv-marker--removed')
+    expect(markers[2]!.text()).toBe('+') // added
+    expect(markers[2]!.classes()).toContain('dv-marker--added')
+    expect(markers[3]!.element.textContent).toBe(' ') // trailing context
+  })
+
+  it('I7: changed segments render as <ins>/<del>, not plain spans, with the highlight class carried over', () => {
+    const wrapper = mount(DiffRows, {
+      props: { rows, mode: 'unified', activeRowIndex: null }
+    })
+    const rowEls = wrapper.findAll('.dv-row')
+
+    const removedChanged = rowEls[1]!.findAll('.dv-seg--changed')
+    expect(removedChanged[0]!.element.tagName).toBe('DEL')
+    const removedUnchanged = rowEls[1]!.find('.dv-seg:not(.dv-seg--changed)')
+    expect(removedUnchanged.element.tagName).toBe('SPAN')
+
+    const addedChanged = rowEls[2]!.findAll('.dv-seg--changed')
+    expect(addedChanged[0]!.element.tagName).toBe('INS')
+    const addedUnchanged = rowEls[2]!.find('.dv-seg:not(.dv-seg--changed)')
+    expect(addedUnchanged.element.tagName).toBe('SPAN')
+  })
+
   it('renders row text as textContent, never as parsed markup (XSS-shape safety)', () => {
     const xssRows: DiffRow[] = [{ kind: 'context', leftNo: 1, rightNo: 1, text: '<script>alert(1)</script>' }]
     const wrapper = mount(DiffRows, {
@@ -120,6 +160,60 @@ describe('DiffRows — split mode', () => {
     expect(removedEls[0]!.text()).toContain('old line')
     expect(addedEls[0]!.text()).toContain('new line one')
     expect(addedEls[1]!.text()).toContain('new line two')
+  })
+})
+
+describe('DiffRows — scrollToRow (C3)', () => {
+  it('split mode: scrollToRow(2) (second pair\'s removed row) targets rendered split-line index 1, not 2', () => {
+    const rows: DiffRow[] = [
+      { kind: 'removed', leftNo: 1, text: 'r0' },
+      { kind: 'added', rightNo: 1, text: 'a0' },
+      { kind: 'removed', leftNo: 2, text: 'r1' },
+      { kind: 'added', rightNo: 2, text: 'a1' },
+      { kind: 'context', leftNo: 3, rightNo: 3, text: 'ctx' }
+    ]
+    // Two paired modify rows (model indices 0-1, 2-3) then one context row
+    // (model index 4). toSplitRows collapses each pair into one split line, so
+    // rendered split-line indices are: 0 = pair one, 1 = pair two, 2 = context.
+    const wrapper = mount(DiffRows, { props: { rows, mode: 'split', activeRowIndex: null } })
+
+    // Five rows is far below VIRTUALIZE_THRESHOLD, so every line is mounted —
+    // scrollToRow must take the DOM scrollIntoView path, keyed by data-row-index.
+    const correctTarget = wrapper.find('[data-row-index="1"]')
+    const wrongTarget = wrapper.find('[data-row-index="2"]')
+    expect(correctTarget.exists()).toBe(true)
+    expect(wrongTarget.exists()).toBe(true)
+
+    const correctScroll = vi.fn()
+    const wrongScroll = vi.fn()
+    correctTarget.element.scrollIntoView = correctScroll
+    wrongTarget.element.scrollIntoView = wrongScroll
+
+    // model index 2 = the second pair's removed row (rows[2])
+    const vm = wrapper.vm as unknown as { scrollToRow: (modelIndex: number) => void }
+    vm.scrollToRow(2)
+
+    expect(correctScroll).toHaveBeenCalledWith({ block: 'center' })
+    expect(wrongScroll).not.toHaveBeenCalled()
+  })
+
+  it('unified mode: scrollToRow(index) maps 1:1 to the model index (no split-pairing translation)', () => {
+    const rows: DiffRow[] = [
+      { kind: 'context', leftNo: 1, rightNo: 1, text: 'ctx0' },
+      { kind: 'removed', leftNo: 2, text: 'r0' },
+      { kind: 'added', rightNo: 2, text: 'a0' }
+    ]
+    const wrapper = mount(DiffRows, { props: { rows, mode: 'unified', activeRowIndex: null } })
+
+    const target = wrapper.find('[data-row-index="1"]')
+    expect(target.exists()).toBe(true)
+    const scroll = vi.fn()
+    target.element.scrollIntoView = scroll
+
+    const vm = wrapper.vm as unknown as { scrollToRow: (modelIndex: number) => void }
+    vm.scrollToRow(1)
+
+    expect(scroll).toHaveBeenCalledWith({ block: 'center' })
   })
 })
 

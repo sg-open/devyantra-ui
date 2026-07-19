@@ -7,7 +7,7 @@ export type DiffRow =
   | { kind: 'added'; rightNo: number; text: string; segments?: Segment[] }
   | { kind: 'gap'; hiddenCount: number }
 export interface DiffStats { added: number; removed: number; modified: number }
-export interface DiffModel { rows: DiffRow[]; stats: DiffStats; indicators: Indicator[]; truncated: boolean }
+export interface DiffModel { rows: DiffRow[]; stats: DiffStats; indicators: Indicator[] }
 // runs come from jsdiff diffLines(left, right): { value, count?, added?, removed? }
 export interface ChangeRun { value: string; count?: number; added?: boolean; removed?: boolean }
 // split-view pairing for the renderer: context pairs with itself; removed/added runs pair index-wise
@@ -59,7 +59,15 @@ export function buildDiffModel(runs: ChangeRun[], context: number, indicators: I
 
   let rows: DiffRow[]
   const hasChange = all.some(row => row.kind === 'removed' || row.kind === 'added')
-  if (context === Infinity || !hasChange) {
+  if (!hasChange) {
+    // No removed/added rows at any context (including Infinity): the empty state
+    // (DiffRenderer's "No differences found" panel) reads `stats`, never `rows` —
+    // so there is nothing worth materializing here. Returning `all` unconditionally
+    // used to mean a multi-hundred-thousand-line pair of IDENTICAL inputs produced
+    // that many context rows, which could then trip the row-count "too-large"
+    // refusal in computeDiffModel for a diff that changed nothing at all.
+    rows = []
+  } else if (context === Infinity) {
     rows = all
   } else {
     const keep = new Array<boolean>(all.length).fill(false)
@@ -81,7 +89,7 @@ export function buildDiffModel(runs: ChangeRun[], context: number, indicators: I
     if (hidden > 0) rows.push({ kind: 'gap', hiddenCount: hidden })
   }
 
-  return { rows, stats, indicators, truncated: false }
+  return { rows, stats, indicators }
 }
 
 export function toSplitRows(rows: DiffRow[]): SplitRow[] {

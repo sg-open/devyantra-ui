@@ -35,4 +35,24 @@ describe('computeDiffModel', () => {
     expect(r.ok).toBe(false)
     if (!r.ok) expect(r.detail).toMatch(/limit is 5 MB/)
   })
+
+  it('C2: a trailing-newline-only difference is pure context, not a phantom modified last line', () => {
+    const r = computeDiffModel('a\nb', 'a\nb\n', opts)
+    expect(r.ok).toBe(true)
+    if (r.ok) {
+      expect(r.model.stats).toEqual({ added: 0, removed: 0, modified: 0 })
+      expect(r.model.indicators.some(i => i.kind === 'no-trailing-newline-left')).toBe(true)
+      expect(r.model.rows.some(row => row.kind === 'removed' || row.kind === 'added')).toBe(false)
+    }
+  })
+
+  it('I6: two identical 250,000-line strings compute as ok with empty rows, never a too-large refusal', () => {
+    const big = Array.from({ length: 250_000 }, (_, i) => `line ${i}`).join('\n')
+    const r = computeDiffModel(big, big, opts)
+    expect(r.ok).toBe(true)
+    if (r.ok) {
+      expect(r.model.stats).toEqual({ added: 0, removed: 0, modified: 0 })
+      expect(r.model.rows).toEqual([])
+    }
+  })
 })

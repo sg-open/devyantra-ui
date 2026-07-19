@@ -69,10 +69,22 @@ describe('buildDiffModel', () => {
     expect(kinds(m.rows)).toEqual(['context', 'removed', 'added'])
   })
 
-  it('identical inputs produce zero-change stats and only context rows', () => {
+  it('I6: identical inputs produce zero-change stats and empty rows', () => {
+    // Not "every row is context" — that's vacuously true for an empty array too,
+    // so it would never have caught the bug this test now guards: at 250k+ lines,
+    // a non-empty `all`-context `rows` array here previously masqueraded as a
+    // legitimate result but exceeded computeDiffModel's row-count "too-large"
+    // refusal for inputs that hadn't actually changed at all. The empty state
+    // renders from `stats`, not `rows`, so there is nothing to return here.
     const m = model('a\nb\n', 'a\nb\n', 3)
     expect(m.stats).toEqual({ added: 0, removed: 0, modified: 0 })
-    expect(m.rows.every(r => r.kind === 'context')).toBe(true)
+    expect(m.rows).toEqual([])
+  })
+
+  it('I6: identical inputs produce empty rows at Infinity context too', () => {
+    const m = model('a\nb\n', 'a\nb\n', Infinity)
+    expect(m.stats).toEqual({ added: 0, removed: 0, modified: 0 })
+    expect(m.rows).toEqual([])
   })
 })
 

@@ -70,7 +70,13 @@ export function computeDiffModel(left: string, right: string, options: DiffOptio
   // of the requested bound even at a 120k-line edit distance, while a
   // realistic heavy diff (10k lines, 30% changed, D ~6,700) finishes in
   // ~1.7s, well under the budget.
-  const runs = diffLines(foldedLeft, foldedRight, { timeout: LIMITS.maxComputeMs })
+  // ignoreNewlineAtEof: a missing trailing newline is already surfaced honestly
+  // as its own indicator pill (normalizePair, above) — without this, jsdiff also
+  // treats the last line's content as changed purely because one side ends in
+  // '\n' and the other doesn't, rendering a phantom modified last line on top of
+  // the (correct, sufficient) indicator. Verified supported by the installed
+  // diff@9 (`ignoreNewlineAtEof?: boolean` in its LineDiff.equals()).
+  const runs = diffLines(foldedLeft, foldedRight, { timeout: LIMITS.maxComputeMs, ignoreNewlineAtEof: true })
   if (!runs) {
     return {
       ok: false,

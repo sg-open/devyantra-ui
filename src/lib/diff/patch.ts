@@ -10,9 +10,13 @@ export function buildPatch(originalLeft: string, originalRight: string, opts: Pa
   const rightLines = originalRight.split('\n').length
   const context = opts.context === Infinity ? Math.max(leftLines, rightLines) : opts.context
 
+  // `||`, not `??`: CompareText passes '' (not undefined) when a side was never
+  // uploaded from a file, and an empty-string name would otherwise sail through
+  // ?? unchanged, producing a `--- `/`+++ ` header with no name at all — a patch
+  // git apply rejects outright.
   return createTwoFilesPatch(
-    opts.leftName ?? 'original',
-    opts.rightName ?? 'modified',
+    opts.leftName || 'original',
+    opts.rightName || 'modified',
     originalLeft,
     originalRight,
     '',

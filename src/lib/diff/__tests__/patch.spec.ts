@@ -18,6 +18,18 @@ describe('buildPatch', () => {
     expect(p).toContain('+++ config.json')
   })
 
+  it('C1: empty-string names (CompareText default, nothing uploaded) fall back to original/modified, never emitting a blank header', () => {
+    const p = buildPatch('x\n', 'y\n', { context: 3, leftName: '', rightName: '' })
+    expect(p).toContain('--- original')
+    expect(p).toContain('+++ modified')
+  })
+
+  it('C1: one-sided empty name (only the left file was uploaded) falls back on the right only', () => {
+    const p = buildPatch('x\n', 'y\n', { context: 3, leftName: 'a.txt', rightName: '' })
+    expect(p).toContain('--- a.txt')
+    expect(p).toContain('+++ modified')
+  })
+
   it('emits the no-newline marker for missing trailing newlines', () => {
     const p = buildPatch('a\nb', 'a\nc', { context: 3 })
     expect(p).toContain('\\ No newline at end of file')
