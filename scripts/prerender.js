@@ -19,24 +19,22 @@ const distDir = resolve(__dirname, '..', 'dist')
 const PROD_ORIGIN = 'https://devyantra.app'
 const LOCAL_ORIGIN = 'http://localhost:4567'
 
-const ROUTES = [
-  '/tools/text-compare',
-  '/tools/format-text',
-  '/tools/hash-generator',
-  '/tools/base64-tools',
-  '/tools/jwt-decoder',
-  '/tools/timestamp-converter',
-  '/tools/character-count',
-  '/tools/delimiter',
-  '/feedback',
-]
+if (!existsSync(distDir)) {
+  console.error('dist/ not found. Run "npm run build-only" first.')
+  process.exit(1)
+}
+
+// Routes come from the just-built sitemap.xml (itself derived from the tool
+// registry) rather than a hand-maintained list, so prerender always covers
+// exactly what's shipped in the sitemap — no more, no less.
+const sitemap = readFileSync(resolve(distDir, 'sitemap.xml'), 'utf8')
+const ROUTES = [...sitemap.matchAll(/<loc>https:\/\/devyantra\.app([^<]+)<\/loc>/g)].map(m => m[1])
+if (ROUTES.length === 0) {
+  console.error('No routes parsed from sitemap.xml')
+  process.exit(1)
+}
 
 async function prerender() {
-  if (!existsSync(distDir)) {
-    console.error('dist/ not found. Run "npm run build-only" first.')
-    process.exit(1)
-  }
-
   // Start a static file server for the dist directory
   const server = createServer((req, res) => {
     return handler(req, res, {

@@ -41,6 +41,12 @@ describe('tool registry invariants', () => {
     expect(PAGES.map(p => p.slug).sort()).toEqual(['feedback', 'privacy'])
   })
 
+  it('routed reflects which pages have a live route (feedback yes, privacy not yet)', () => {
+    const routed = Object.fromEntries(PAGES.map(p => [p.slug, p.routed]))
+    expect(routed.feedback).toBe(true)
+    expect(routed.privacy).toBe(false)
+  })
+
   it('module is pure data (no vue imports)', async () => {
     const src = await import('node:fs').then(fs =>
       fs.readFileSync(new URL('../registry.ts', import.meta.url), 'utf8'))

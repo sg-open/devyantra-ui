@@ -36,6 +36,9 @@ export interface PageDef {
   metaDescription: string
   sitemapPriority: string
   changefreq: string
+  routed: boolean               // true once a real route exists; sitemap/prerender
+                                 // MUST filter on this — 'privacy' has no route
+                                 // until Task 14, so it stays false until then
 }
 
 export const TOOLS: readonly ToolDef[] = [
@@ -180,7 +183,8 @@ export const PAGES: readonly PageDef[] = [
     metaTitle: 'Feedback - Help Improve DevYantra | DEVYANTRA',
     metaDescription: 'Share your feedback and help make DevYantra better for developers. Report bugs, request features, or share general thoughts.',
     sitemapPriority: '0.3',
-    changefreq: 'yearly'
+    changefreq: 'yearly',
+    routed: true
   },
   {
     slug: 'privacy',
@@ -189,7 +193,8 @@ export const PAGES: readonly PageDef[] = [
     metaTitle: 'Privacy - Nothing Leaves Your Browser | DEVYANTRA',
     metaDescription: 'DevYantra runs entirely in your browser: no backend, no telemetry, no third-party requests. Verify it yourself in devtools.',
     sitemapPriority: '0.3',
-    changefreq: 'yearly'
+    changefreq: 'yearly',
+    routed: false
   }
 ]
 

@@ -7,18 +7,16 @@ import type { Plugin } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 
+import { TOOLS, PAGES, toolPath } from './src/tools/registry'
+
 const SITE_URL = 'https://devyantra.app'
 
+// Derived from the registry rather than hand-maintained: tools always ship a
+// route, pages only once `routed` is true (e.g. '/privacy' has no route yet —
+// see registry.ts — so it MUST NOT appear in the sitemap until it does).
 const SITE_ROUTES: Array<{ path: string; priority: string; changefreq: string }> = [
-  { path: '/tools/text-compare', priority: '1.0', changefreq: 'monthly' },
-  { path: '/tools/format-text', priority: '0.9', changefreq: 'monthly' },
-  { path: '/tools/hash-generator', priority: '0.9', changefreq: 'monthly' },
-  { path: '/tools/base64-tools', priority: '0.9', changefreq: 'monthly' },
-  { path: '/tools/jwt-decoder', priority: '0.9', changefreq: 'monthly' },
-  { path: '/tools/timestamp-converter', priority: '0.9', changefreq: 'monthly' },
-  { path: '/tools/character-count', priority: '0.9', changefreq: 'monthly' },
-  { path: '/tools/delimiter', priority: '0.9', changefreq: 'monthly' },
-  { path: '/feedback', priority: '0.3', changefreq: 'yearly' },
+  ...TOOLS.map((t) => ({ path: toolPath(t), priority: t.sitemapPriority, changefreq: 'monthly' })),
+  ...PAGES.filter((p) => p.routed).map((p) => ({ path: p.path, priority: p.sitemapPriority, changefreq: p.changefreq })),
 ]
 
 function sitemapPlugin(): Plugin {
