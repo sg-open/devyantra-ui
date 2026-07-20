@@ -11,7 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - Offline PWA — a service worker precaches the app shell so every tool keeps working with no network connection at all; an "Install" prompt appears once the browser's `beforeinstallprompt` criteria are met, and an "Offline" pill shows when connectivity drops
 - `/privacy` proof page — walks through exactly what DevYantra does (and doesn't do) with your data, with devtools steps so you can verify it yourself
 - Command palette: fuzzy matching (dependency-free subsequence scorer) instead of plain substring filtering, plus a "Recent" section (last 5 tools, localStorage-backed) shown ahead of the full list when the query is empty
-- Per-tool session persistence — all 8 tools now restore their last input after a reload (7 via a new `useToolState` composable; Text Compare already had this via `useShareState`)
+- Per-tool session persistence — all 8 tools restore their session after a reload (Timestamp restores its unit and date-time fields; 7 tools via a new `useToolState` composable, Text Compare already had this via `useShareState`)
 - Standard Copy / Clear actions (`ToolActions`) shared across Format Text, Hash Generator, Base64 Tools, JWT Decoder, Character Count, and Delimiter Tool, with Clear always undoable via a toast
 
 ### Changed

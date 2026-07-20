@@ -30,7 +30,7 @@
             <a href="https://github.com/sg-open/devyantra-ui" target="_blank" rel="noopener">GitHub</a>
           </nav>
           <button
-            v-if="pwaInstall.available"
+            v-if="pwaInstall.available.value"
             type="button"
             class="install-app-btn"
             @click="pwaInstall.prompt()"
@@ -51,6 +51,7 @@
 <script setup lang="ts">
 import { computed, inject } from 'vue'
 import { TOOLS, toolPath } from '@/tools/registry'
+import { PWA_INSTALL_KEY } from '@/composables/pwaInstall'
 
 const textTools = computed(() =>
   TOOLS.filter(t => t.footerGroup === 'text')
@@ -62,7 +63,7 @@ const encodingTools = computed(() =>
 
 // Provided by App.vue (spec D4); the fallback keeps this component usable
 // standalone (e.g. component tests) without a PWA-install ancestor.
-const pwaInstall = inject('pwa-install', { available: false, prompt: async () => {} })
+const pwaInstall = inject(PWA_INSTALL_KEY, { available: computed(() => false), prompt: () => {} })
 </script>
 
 <style scoped>

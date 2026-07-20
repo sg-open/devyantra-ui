@@ -13,8 +13,7 @@ import { TOOLS, PAGES, toolPath } from './src/tools/registry'
 const SITE_URL = 'https://devyantra.app'
 
 // Derived from the registry rather than hand-maintained: tools always ship a
-// route, pages only once `routed` is true (e.g. '/privacy' has no route yet —
-// see registry.ts — so it MUST NOT appear in the sitemap until it does).
+// route, pages only once `routed` is true — see registry.ts.
 const SITE_ROUTES: Array<{ path: string; priority: string; changefreq: string }> = [
   ...TOOLS.map((t) => ({ path: toolPath(t), priority: t.sitemapPriority, changefreq: 'monthly' })),
   ...PAGES.filter((p) => p.routed).map((p) => ({ path: p.path, priority: p.sitemapPriority, changefreq: p.changefreq })),
@@ -62,6 +61,7 @@ export default defineConfig({
       manifest: false,
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2,webmanifest}'],
+        globIgnores: ['**/og-image.*'],
         navigateFallback: '/index.html',
       },
     }),

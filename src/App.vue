@@ -115,12 +115,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, provide, onMounted, onUnmounted } from 'vue'
+import { ref, computed, provide, onMounted, onUnmounted } from 'vue'
 import { RouterView } from 'vue-router'
 import { useThemeStore } from '@/stores/theme'
 import AppFooter from '@/components/AppFooter.vue'
 import AppToast from '@/components/AppToast.vue'
 import CommandPalette from '@/components/CommandPalette.vue'
+import { PWA_INSTALL_KEY } from '@/composables/pwaInstall'
 
 const themeStore = useThemeStore()
 
@@ -175,10 +176,10 @@ const promptInstall = async () => {
   deferredPrompt.value = null
 }
 
-provide('pwa-install', reactive({
+provide(PWA_INSTALL_KEY, {
   available: computed(() => deferredPrompt.value !== null),
   prompt: promptInstall,
-}))
+})
 
 onMounted(() => {
   const viewport = document.querySelector('meta[name="viewport"]')

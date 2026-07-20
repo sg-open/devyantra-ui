@@ -45,6 +45,7 @@
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:debug": "playwright test --debug",
     "generate:og": "node scripts/generate-og-image.js",
+    "generate:icons": "node scripts/generate-icons.js",
     "prerender": "node scripts/prerender.js",
     "build:seo": "run-p type-check \"build-only {@}\" -- && node scripts/prerender.js"
   },

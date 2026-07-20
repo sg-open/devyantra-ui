@@ -28,7 +28,7 @@
         <li>Open your browser's developer tools (<kbd>F12</kbd>, or <kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>I</kbd> on macOS) and switch to the <strong>Network</strong> tab.</li>
         <li>Clear the request log.</li>
         <li>Use any tool: paste some text, generate a hash, beautify JSON, run a comparison.</li>
-        <li>Watch the Network panel — zero new rows appear. No request leaves your browser while you work.</li>
+        <li>Watch the Network panel — the only rows you'll ever see are this site fetching its own files — never a request to anyone else.</li>
       </ol>
       <p>This is enforced, not just promised: the site is served with a <code>Content-Security-Policy</code> header that restricts every kind of request — scripts, styles, images, fonts, connections, workers — to the site's own origin. Even if a bug or a compromised dependency tried to send data elsewhere, your browser would block the request before it left.</p>
     </section>

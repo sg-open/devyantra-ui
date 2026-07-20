@@ -9,7 +9,7 @@
 **Tech Stack:** Vue 3.5, TypeScript, vite-plugin-pwa (new devDependency), resvg (existing) for icons, Vitest, Playwright chromium.
 
 **Spec:** `docs/superpowers/specs/2026-07-19-platform-track-design.md`
-**Spec amendment (recorded here):** `footerGroup` values are `'text' | 'encoding'` matching the shipped footer headings ("Text Tools" / "Encoding & Security"), not the spec's placeholder `'tools' | 'utilities'`. Registry also carries verbatim `metaTitle/metaDescription/metaKeywords` from today's router metas so SEO output is byte-preserved.
+**Spec amendment (recorded here):** `footerGroup` values are `'text' | 'encoding'` matching the shipped footer headings ("Text Tools" / "Encoding & Security"), not the spec's placeholder `'tools' | 'utilities'`. Registry also carries verbatim `metaTitle/metaDescription/metaKeywords` from today's router metas so SEO output is byte-preserved. meta.toolName/breadcrumb shifted for three tools (timestamp-converter, character-count, delimiter) to the registry name — zero consumers verified.
 
 **Code normativity note:** Interfaces, registry data, and test files are normative. Implementation bodies are strong drafts — fix against tests, never weaken a test, document deviations.
 

@@ -121,7 +121,7 @@ test.describe('Static feedback (D5)', () => {
       requestMethods.push(request.method())
     })
 
-    await page.goto('http://localhost:5173/feedback')
+    await page.goto('/feedback')
 
     // Assert the three links exist with correct hrefs
     const bugLink = page.locator('a[href*="github.com/sg-open/devyantra-ui/issues/new?template=bug_report.yml"]')
