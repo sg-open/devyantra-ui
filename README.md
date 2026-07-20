@@ -25,7 +25,7 @@
 
 ## About
 
-DevYantra is a suite of everyday developer utilities — the kind you reach for dozens of times a week — packaged into a single, fast, privacy-respecting web app. Every computation happens in your browser. There is no backend, no API calls, and no telemetry. Your data stays on your machine.
+DevYantra is a suite of everyday developer utilities — the kind you reach for dozens of times a week — packaged into a single, fast, privacy-respecting web app. Every computation happens in your browser. There is no backend, no API calls, and no telemetry — even the fonts are self-hosted, so no request ever reaches Google Fonts. Your data stays on your machine; see the [**/privacy**](https://devyantra.app/privacy) page for exactly how to verify that yourself in your browser's devtools.
 
 The project exists because most online developer tools either plaster you with ads, silently ship your input to a server, or both. DevYantra takes a different approach: it's open source, self-hostable, and designed to earn your trust by having nothing to hide.
 
@@ -49,6 +49,7 @@ Built with Vue 3, TypeScript, and modern web APIs (Web Crypto, Compression Strea
 - **Keyboard shortcuts** — ⌘K command palette; in Text Compare: ⌘⇧1/⌘⇧2 copy panes, ⌘⇧X swap, ⌘⇧U sample, Alt+↑/↓ jump between changes
 - **Responsive design** for desktop, tablet, and mobile
 - **Shareable URLs** with compressed state
+- **Works offline** — installable PWA; everything keeps working without a network
 
 ## Tech Stack
 
@@ -139,7 +140,7 @@ Contributions are welcome — whether it's a bug fix, a new tool, better docs, o
 4. Run quality gates: `npm run type-check && npm run lint && npm run test:run && npm run build`
 5. Open a pull request
 
-See **[CONTRIBUTING.md](CONTRIBUTING.md)** for detailed guidelines, including a step-by-step guide for adding a new tool.
+See **[CONTRIBUTING.md](CONTRIBUTING.md)** for detailed guidelines. Adding a new tool is registry-driven: one entry in [`src/tools/registry.ts`](src/tools/registry.ts) plus one component, and the router, tab bar, command palette, footer, sitemap, and prerender list all pick it up automatically.
 
 ## Self-Hosting / Deployment
 
