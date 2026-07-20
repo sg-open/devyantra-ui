@@ -9,15 +9,6 @@
         <label class="input-label">Input Text</label>
         <div class="input-meta">
           <span v-if="inputText" class="byte-count">{{ byteLength }} bytes</span>
-          <button
-            v-if="inputText"
-            class="p-button p-button-sm p-button-secondary p-button-text"
-            @click="clearInput"
-            v-tooltip="'Clear'"
-            aria-label="Clear input"
-          >
-            <i class="pi pi-trash"></i>
-          </button>
         </div>
       </div>
       <textarea
@@ -42,10 +33,6 @@
     <div v-if="inputText" class="hash-results">
       <div class="results-header">
         <span class="results-title">Hashes</span>
-        <button class="p-button p-button-sm p-button-secondary p-button-outlined" @click="copyAll">
-          <i class="pi pi-copy"></i>
-          Copy All
-        </button>
       </div>
 
       <div v-for="algo in algorithms" :key="algo.key" class="hash-item">
@@ -57,6 +44,12 @@
         </div>
         <code class="hash-value">{{ hashes[algo.key] || 'Computing...' }}</code>
       </div>
+
+      <ToolActions
+        :copy-text="allHashesText"
+        copy-label="All hashes"
+        @clear="clearInput"
+      />
     </div>
 
     <div v-else class="empty-state">
@@ -111,9 +104,21 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed } from 'vue'
+import { useToolState } from '@/composables/useToolState'
+import { useClipboard } from '@/composables/useClipboard'
+import { useToast } from '@/composables/useToast'
+import ToolActions from '@/components/tool/ToolActions.vue'
+
+const clipboard = useClipboard()
+const toast = useToast()
 
 const inputText = ref('')
 const uppercase = ref(false)
+
+// Per-tool persistence (D2) — input text plus the case-selection toggle;
+// the computed hashes are derived output and are recomputed below rather
+// than persisted.
+const toolState = useToolState('hash-generator', { input: inputText, uppercase })
 
 const algorithms = [
   { key: 'md5', label: 'MD5' },
@@ -253,29 +258,46 @@ const generateHashes = async () => {
   }
 }
 
-const clearInput = () => {
-  inputText.value = ''
-  Object.keys(hashes).forEach(k => { hashes[k as AlgoKey] = '' })
-}
+// A restored input has no hashes yet (they are derived, never persisted) —
+// compute them once so results are visible without an extra keystroke.
+if (toolState.restored) generateHashes()
 
-const copyHash = async (type: AlgoKey) => {
-  try {
-    await navigator.clipboard.writeText(hashes[type])
-  } catch (err) {
-    console.error('Copy failed:', err)
-  }
-}
-
-const copyAll = async () => {
-  const text = algorithms
+const allHashesText = computed(() =>
+  algorithms
     .filter(a => hashes[a.key])
     .map(a => `${a.label}: ${hashes[a.key]}`)
     .join('\n')
-  try {
-    await navigator.clipboard.writeText(text)
-  } catch (err) {
-    console.error('Copy failed:', err)
+)
+
+const clearInput = () => {
+  const previousInput = inputText.value
+  inputText.value = ''
+  Object.keys(hashes).forEach(k => { hashes[k as AlgoKey] = '' })
+
+  if (previousInput) {
+    toast.add({
+      severity: 'info',
+      summary: 'Input cleared',
+      life: 10000,
+      action: {
+        label: 'Undo',
+        handler: () => {
+          inputText.value = previousInput
+          generateHashes()
+        }
+      }
+    })
   }
+
+  // Persist the cleared state immediately — a reload inside the debounce
+  // window would otherwise resurrect the cleared text.
+  toolState.flushSave()
+}
+
+const copyHash = async (type: AlgoKey) => {
+  if (!hashes[type]) return
+  const label = algorithms.find(a => a.key === type)?.label ?? 'Hash'
+  await clipboard.copyWithFeedback(hashes[type], label)
 }
 </script>
 

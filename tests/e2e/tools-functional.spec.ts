@@ -70,7 +70,9 @@ test.describe('Format Text Tool', () => {
     await page.locator('textarea').first().fill('{"a":1}')
     await page.locator('button:has-text("Beautify")').click()
     await page.waitForTimeout(500)
-    const copyBtn = page.locator('.panel-header .panel-action').last()
+    // Output copy moved into <ToolActions> (Task 9, platform track) — the
+    // ad-hoc panel-header copy button was removed to avoid a duplicate.
+    const copyBtn = page.locator('.tool-actions button:has-text("Copy")')
     if (await copyBtn.isVisible()) {
       await copyBtn.click()
       // No error = success (clipboard API may not work in test env)
@@ -151,7 +153,9 @@ test.describe('Hash Generator Tool', () => {
     await page.waitForTimeout(500)
     await expect(page.locator('.hash-results')).toBeVisible()
 
-    await page.locator('button[aria-label="Clear input"]').click()
+    // Clear moved into <ToolActions> (Task 9, platform track) — the ad-hoc
+    // "Clear input" icon button was removed to avoid a duplicate.
+    await page.locator('.tool-actions button:has-text("Clear")').click()
     await expect(page.locator('.empty-state')).toBeVisible()
   })
 
@@ -172,7 +176,9 @@ test.describe('Hash Generator Tool', () => {
   test('should copy all hashes', async ({ page }) => {
     await page.locator('textarea').first().fill('test')
     await page.waitForTimeout(500)
-    await page.locator('button:has-text("Copy All")').click()
+    // "Copy All" was consolidated into <ToolActions>'s generic Copy button
+    // (Task 9, platform track), bound to the same joined hash text.
+    await page.locator('.tool-actions button:has-text("Copy")').click()
   })
 })
 

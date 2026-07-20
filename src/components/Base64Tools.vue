@@ -42,9 +42,6 @@
             <button class="p-button p-button-sm p-button-secondary p-button-text" @click="useAsInput" v-tooltip="'Use as input'" aria-label="Use output as input">
               <i class="pi pi-replay"></i>
             </button>
-            <button class="p-button p-button-sm p-button-secondary p-button-text" @click="copyOutput" v-tooltip="'Copy'" aria-label="Copy output">
-              <i class="pi pi-copy"></i>
-            </button>
           </div>
         </div>
         <div v-if="outputText" class="output-container">
@@ -63,6 +60,12 @@
           <i class="pi pi-code"></i>
           <p>Output will appear here</p>
         </div>
+
+        <ToolActions
+          :copy-text="outputText"
+          copy-label="Output"
+          @clear="clearAll"
+        />
       </div>
     </div>
 
@@ -113,11 +116,20 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useToolState } from '@/composables/useToolState'
+import { useToast } from '@/composables/useToast'
+import ToolActions from '@/components/tool/ToolActions.vue'
+
+const toast = useToast()
 
 const inputText = ref('')
 const outputText = ref('')
 const errorMessage = ref('')
 const urlSafe = ref(false)
+
+// Per-tool persistence (D2) — outputText/errorMessage are derived from
+// input via Encode/Decode and are never persisted.
+const toolState = useToolState('base64-tools', { input: inputText, urlSafe })
 
 const inputByteLength = computed(() => new TextEncoder().encode(inputText.value).length)
 
@@ -174,12 +186,32 @@ const useAsInput = () => {
   errorMessage.value = ''
 }
 
-const copyOutput = async () => {
-  try {
-    await navigator.clipboard.writeText(outputText.value)
-  } catch (err) {
-    console.error('Copy failed:', err)
+const clearAll = () => {
+  const previousInput = inputText.value
+  const previousOutput = outputText.value
+
+  inputText.value = ''
+  outputText.value = ''
+  errorMessage.value = ''
+
+  if (previousInput || previousOutput) {
+    toast.add({
+      severity: 'info',
+      summary: 'Cleared',
+      life: 10000,
+      action: {
+        label: 'Undo',
+        handler: () => {
+          inputText.value = previousInput
+          outputText.value = previousOutput
+        }
+      }
+    })
   }
+
+  // Persist the cleared state immediately — a reload inside the debounce
+  // window would otherwise resurrect the cleared text.
+  toolState.flushSave()
 }
 </script>
 

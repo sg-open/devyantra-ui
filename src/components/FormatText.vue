@@ -42,26 +42,6 @@
           <i class="pi pi-minus"></i>
           Minify
         </button>
-
-        <div class="toolbar-separator"></div>
-
-        <button
-          class="p-button p-button-sm p-button-outlined toolbar-btn"
-          @click="loadSample"
-          v-tooltip="'Load Sample (⌘⇧L)'"
-        >
-          <i class="pi pi-file"></i>
-          Sample
-        </button>
-        <button
-          class="p-button p-button-sm p-button-outlined toolbar-btn"
-          :disabled="!inputText.trim()"
-          @click="clearInput"
-          v-tooltip="'Clear (⌘⇧R)'"
-        >
-          <i class="pi pi-trash"></i>
-          Clear
-        </button>
       </div>
     </div>
 
@@ -115,14 +95,6 @@
             Output
             <span v-if="detectedType !== 'text'" class="type-badge">{{ detectedType.toUpperCase() }}</span>
           </label>
-          <button
-            class="p-button p-button-sm p-button-text panel-action"
-            :disabled="!formattedText"
-            @click="copyToClipboard"
-            v-tooltip="'Copy output'"
-          >
-            <i class="pi pi-copy"></i>
-          </button>
         </div>
         <div class="panel-output" :class="{ 'panel-output--empty': !formattedText && !textProcessor.isLoading.value }">
           <pre v-if="formattedText" class="formatted-output">{{ formattedText }}</pre>
@@ -137,6 +109,13 @@
         </div>
       </div>
     </div>
+
+    <ToolActions
+      :copy-text="formattedText"
+      copy-label="Formatted output"
+      @clear="clearInput"
+      :sample="loadSample"
+    />
 
     <!-- SEO Content Section -->
     <section class="tool-info" aria-label="About this tool">
@@ -186,12 +165,23 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useTextProcessor, type TextType } from '@/composables/useTextProcessor'
+import { useToolState } from '@/composables/useToolState'
+import { useClipboard } from '@/composables/useClipboard'
+import { useToast } from '@/composables/useToast'
+import ToolActions from '@/components/tool/ToolActions.vue'
 
 const textProcessor = useTextProcessor()
+const clipboard = useClipboard()
+const toast = useToast()
 
 // Text content
 const inputText = ref('')
 const formattedText = ref('')
+
+// Per-tool persistence (D2) — only the input round-trips; detectedType is
+// cheaply recomputed below and formattedText is derived output that must be
+// regenerated (Beautify) rather than persisted.
+const toolState = useToolState('format-text', { input: inputText })
 
 // Detected type
 const detectedType = ref<TextType>('text')
@@ -223,6 +213,11 @@ const onInputChange = () => {
   formattedText.value = ''
 }
 
+// A restored input's type badge should reflect reality without requiring a
+// keystroke first (formattedText is intentionally NOT regenerated — derived
+// output is never persisted, so Beautify must be clicked again).
+if (toolState.restored) onInputChange()
+
 const formatText = async (typeHint?: TextType) => {
   if (!inputText.value.trim()) return
 
@@ -237,10 +232,34 @@ const formatText = async (typeHint?: TextType) => {
 }
 
 const clearInput = () => {
+  const previousInput = inputText.value
+  const previousFormatted = formattedText.value
+  const previousType = detectedType.value
+
   inputText.value = ''
   formattedText.value = ''
   detectedType.value = 'text'
   if (detectionTimer) clearTimeout(detectionTimer)
+
+  if (previousInput) {
+    toast.add({
+      severity: 'info',
+      summary: 'Input cleared',
+      life: 10000,
+      action: {
+        label: 'Undo',
+        handler: () => {
+          inputText.value = previousInput
+          formattedText.value = previousFormatted
+          detectedType.value = previousType
+        }
+      }
+    })
+  }
+
+  // Persist the cleared state immediately — a reload inside the debounce
+  // window would otherwise resurrect the cleared text.
+  toolState.flushSave()
 }
 
 // Smart detection for paste events
@@ -304,12 +323,7 @@ const applyQuickFormat = async (format: { type: string; label: string }) => {
 
 const copyInput = async () => {
   if (!inputText.value.trim()) return
-  try { await navigator.clipboard.writeText(inputText.value) } catch { /* */ }
-}
-
-const copyToClipboard = async () => {
-  if (!formattedText.value) return
-  try { await navigator.clipboard.writeText(formattedText.value) } catch { /* */ }
+  await clipboard.copyWithFeedback(inputText.value, 'Input')
 }
 
 const loadSample = async () => {
