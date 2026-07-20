@@ -19,19 +19,21 @@
             <kbd class="palette-esc">ESC</kbd>
           </div>
           <div class="palette-results" v-if="filteredCommands.length">
-            <button
-              v-for="(cmd, i) in filteredCommands"
-              :key="cmd.id"
-              :class="['palette-item', { selected: selectedIndex === i }]"
-              @click="executeCommand(cmd)"
-              @mouseenter="selectedIndex = i"
-            >
-              <i :class="cmd.icon"></i>
-              <div class="palette-item-text">
-                <span class="palette-item-label">{{ cmd.label }}</span>
-                <span class="palette-item-desc">{{ cmd.description }}</span>
-              </div>
-            </button>
+            <template v-for="(cmd, i) in filteredCommands" :key="cmd.id">
+              <div v-if="recentCount > 0 && i === 0" class="palette-section-label" aria-hidden="true">Recent</div>
+              <div v-if="recentCount > 0 && i === recentCount" class="palette-section-label" aria-hidden="true">All</div>
+              <button
+                :class="['palette-item', { selected: selectedIndex === i }]"
+                @click="executeCommand(cmd)"
+                @mouseenter="selectedIndex = i"
+              >
+                <i :class="cmd.icon"></i>
+                <div class="palette-item-text">
+                  <span class="palette-item-label">{{ cmd.label }}</span>
+                  <span class="palette-item-desc">{{ cmd.description }}</span>
+                </div>
+              </button>
+            </template>
           </div>
           <div v-else class="palette-empty">
             No results found
@@ -46,6 +48,9 @@
 import { ref, computed, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useThemeStore } from '@/stores/theme'
+import { useClipboard } from '@/composables/useClipboard'
+import { TOOLS, toolPath } from '@/tools/registry'
+import { fuzzyFilter } from '@/lib/fuzzy'
 
 interface Command {
   id: string
@@ -60,29 +65,36 @@ const emit = defineEmits<{ 'update:open': [value: boolean] }>()
 
 const router = useRouter()
 const themeStore = useThemeStore()
+const { copyWithFeedback } = useClipboard()
 const query = ref('')
 const selectedIndex = ref(0)
 const searchInput = ref<HTMLInputElement>()
 
+const RECENTS_KEY = 'devyantra:palette:recents'
+const recents = ref<string[]>([])
+const loadRecents = () => { try { recents.value = JSON.parse(localStorage.getItem(RECENTS_KEY) || '[]').slice(0, 5) } catch { recents.value = [] } }
+const pushRecent = (id: string) => {
+  recents.value = [id, ...recents.value.filter(r => r !== id)].slice(0, 5)
+  try { localStorage.setItem(RECENTS_KEY, JSON.stringify(recents.value)) } catch { /* quota — non-fatal */ }
+}
+
 const commands = computed<Command[]>(() => [
-  { id: 'text-compare', label: 'Text Compare', description: 'Compare & diff text', icon: 'pi pi-sync', action: () => router.push('/tools/text-compare') },
-  { id: 'delimiter', label: 'Delimiter', description: 'Split & join text', icon: 'pi pi-arrows-h', action: () => router.push('/tools/delimiter') },
-  { id: 'format-text', label: 'Code Formatter', description: 'JSON, SQL & more', icon: 'pi pi-file-edit', action: () => router.push('/tools/format-text') },
-  { id: 'jwt-decoder', label: 'JWT Decoder', description: 'Decode & inspect tokens', icon: 'pi pi-shield', action: () => router.push('/tools/jwt-decoder') },
-  { id: 'hash-generator', label: 'Hash Generator', description: 'MD5, SHA1, SHA256', icon: 'pi pi-key', action: () => router.push('/tools/hash-generator') },
-  { id: 'base64-tools', label: 'Base64 Tools', description: 'Encode & decode', icon: 'pi pi-code', action: () => router.push('/tools/base64-tools') },
-  { id: 'timestamp', label: 'Timestamp', description: 'Unix & ISO converter', icon: 'pi pi-calendar', action: () => router.push('/tools/timestamp-converter') },
-  { id: 'character-count', label: 'Character Count', description: 'Text analytics', icon: 'pi pi-hashtag', action: () => router.push('/tools/character-count') },
+  ...TOOLS.map(t => ({ id: t.slug, label: t.name, description: t.description, icon: t.icon, action: () => router.push(toolPath(t)) })),
   { id: 'toggle-theme', label: 'Toggle Theme', description: themeStore.isDark ? 'Switch to light mode' : 'Switch to dark mode', icon: themeStore.isDark ? 'pi pi-sun' : 'pi pi-moon', action: () => themeStore.toggleTheme() },
+  { id: 'copy-url', label: 'Copy Current URL', description: 'Copy this page link', icon: 'pi pi-link', action: () => { copyWithFeedback(window.location.href, 'Link') } },
+  { id: 'open-feedback', label: 'Feedback', description: 'Report a bug or request a feature', icon: 'pi pi-comment', action: () => router.push('/feedback') }
 ])
 
 const filteredCommands = computed(() => {
-  if (!query.value.trim()) return commands.value
-  const q = query.value.toLowerCase()
-  return commands.value.filter(c =>
-    c.label.toLowerCase().includes(q) || c.description.toLowerCase().includes(q)
-  )
+  const q = query.value.trim()
+  if (!q) {
+    const recentCmds = recents.value.map(id => commands.value.find(c => c.id === id)).filter((c): c is Command => !!c)
+    const rest = commands.value.filter(c => !recents.value.includes(c.id))
+    return [...recentCmds, ...rest]
+  }
+  return fuzzyFilter(q, commands.value, c => `${c.label} ${c.description}`)
 })
+const recentCount = computed(() => (query.value.trim() ? 0 : recents.value.filter(id => commands.value.some(c => c.id === id)).length))
 
 const moveSelection = (delta: number) => {
   const len = filteredCommands.value.length
@@ -96,6 +108,7 @@ const executeSelected = () => {
 }
 
 const executeCommand = (cmd: Command) => {
+  pushRecent(cmd.id)
   cmd.action()
   emit('update:open', false)
 }
@@ -104,6 +117,7 @@ watch(() => props.open, (isOpen) => {
   if (isOpen) {
     query.value = ''
     selectedIndex.value = 0
+    loadRecents()
     nextTick(() => searchInput.value?.focus())
   }
 })
@@ -198,6 +212,20 @@ watch(query, () => {
 
 .palette-item.selected {
   background: var(--dt-surface-2);
+}
+
+.palette-section-label {
+  padding: 8px 12px 4px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--dt-text-tertiary);
+}
+
+.palette-section-label:first-child {
+  padding-top: 4px;
 }
 
 .palette-item i {
