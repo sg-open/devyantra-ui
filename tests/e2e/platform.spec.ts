@@ -99,6 +99,13 @@ test.describe('Self-hosted fonts (D5)', () => {
     )
     expect(jetbrainsMonoAvailable).toBe(true)
 
+    // The single variable-font file declares `font-weight: 300 700`; probe a
+    // non-400 weight to prove the whole range is served, not just regular.
+    const jetbrainsMonoBoldAvailable = await page.evaluate(() =>
+      document.fonts.check('600 13px "JetBrains Mono"')
+    )
+    expect(jetbrainsMonoBoldAvailable).toBe(true)
+
     const googleFontRequests = requestUrls.filter((url) => url.includes('fonts.g'))
     expect(googleFontRequests).toEqual([])
   })
