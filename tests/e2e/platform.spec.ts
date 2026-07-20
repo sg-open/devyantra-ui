@@ -83,3 +83,23 @@ test.describe('Tool persistence (D2)', () => {
     // restore. Accepted per the platform-track plan.
   })
 })
+
+test.describe('Self-hosted fonts (D5)', () => {
+  test('JetBrains Mono is available with no third-party font requests', async ({ page, devyantra }) => {
+    const requestUrls: string[] = []
+    page.on('request', (request) => {
+      requestUrls.push(request.url())
+    })
+
+    await devyantra.navigateToTool('text-compare')
+
+    await page.evaluate(() => document.fonts.ready)
+    const jetbrainsMonoAvailable = await page.evaluate(() =>
+      document.fonts.check('13px "JetBrains Mono"')
+    )
+    expect(jetbrainsMonoAvailable).toBe(true)
+
+    const googleFontRequests = requestUrls.filter((url) => url.includes('fonts.g'))
+    expect(googleFontRequests).toEqual([])
+  })
+})
