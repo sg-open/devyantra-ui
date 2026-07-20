@@ -182,7 +182,7 @@ tests/
 
 ## Adding a New Tool
 
-This is the number-one contributor activity. Follow these steps carefully -- each one is required.
+This is the number-one contributor activity. `src/tools/registry.ts` is the single source of truth: the router, tab bar, command palette, footer, sitemap, and prerender list all derive from it automatically. Adding a new tool means creating its component and view, then wiring ONE registry entry -- there is no separate step to touch navigation, the footer, or the sitemap by hand. Follow these steps carefully -- each one is required.
 
 ### Step 1: Create the component
 
@@ -225,66 +225,105 @@ Guidelines:
 
 **File:** `src/views/tools/NewToolView.vue`
 
-This is a thin wrapper that imports the component and initializes SEO.
+This is a thin wrapper that imports the component and wires up SEO on mount. Every tool view follows the same pattern -- copy it verbatim from any existing view (e.g. `src/views/tools/CharacterCountView.vue`) and adapt the key and component name:
 
 ```vue
-<script setup lang="ts">
-import { onMounted } from 'vue'
-import NewTool from '@/components/NewTool.vue'
-import { useSEO } from '@/composables/useSEO'
-
-onMounted(() => {
-  useSEO('new-tool') // Must match the key you add in seo.ts (Step 4)
-})
-</script>
-
 <template>
   <NewTool />
 </template>
-```
 
-### Step 3: Add the route
+<script setup lang="ts">
+import NewTool from '@/components/NewTool.vue'
+import { onMounted } from 'vue'
+import { useSEO } from '@/composables/useSEO'
+import { getToolSEO } from '@/config/seo'
 
-**File:** `src/router/index.ts`
+const { setMetaTags, addToolSchema, addBreadcrumbSchema, addFAQSchema, addHowToSchema } = useSEO()
 
-Add a new child route under the home route:
-
-```ts
-{
-  path: 'new-tool',
-  name: 'new-tool',
-  component: () => import('@/views/tools/NewToolView.vue'),
-  meta: {
-    title: 'New Tool - DevYantra',
-    description: 'A concise description of what the tool does.',
-    canonical: '/tools/new-tool'
+onMounted(() => {
+  const seo = getToolSEO('new-tool') // Must match the key you add in seo.ts (Step 3)
+  if (seo) {
+    setMetaTags({
+      title: seo.title,
+      description: seo.description,
+      canonical: seo.canonical,
+      ogType: seo.type
+    })
+    addToolSchema({
+      name: seo.tool.name,
+      description: seo.tool.description,
+      url: `${window.location.origin}${seo.canonical}`,
+      category: seo.tool.category,
+      features: seo.tool.features,
+      toolKey: 'new-tool'
+    })
+    addBreadcrumbSchema(seo.breadcrumb)
+    addFAQSchema(seo.faqs)
+    if (seo.howToSteps?.length) {
+      addHowToSchema({
+        name: `How to Use ${seo.tool.name}`,
+        description: seo.tool.description,
+        steps: seo.howToSteps,
+        toolKey: 'new-tool'
+      })
+    }
   }
-}
+})
+</script>
 ```
 
-### Step 4: Add SEO configuration
+### Step 3: Add the SEO configuration
 
 **File:** `src/config/seo.ts`
 
-Add an entry for your tool including:
+Add an entry to the `tools` map keyed by the same string you used in Step 2 (`getToolSEO('new-tool')`), including:
 - Tool name and description
 - Key features list
 - FAQs (at least 2--3 question-answer pairs)
 - How-to steps for structured data
 
-### Step 5: Add to navigation
+### Step 4: Register the tool
 
-**File:** `src/views/HomeView.vue`
+**File:** `src/tools/registry.ts`
 
-Add your tool to the tools array that renders the tab navigation bar. Match the existing pattern for label, icon, and route.
+Add ONE `ToolDef` entry to the `TOOLS` array:
 
-### Step 6: Add to the footer
+```ts
+{
+  slug: 'new-tool',
+  name: 'New Tool',
+  shortName: 'New Tool',
+  description: 'Short palette subtitle',
+  icon: 'pi pi-wrench',           // any PrimeIcons class ('pi pi-*')
+  category: 'Text',               // 'Text' | 'Code' | 'Encoding' | 'Security' | 'Time'
+  keywords: ['new tool', 'related search terms'],
+  seoKey: 'new-tool',             // must match the key from Step 3
+  footerGroup: 'text',            // 'text' | 'encoding' -- which footer column it lists under
+  // footerName: 'New Tool Name', // optional: longer display name for the footer link only;
+                                   // omit it and the footer falls back to `name`
+  metaTitle: 'New Tool - Do The Thing Online | DEVYANTRA',
+  metaDescription: 'A concise, keyword-rich description of what the tool does.',
+  metaKeywords: 'new tool, related search terms',
+  toolCategory: 'Text Processing',
+  sitemapPriority: '0.9'
+}
+```
 
-**File:** `src/components/AppFooter.vue`
+**File:** `src/router/index.ts`
 
-Add a link to your tool in the appropriate category.
+Add one loader line to the `toolComponents` map, keyed by the same `slug`:
 
-### Step 7: Run quality gates
+```ts
+'new-tool': () => import('../views/tools/NewToolView.vue'),
+```
+
+### Step 5: That's it -- everything else derives automatically
+
+The route, page title/description/canonical, tab bar entry, command palette entry, footer link, sitemap URL, and prerendered page all come from the registry entry you just added in Step 4. There is nothing else to hand-wire in `HomeView.vue`, `AppFooter.vue`, `CommandPalette.vue`, `vite.config.ts`, or `scripts/prerender.js`.
+
+A `registry-drift.spec.ts` test enforces this pairing: it fails if a `ToolDef` has no matching route, or a route exists that isn't backed by a `ToolDef`. A typo'd slug or a missing loader line shows up as a failing test, not a silent gap.
+
+### Step 6: Run quality gates
 
 Before opening a PR, all of these must pass:
 
@@ -295,26 +334,20 @@ npm run build         # Production build must succeed
 npm run test:run      # All unit tests must pass
 ```
 
-### Step 8: Write tests
-
-- Add **unit tests** in `src/components/__tests__/` for any non-trivial logic.
-- Add **E2E tests** in `tests/e2e/` for user-facing workflows (navigation, input/output, edge cases).
-
 ### Checklist for new tools
 
 Use this checklist to make sure you have not missed anything:
 
 - [ ] Component created in `src/components/`
-- [ ] View wrapper created in `src/views/tools/`
-- [ ] Route added in `src/router/index.ts` with meta (title, description, canonical)
-- [ ] SEO config added in `src/config/seo.ts`
-- [ ] Tab added in `src/views/HomeView.vue`
-- [ ] Footer link added in `src/components/AppFooter.vue`
+- [ ] View wrapper created in `src/views/tools/` (SEO wired via `getToolSEO`, matching an existing view's pattern)
+- [ ] SEO config entry added in `src/config/seo.ts`
+- [ ] `ToolDef` entry added in `src/tools/registry.ts`
+- [ ] Loader line added in `src/router/index.ts`'s `toolComponents` map
 - [ ] All processing is client-side (no external API calls)
 - [ ] `npm run type-check` passes with zero errors
 - [ ] `npm run lint` passes
 - [ ] `npm run build` succeeds
-- [ ] Tests written and passing
+- [ ] Tests written and passing (unit tests for non-trivial logic in `src/components/__tests__/`; E2E tests in `tests/e2e/` for the primary workflow)
 
 ---
 
