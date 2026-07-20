@@ -110,3 +110,34 @@ test.describe('Self-hosted fonts (D5)', () => {
     expect(googleFontRequests).toEqual([])
   })
 })
+
+test.describe('Static feedback (D5)', () => {
+  test('Feedback page renders 3 GitHub links with correct hrefs and no formspree requests', async ({ page }) => {
+    const requestUrls: string[] = []
+    const requestMethods: string[] = []
+
+    page.on('request', (request) => {
+      requestUrls.push(request.url())
+      requestMethods.push(request.method())
+    })
+
+    await page.goto('http://localhost:5173/feedback')
+
+    // Assert the three links exist with correct hrefs
+    const bugLink = page.locator('a[href*="github.com/sg-open/devyantra-ui/issues/new?template=bug_report.yml"]')
+    const featureLink = page.locator('a[href*="github.com/sg-open/devyantra-ui/issues/new?template=feature_request.yml"]')
+    const discussionLink = page.locator('a[href*="github.com/sg-open/devyantra-ui/discussions"]')
+
+    await expect(bugLink).toBeVisible()
+    await expect(featureLink).toBeVisible()
+    await expect(discussionLink).toBeVisible()
+
+    // Assert no formspree requests
+    const formspreeRequests = requestUrls.filter((url) => url.includes('formspree'))
+    expect(formspreeRequests).toEqual([])
+
+    // Assert no POST requests at all during the visit
+    const postRequests = requestMethods.filter((method) => method === 'POST')
+    expect(postRequests).toEqual([])
+  })
+})
