@@ -37,8 +37,8 @@ export interface PageDef {
   sitemapPriority: string
   changefreq: string
   routed: boolean               // true once a real route exists; sitemap/prerender
-                                 // MUST filter on this — 'privacy' has no route
-                                 // until Task 14, so it stays false until then
+                                 // MUST filter on this — both pages are routed
+                                 // as of Task 14 (privacy's route landed then)
 }
 
 export const TOOLS: readonly ToolDef[] = [
@@ -194,7 +194,7 @@ export const PAGES: readonly PageDef[] = [
     metaDescription: 'DevYantra runs entirely in your browser: no backend, no telemetry, no third-party requests. Verify it yourself in devtools.',
     sitemapPriority: '0.3',
     changefreq: 'yearly',
-    routed: false
+    routed: true
   }
 ]
 

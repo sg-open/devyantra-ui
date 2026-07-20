@@ -60,6 +60,17 @@ const router = createRouter({
         canonical: '/feedback'
       }
     },
+    {
+      path: '/privacy',
+      name: 'privacy',
+      component: () => import('../views/PrivacyView.vue'),
+      meta: {
+        // Verbatim from the registry's PAGES 'privacy' entry
+        title: 'Privacy - Nothing Leaves Your Browser | DEVYANTRA',
+        description: 'DevYantra runs entirely in your browser: no backend, no telemetry, no third-party requests. Verify it yourself in devtools.',
+        canonical: '/privacy'
+      }
+    },
     // 404 page for unmatched routes
     {
       path: '/:pathMatch(.*)*',

@@ -141,3 +141,70 @@ test.describe('Static feedback (D5)', () => {
     expect(postRequests).toEqual([])
   })
 })
+
+test.describe('Zero egress (D5)', () => {
+  test('capstone: a full tool-using session makes zero cross-origin requests', async ({ page }) => {
+    // Attached before the first goto — this is the whole point of the test:
+    // catch anything the app ever asks the network for, from first paint
+    // through a realistic multi-tool session (hash, format, palette, diff).
+    const requestUrls: string[] = []
+    page.on('request', (request) => {
+      requestUrls.push(request.url())
+    })
+
+    await page.goto('/tools/hash-generator', { waitUntil: 'domcontentloaded' })
+    await page.locator('textarea').first().fill('zero-egress-capstone')
+    await expect(page.locator('.hash-results')).toBeVisible()
+
+    // Navigate tool-to-tool via the tab bar — the segmented tool switcher
+    // (role="tablist"/"tab") rendered above every tool's content. The route
+    // changes before HomeView's out-in transition finishes swapping the
+    // mounted component, so wait for a format-text-specific element (and use
+    // a format-text-specific textarea selector) rather than racing the
+    // still-fading-out hash-generator page with a generic `textarea` locator.
+    await page.locator('.seg-item', { hasText: 'Code Formatter' }).click()
+    await expect(page).toHaveURL(/\/tools\/format-text$/)
+    await expect(page.locator('.formatter-toolbar')).toBeVisible()
+
+    await page.locator('.panel-textarea').fill('{"a":1,"b":2}')
+    await page.locator('.toolbar-btn.primary-action').click()
+    await expect(page.locator('.formatted-output')).toBeVisible()
+
+    // Open the command palette and jump to Text Compare. Lowercase 'k' —
+    // App.vue's shortcut handler matches `e.key === 'k'` exactly; a
+    // Shift-modified 'K' would not fire it.
+    await page.keyboard.press('ControlOrMeta+k')
+    await expect(page.locator('.palette-overlay')).toBeVisible()
+    await page.locator('.palette-item', { hasText: 'Text Compare' }).click()
+    await expect(page).toHaveURL(/\/tools\/text-compare$/)
+    await expect(page.locator('.compare-btn')).toBeVisible()
+
+    await page.locator('textarea').first().fill('one two three')
+    await page.locator('textarea').nth(1).fill('one TWO three')
+    await page.locator('.compare-btn').click()
+    await expect(page.locator('.diff-renderer')).toBeVisible()
+
+    // The proof: every single request this whole session ever made — app
+    // shell, lazy route chunks, the diff worker script, everything — has to
+    // be same-origin as the page itself.
+    const origin = new URL(page.url()).origin
+    expect(requestUrls.length).toBeGreaterThan(0)
+    for (const url of requestUrls) {
+      expect(url.startsWith(origin)).toBe(true)
+    }
+  })
+
+  test('/privacy renders and is reachable from the header badge and the footer link', async ({ page }) => {
+    await page.goto('/privacy')
+    await expect(page.locator('h1')).toHaveText('Nothing leaves your browser')
+    await expect(page.getByRole('heading', { name: 'Verify it yourself' })).toBeVisible()
+
+    await page.goto('/tools/text-compare')
+    await page.getByRole('contentinfo').getByRole('link', { name: 'Privacy' }).click()
+    await expect(page).toHaveURL(/\/privacy$/)
+
+    await page.goto('/tools/text-compare')
+    await page.locator('.privacy-badge').click()
+    await expect(page).toHaveURL(/\/privacy$/)
+  })
+})

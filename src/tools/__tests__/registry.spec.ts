@@ -41,10 +41,10 @@ describe('tool registry invariants', () => {
     expect(PAGES.map(p => p.slug).sort()).toEqual(['feedback', 'privacy'])
   })
 
-  it('routed reflects which pages have a live route (feedback yes, privacy not yet)', () => {
+  it('routed reflects which pages have a live route (feedback and privacy both, as of Task 14)', () => {
     const routed = Object.fromEntries(PAGES.map(p => [p.slug, p.routed]))
     expect(routed.feedback).toBe(true)
-    expect(routed.privacy).toBe(false)
+    expect(routed.privacy).toBe(true)
   })
 
   it('module is pure data (no vue imports)', async () => {

@@ -26,6 +26,7 @@
           <h2 class="footer-heading">DevYantra</h2>
           <nav aria-label="Site links">
             <router-link to="/feedback">Feedback</router-link>
+            <router-link to="/privacy">Privacy</router-link>
             <a href="https://github.com/sg-open/devyantra-ui" target="_blank" rel="noopener">GitHub</a>
           </nav>
           <button

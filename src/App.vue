@@ -45,10 +45,10 @@
             </svg>
             <span>Open Source</span>
           </div>
-          <div class="privacy-badge" v-tooltip.bottom="'All processing happens in your browser locally'">
+          <router-link to="/privacy" class="privacy-badge" v-tooltip.bottom="'All processing happens in your browser locally — see how'" aria-label="Privacy: all processing happens in your browser locally">
             <i class="pi pi-shield"></i>
             <span>Privacy First</span>
-          </div>
+          </router-link>
         </div>
         </div>
 
