@@ -10,9 +10,6 @@
         <div class="input-header">
           <label class="input-label">JWT Token:</label>
           <div class="input-actions">
-            <button class="p-button p-button-sm p-button-secondary p-button-outlined action-btn" @click="clearToken" v-tooltip="'Clear token (Cmd+Shift+R)'" aria-label="Clear token">
-              <i class="pi pi-refresh"></i>
-            </button>
             <button class="p-button p-button-sm p-button-success p-button-outlined action-btn" @click="validateToken" v-tooltip="'Validate token structure'" :disabled="!jwtToken.trim()" aria-label="Validate token structure">
               <i class="pi pi-check"></i>
             </button>
@@ -118,6 +115,12 @@
         <p>Paste a JWT token above to decode it</p>
       </div>
 
+      <ToolActions
+        :copy-text="payloadText"
+        copy-label="Decoded payload"
+        @clear="clearToken"
+      />
+
       <!-- Quick Token Examples -->
       <div class="quick-actions">
         <span class="quick-actions-label">Examples:</span>
@@ -180,6 +183,10 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useToolState } from '@/composables/useToolState'
+import { useClipboard } from '@/composables/useClipboard'
+import { useToast } from '@/composables/useToast'
+import ToolActions from '@/components/tool/ToolActions.vue'
 
 interface DecodedJWT {
   header: Record<string, unknown>
@@ -201,10 +208,17 @@ interface ExampleToken {
 }
 
 
+const clipboard = useClipboard()
+const toast = useToast()
+
 const jwtToken = ref('')
 const decodedJWT = ref<DecodedJWT | null>(null)
 const showSuggestion = ref(false)
 const suggestionToken = ref('')
+
+// Per-tool persistence (D2) — only the raw token round-trips; decodedJWT is
+// derived output and is recomputed below rather than persisted.
+const toolState = useToolState('jwt-decoder', { input: jwtToken })
 
 // Example JWT tokens for testing
 const exampleTokens = ref<ExampleToken[]>([
@@ -240,6 +254,12 @@ const tokenInfo = computed((): TokenInfo | null => {
     isExpired: payload.exp ? (payload.exp as number) < now : false
   }
 })
+
+// Bound to ToolActions' Copy button — the decoded payload, formatted the
+// same way as the per-part "Copy" button in the Payload section.
+const payloadText = computed(() =>
+  decodedJWT.value ? formatJSON(decodedJWT.value.payload) : ''
+)
 
 // Smart detection function
 const detectJWTToken = (text: string): boolean => {
@@ -283,9 +303,29 @@ const loadExample = (token: string) => {
 }
 
 const clearToken = () => {
+  const previousToken = jwtToken.value
   jwtToken.value = ''
   decodedJWT.value = null
   showSuggestion.value = false
+
+  if (previousToken) {
+    toast.add({
+      severity: 'info',
+      summary: 'Token cleared',
+      life: 10000,
+      action: {
+        label: 'Undo',
+        handler: () => {
+          jwtToken.value = previousToken
+          decodeJWT()
+        }
+      }
+    })
+  }
+
+  // Persist the cleared state immediately — a reload inside the debounce
+  // window would otherwise resurrect the cleared token.
+  toolState.flushSave()
 }
 
 const validateToken = () => {
@@ -326,6 +366,10 @@ const decodeJWT = () => {
   }
 }
 
+// A restored token has no decoded output yet (derived, never persisted) —
+// decode it once so header/payload/signature are visible without a keystroke.
+if (toolState.restored) decodeJWT()
+
 const formatJSON = (obj: Record<string, unknown>): string => {
   return JSON.stringify(obj, null, 2)
 }
@@ -334,24 +378,24 @@ const copyPart = async (part: 'header' | 'payload' | 'signature') => {
   if (!decodedJWT.value) return
 
   let textToCopy = ''
+  let label = ''
 
   switch (part) {
     case 'header':
       textToCopy = formatJSON(decodedJWT.value.header)
+      label = 'Header'
       break
     case 'payload':
       textToCopy = formatJSON(decodedJWT.value.payload)
+      label = 'Payload'
       break
     case 'signature':
       textToCopy = decodedJWT.value.signature
+      label = 'Signature'
       break
   }
 
-  try {
-    await navigator.clipboard.writeText(textToCopy)
-  } catch (err) {
-    console.error('Copy failed:', err)
-  }
+  await clipboard.copyWithFeedback(textToCopy, label)
 }
 
 // Keyboard shortcuts

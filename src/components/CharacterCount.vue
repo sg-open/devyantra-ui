@@ -17,16 +17,7 @@
           @input="analyzeText"
         ></textarea>
 
-        <div class="input-actions">
-          <button class="p-button p-button-secondary p-button-outlined" :disabled="!inputText.trim()" @click="clearText">
-            <i class="pi pi-trash"></i>
-            Clear Text
-          </button>
-          <button class="p-button p-button-secondary p-button-outlined" :disabled="!inputText.trim()" @click="copyStats">
-            <i class="pi pi-copy"></i>
-            Copy Stats
-          </button>
-        </div>
+        <ToolActions :copy-text="statsText" copy-label="Stats" @clear="clearText" />
       </div>
 
       <!-- Statistics Section -->
@@ -195,7 +186,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed } from 'vue'
+import { useToolState } from '@/composables/useToolState'
+import { useToast } from '@/composables/useToast'
+import ToolActions from '@/components/tool/ToolActions.vue'
 
 interface TextStats {
   characters: number
@@ -214,7 +208,13 @@ interface TextStats {
 }
 
 
+const toast = useToast()
+
 const inputText = ref('')
+
+// Per-tool persistence (D2) — only the input round-trips; `stats` is fully
+// derived output, recomputed below rather than persisted.
+const toolState = useToolState('character-count', { input: inputText })
 
 const stats = reactive<TextStats>({
   characters: 0,
@@ -323,15 +323,17 @@ const resetStats = () => {
   })
 }
 
-const clearText = () => {
-  inputText.value = ''
-  resetStats()
-}
+// A restored input has no stats yet (derived, never persisted) — compute
+// them once so the counts are visible without an extra keystroke. Placed
+// after resetStats (analyzeText calls it on an empty/falsy restored value).
+if (toolState.restored) analyzeText()
 
-const copyStats = async () => {
-  if (!inputText.value.trim()) return
-
-  const statsText = `Text Statistics:
+// Bound to ToolActions' Copy button — same summary the old ad-hoc
+// "Copy Stats" button produced. Empty when there's nothing to analyze, so
+// ToolActions' Copy button auto-disables (mirrors the old :disabled guard).
+const statsText = computed(() => {
+  if (!inputText.value.trim()) return ''
+  return `Text Statistics:
 • Characters: ${stats.characters}
 • Characters (no spaces): ${stats.charactersNoSpaces}
 • Words: ${stats.words}
@@ -344,12 +346,31 @@ const copyStats = async () => {
 • Longest word: ${stats.longestWord}
 • Most frequent word: ${stats.mostFrequentWord}
 • Unique words: ${stats.uniqueWords}`
+})
 
-  try {
-    await navigator.clipboard.writeText(statsText)
-  } catch (err) {
-    console.error('Copy failed:', err)
+const clearText = () => {
+  const previousInput = inputText.value
+  inputText.value = ''
+  resetStats()
+
+  if (previousInput) {
+    toast.add({
+      severity: 'info',
+      summary: 'Text cleared',
+      life: 10000,
+      action: {
+        label: 'Undo',
+        handler: () => {
+          inputText.value = previousInput
+          analyzeText()
+        }
+      }
+    })
   }
+
+  // Persist the cleared state immediately — a reload inside the debounce
+  // window would otherwise resurrect the cleared text.
+  toolState.flushSave()
 }
 </script>
 
@@ -380,12 +401,6 @@ const copyStats = async () => {
   min-height: 300px;
   resize: vertical;
   width: 100%;
-}
-
-.input-actions {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
 }
 
 .stats-section {
@@ -514,10 +529,6 @@ const copyStats = async () => {
 }
 
 @media (max-width: 768px) {
-  .input-actions {
-    flex-direction: column;
-  }
-
   .stats-grid {
     grid-template-columns: 1fr;
   }

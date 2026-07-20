@@ -298,7 +298,9 @@ test.describe('JWT Decoder Tool', () => {
   test('should clear token', async ({ page }) => {
     await page.locator('textarea').first().fill(VALID_TOKEN)
     await page.waitForTimeout(300)
-    await page.locator('[aria-label="Clear token"]').click()
+    // Clear moved into <ToolActions> (Task 10, platform track) — the ad-hoc
+    // "Clear token" icon button was removed to avoid a duplicate control.
+    await page.locator('.tool-actions button:has-text("Clear")').click()
     const value = await page.locator('textarea').first().inputValue()
     expect(value).toBe('')
     await expect(page.locator('.empty-state')).toBeVisible()
@@ -439,7 +441,10 @@ test.describe('Character Count Tool', () => {
   test('should clear text and reset stats', async ({ page }) => {
     await page.locator('textarea').first().fill('test text')
     await page.waitForTimeout(200)
-    await page.locator('button:has-text("Clear Text")').click()
+    // Clear/Copy consolidated into <ToolActions> (Task 10, platform track) —
+    // the ad-hoc "Clear Text"/"Copy Stats" buttons were removed to avoid a
+    // duplicate control.
+    await page.locator('.tool-actions button:has-text("Clear")').click()
 
     const value = await page.locator('textarea').first().inputValue()
     expect(value).toBe('')
@@ -451,7 +456,7 @@ test.describe('Character Count Tool', () => {
   test('should copy stats', async ({ page }) => {
     await page.locator('textarea').first().fill('Hello World')
     await page.waitForTimeout(200)
-    await page.locator('button:has-text("Copy Stats")').click()
+    await page.locator('.tool-actions button:has-text("Copy")').click()
     // No error = success
   })
 
@@ -594,13 +599,19 @@ test.describe('Delimiter Tool', () => {
     await delimitedArea.fill('some,data')
     await newlineArea.fill('some\ndata')
 
+    // Each panel got its own <ToolActions> (Task 10, platform track) — the
+    // ad-hoc per-panel "Clear"/"Copy" buttons were removed to avoid a
+    // duplicate control. One ToolActions instance per panel preserves the
+    // original first()/last() independence check.
+    const clearBtns = page.locator('.tool-actions button:has-text("Clear")')
+
     // Clear left panel
-    await page.locator('.clear-btn').first().click()
+    await clearBtns.first().click()
     await expect(delimitedArea).toHaveValue('')
     await expect(newlineArea).toHaveValue('some\ndata')
 
     // Clear right panel
-    await page.locator('.clear-btn').last().click()
+    await clearBtns.last().click()
     await expect(newlineArea).toHaveValue('')
   })
 

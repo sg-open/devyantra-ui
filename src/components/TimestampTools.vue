@@ -172,6 +172,10 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useToolState } from '@/composables/useToolState'
+import { useClipboard } from '@/composables/useClipboard'
+
+const clipboard = useClipboard()
 
 const currentTimestamp = ref(0)
 const currentTimestampMs = ref(0)
@@ -185,6 +189,28 @@ const convertedISO = ref('')
 const relativeTime = ref('')
 const dateToTs = ref<number | null>(null)
 const dateToTsMs = ref<number | null>(null)
+
+// Per-tool persistence (D2) — timestamp/datetime/unit round-trip; every
+// other ref here (currentTimestamp, convertedDate, dateToTs, ...) is derived
+// output, recomputed below rather than persisted.
+//
+// KNOWN QUIRK: inputTimestamp is declared as a string ref (`ref('')`), but
+// Vue's v-model casts any non-empty <input type="number"> entry to a
+// `number` (@vue/runtime-dom's vModelText: castToNumber = number ||
+// el.type === 'number', applied even without a `.number` modifier). On
+// reload a fresh `inputTimestamp = ref('')` is `typeof 'string'`, and
+// useToolState's restore only applies a stored field when
+// `typeof stored === typeof fieldRef.value` — so a persisted number is
+// silently skipped and the timestamp value does NOT restore, even though it
+// saves correctly. `unit` (always a string literal) and `datetime` (bound to
+// a plain <input type="datetime-local">, never number-cast) restore
+// normally. Accepted per the platform-track plan — verified empirically in
+// tests/e2e/platform.spec.ts.
+const toolState = useToolState('timestamp-converter', {
+  timestamp: inputTimestamp,
+  datetime: inputDatetime,
+  unit: tsUnit,
+})
 
 let interval: ReturnType<typeof setInterval>
 
@@ -277,12 +303,18 @@ const convertDateToTimestamp = () => {
   dateToTs.value = Math.floor(date.getTime() / 1000)
 }
 
+// A restored datetime/unit has no computed results yet (derived, never
+// persisted) — regenerate them once so results are visible without a
+// keystroke. (inputTimestamp itself usually will NOT have restored — see the
+// KNOWN QUIRK note above — so in practice this mostly benefits a restored
+// inputDatetime.)
+if (toolState.restored) {
+  convertTimestamp()
+  convertDateToTimestamp()
+}
+
 const copyValue = async (value: string) => {
-  try {
-    await navigator.clipboard.writeText(value)
-  } catch (err) {
-    console.error('Copy failed:', err)
-  }
+  await clipboard.copyWithFeedback(value)
 }
 
 onMounted(() => {

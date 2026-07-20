@@ -16,24 +16,7 @@
             @input="onDelimitedTextChange"
           ></textarea>
 
-          <div class="editor-actions">
-            <button
-              @click="clearDelimited"
-              class="p-button p-button-secondary p-button-outlined clear-btn"
-              title="Clear delimited text"
-            >
-              <i class="pi pi-times"></i>
-              Clear
-            </button>
-            <button
-              @click="copyDelimited"
-              class="p-button p-button-outlined copy-btn"
-              title="Copy delimited text"
-            >
-              <i class="pi pi-copy"></i>
-              Copy
-            </button>
-          </div>
+          <ToolActions :copy-text="delimitedText" copy-label="Delimited text" @clear="clearDelimited" />
 
           <div class="delimiter-settings">
             <div class="delimiter-selector">
@@ -124,24 +107,7 @@ cherry"
             @input="onNewlineTextChange"
           ></textarea>
 
-          <div class="editor-actions">
-            <button
-              @click="clearNewlines"
-              class="p-button p-button-secondary p-button-outlined clear-btn"
-              title="Clear newline text"
-            >
-              <i class="pi pi-times"></i>
-              Clear
-            </button>
-            <button
-              @click="copyNewlines"
-              class="p-button p-button-outlined copy-btn"
-              title="Copy newline text"
-            >
-              <i class="pi pi-copy"></i>
-              Copy
-            </button>
-          </div>
+          <ToolActions :copy-text="newlineText" copy-label="Newline text" @clear="clearNewlines" />
 
           <div class="newline-settings">
             <div class="options">
@@ -205,6 +171,11 @@ cherry"
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { useToolState } from '@/composables/useToolState'
+import { useToast } from '@/composables/useToast'
+import ToolActions from '@/components/tool/ToolActions.vue'
+
+const toast = useToast()
 
 // Reactive state
 const delimitedText = ref('')
@@ -215,6 +186,20 @@ const trimWhitespace = ref(true)
 const removeEmptyLines = ref(true)
 const autoConvert = ref(false)
 const detectedDelimiter = ref('')
+
+// Per-tool persistence (D2) — the delimited-text panel (this tool's primary
+// "input") plus the delimiter choice and trim/remove-empty toggles round-trip.
+// `newlineText` is the second, independently-editable panel and is
+// intentionally NOT persisted (only one text field round-trips per the
+// platform-track plan — matches the single reload-survival e2e test);
+// `detectedDelimiter` is a transient suggestion banner, never persisted.
+const toolState = useToolState('delimiter', {
+  input: delimitedText,
+  delimiter: selectedDelimiter,
+  customDelimiter,
+  trim: trimWhitespace,
+  removeEmpty: removeEmptyLines,
+})
 
 // Quick delimiter options
 const quickDelimiters = ref([
@@ -370,6 +355,11 @@ const onNewlineTextChange = () => {
   }
 }
 
+// A restored delimited-text panel has no smart-suggestion banner computed
+// yet — recompute it once so it's accurate without requiring a keystroke
+// (autoConvert is always false today, so this only touches detectedDelimiter).
+if (toolState.restored) onDelimitedTextChange()
+
 const onOptionsChange = () => {
   // Re-apply conversion if auto-convert is enabled
   if (autoConvert.value) {
@@ -383,31 +373,43 @@ const onOptionsChange = () => {
 
 // Utility functions
 const clearDelimited = () => {
+  const previous = delimitedText.value
   delimitedText.value = ''
+
+  if (previous) {
+    toast.add({
+      severity: 'info',
+      summary: 'Delimited text cleared',
+      life: 10000,
+      action: {
+        label: 'Undo',
+        handler: () => { delimitedText.value = previous }
+      }
+    })
+  }
+
+  // Persist the cleared state immediately — a reload inside the debounce
+  // window would otherwise resurrect the cleared text.
+  toolState.flushSave()
 }
 
 const clearNewlines = () => {
+  const previous = newlineText.value
   newlineText.value = ''
-}
 
-const copyDelimited = async () => {
-  if (!delimitedText.value.trim()) return
-
-  try {
-    await navigator.clipboard.writeText(delimitedText.value)
-  } catch (error) {
-    console.error('Copy failed:', error)
+  if (previous) {
+    toast.add({
+      severity: 'info',
+      summary: 'Newline text cleared',
+      life: 10000,
+      action: {
+        label: 'Undo',
+        handler: () => { newlineText.value = previous }
+      }
+    })
   }
-}
 
-const copyNewlines = async () => {
-  if (!newlineText.value.trim()) return
-
-  try {
-    await navigator.clipboard.writeText(newlineText.value)
-  } catch (error) {
-    console.error('Copy failed:', error)
-  }
+  toolState.flushSave()
 }
 
 // Lifecycle hooks
@@ -603,13 +605,6 @@ onUnmounted(() => {
   cursor: pointer;
 }
 
-.editor-actions {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 1rem;
-  justify-content: flex-end;
-}
-
 .conversion-controls {
   display: flex;
   flex-direction: column;
@@ -666,24 +661,6 @@ onUnmounted(() => {
   font-weight: 500;
 }
 
-.clear-btn,
-.copy-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  font-size: 0.85rem;
-}
-
-.clear-btn {
-  color: var(--dt-text-secondary);
-}
-
-.copy-btn {
-  color: var(--dt-brand);
-  border-color: var(--dt-brand);
-}
-
 /* Mobile Responsive */
 @media (max-width: 768px) {
   .delimiter-container {
@@ -711,10 +688,6 @@ onUnmounted(() => {
 }
 
 @media (max-width: 480px) {
-  .editor-actions {
-    flex-direction: column;
-  }
-
   .control-buttons {
     flex-direction: column;
     width: 100%;
