@@ -1,122 +1,37 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
+import { TOOLS, toolPath } from '@/tools/registry'
 
-// SEO-optimized tool routes
-const toolRoutes: RouteRecordRaw[] = [
-  {
-    path: '/tools/text-compare',
-    name: 'text-compare',
-    component: () => import('../views/tools/TextCompareView.vue'),
-    meta: {
-      title: 'Text Compare Online - Compare JSON, SQL & Text | DEVYANTRA',
-      description: 'Compare and format JSON, SQL, or text files online with intelligent diff highlighting. Free text comparison tool with side-by-side view and syntax formatting.',
-      keywords: 'text compare, json compare, sql compare, diff tool, text difference, online compare',
-      canonical: '/tools/text-compare',
-      toolName: 'Text Compare',
-      toolCategory: 'Text Processing',
-      breadcrumb: 'Text Compare'
-    }
-  },
-  {
-    path: '/tools/format-text',
-    name: 'format-text',
-    component: () => import('../views/tools/FormatTextView.vue'),
-    meta: {
-      title: 'Code Formatter - JSON, SQL, XML & More | DEVYANTRA',
-      description: 'Format and beautify JSON, SQL, XML, and other code online. Professional code formatter with syntax highlighting and error detection.',
-      keywords: 'code formatter, json formatter, sql formatter, xml formatter, code beautifier, online formatter',
-      canonical: '/tools/format-text',
-      toolName: 'Code Formatter',
-      toolCategory: 'Code Formatting',
-      breadcrumb: 'Code Formatter'
-    }
-  },
-  {
-    path: '/tools/hash-generator',
-    name: 'hash-generator',
-    component: () => import('../views/tools/HashGeneratorView.vue'),
-    meta: {
-      title: 'Hash Generator - MD5, SHA1, SHA256, SHA512 | DEVYANTRA',
-      description: 'Generate secure hashes online with MD5, SHA1, SHA256, SHA512 algorithms. Free cryptographic hash generator for passwords and data integrity.',
-      keywords: 'hash generator, md5 generator, sha256 generator, cryptographic hash, password hash',
-      canonical: '/tools/hash-generator',
-      toolName: 'Hash Generator',
-      toolCategory: 'Security',
-      breadcrumb: 'Hash Generator'
-    }
-  },
-  {
-    path: '/tools/base64-tools',
-    name: 'base64-tools',
-    component: () => import('../views/tools/Base64ToolsView.vue'),
-    meta: {
-      title: 'Base64 Encoder Decoder Online - Encode & Decode | DEVYANTRA',
-      description: 'Encode and decode Base64 strings online. Free Base64 converter tool with support for text, URLs, and binary data encoding.',
-      keywords: 'base64 encoder, base64 decoder, base64 converter, encode decode online',
-      canonical: '/tools/base64-tools',
-      toolName: 'Base64 Tools',
-      toolCategory: 'Encoding',
-      breadcrumb: 'Base64 Tools'
-    }
-  },
-  {
-    path: '/tools/jwt-decoder',
-    name: 'jwt-decoder',
-    component: () => import('../views/tools/JwtDecoderView.vue'),
-    meta: {
-      title: 'JWT Decoder Online - Decode JSON Web Tokens | DEVYANTRA',
-      description: 'Decode and analyze JWT tokens online. Free JWT decoder with header, payload, and signature verification for debugging authentication.',
-      keywords: 'jwt decoder, json web token decoder, jwt analyzer, token decoder online',
-      canonical: '/tools/jwt-decoder',
-      toolName: 'JWT Decoder',
-      toolCategory: 'Authentication',
-      breadcrumb: 'JWT Decoder'
-    }
-  },
-  {
-    path: '/tools/timestamp-converter',
-    name: 'timestamp-converter',
-    component: () => import('../views/tools/TimestampConverterView.vue'),
-    meta: {
-      title: 'Timestamp Converter - Unix Time to Date | DEVYANTRA',
-      description: 'Convert Unix timestamps to human-readable dates and vice versa. Free timestamp converter supporting multiple formats and timezones.',
-      keywords: 'timestamp converter, unix timestamp, epoch converter, date converter, time converter',
-      canonical: '/tools/timestamp-converter',
-      toolName: 'Timestamp Converter',
-      toolCategory: 'Date & Time',
-      breadcrumb: 'Timestamp Converter'
-    }
-  },
-  {
-    path: '/tools/character-count',
-    name: 'character-count',
-    component: () => import('../views/tools/CharacterCountView.vue'),
-    meta: {
-      title: 'Character Counter - Word Count & Text Analytics | DEVYANTRA',
-      description: 'Count characters, words, lines, and paragraphs in text. Free character counter with detailed text analytics and statistics.',
-      keywords: 'character counter, word counter, text analytics, line counter, text statistics',
-      canonical: '/tools/character-count',
-      toolName: 'Character Counter',
-      toolCategory: 'Text Analysis',
-      breadcrumb: 'Character Counter'
-    }
-  },
-  {
-    path: '/tools/delimiter',
-    name: 'delimiter',
-    component: () => import('../views/tools/DelimiterView.vue'),
-    meta: {
-      title: 'Delimiter Tool - Split & Join Text Online | DEVYANTRA',
-      description: 'Convert between delimited and newline-separated text formats. Split comma-separated values to lines or join lines with custom delimiters.',
-      keywords: 'delimiter tool, split text, join text, csv converter, comma separator, text splitter',
-      canonical: '/tools/delimiter',
-      toolName: 'Delimiter Tool',
-      toolCategory: 'Text Processing',
-      breadcrumb: 'Delimiter'
-    }
+// Component loaders keyed by slug — the only hand-maintained part of the
+// tool-route table now; everything else (path/name/meta) is generated from
+// the registry so the two can never drift.
+const toolComponents: Record<string, () => Promise<unknown>> = {
+  'text-compare': () => import('../views/tools/TextCompareView.vue'),
+  'delimiter': () => import('../views/tools/DelimiterView.vue'),
+  'format-text': () => import('../views/tools/FormatTextView.vue'),
+  'jwt-decoder': () => import('../views/tools/JwtDecoderView.vue'),
+  'hash-generator': () => import('../views/tools/HashGeneratorView.vue'),
+  'base64-tools': () => import('../views/tools/Base64ToolsView.vue'),
+  'timestamp-converter': () => import('../views/tools/TimestampConverterView.vue'),
+  'character-count': () => import('../views/tools/CharacterCountView.vue')
+}
+
+// SEO-optimized tool routes, generated from the registry
+const toolRoutes: RouteRecordRaw[] = TOOLS.map((t) => ({
+  path: toolPath(t),
+  name: t.slug,
+  component: toolComponents[t.slug]!,
+  meta: {
+    title: t.metaTitle,
+    description: t.metaDescription,
+    keywords: t.metaKeywords,
+    canonical: toolPath(t),
+    toolName: t.name,
+    toolCategory: t.toolCategory,
+    breadcrumb: t.name
   }
-]
+}))
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
