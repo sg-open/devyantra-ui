@@ -6,7 +6,16 @@ describe('AppFooter', () => {
   let wrapper: VueWrapper
 
   beforeEach(() => {
-    wrapper = mount(AppFooter)
+    wrapper = mount(AppFooter, {
+      global: {
+        stubs: {
+          RouterLink: {
+            template: '<a :href="to"><slot/></a>',
+            props: ['to']
+          }
+        }
+      }
+    })
   })
 
   describe('Semantic HTML Structure', () => {
@@ -47,6 +56,19 @@ describe('AppFooter', () => {
       const footer = wrapper.find('footer')
       expect(footer.attributes('role')).toBe('contentinfo')
       expect(footer.attributes('aria-label')).toBe('Site footer')
+    })
+  })
+
+  describe('Registry parity', () => {
+    it('renders every tool exactly once across the two tool navs', () => {
+      const links = wrapper.findAll('.footer-section nav a')
+      const toolLinks = links.filter(l => {
+        const href = l.attributes('href')
+        return href && href.startsWith('/tools/')
+      })
+      expect(toolLinks).toHaveLength(8)
+      const hrefs = toolLinks.map(l => l.attributes('href'))
+      expect(new Set(hrefs).size).toBe(8)
     })
   })
 })

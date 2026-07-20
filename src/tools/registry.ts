@@ -20,6 +20,7 @@ export interface ToolDef {
   keywords: string[]
   seoKey: string
   footerGroup: 'text' | 'encoding'
+  footerName?: string          // custom name for footer; falls back to name
   metaTitle: string            // verbatim from today's router meta
   metaDescription: string      // verbatim
   metaKeywords: string         // verbatim
@@ -64,6 +65,7 @@ export const TOOLS: readonly ToolDef[] = [
     keywords: ['delimiter tool', 'split text', 'join text', 'csv converter', 'comma separator', 'text splitter'],
     seoKey: 'delimiter',
     footerGroup: 'text',
+    footerName: 'Delimiter Tool',
     metaTitle: 'Delimiter Tool - Split & Join Text Online | DEVYANTRA',
     metaDescription: 'Convert between delimited and newline-separated text formats. Split comma-separated values to lines or join lines with custom delimiters.',
     metaKeywords: 'delimiter tool, split text, join text, csv converter, comma separator, text splitter',
@@ -144,6 +146,7 @@ export const TOOLS: readonly ToolDef[] = [
     keywords: ['timestamp converter', 'unix timestamp', 'epoch converter', 'date converter', 'time converter'],
     seoKey: 'timestamp-converter',
     footerGroup: 'encoding',
+    footerName: 'Timestamp Converter',
     metaTitle: 'Timestamp Converter - Unix Time to Date | DEVYANTRA',
     metaDescription: 'Convert Unix timestamps to human-readable dates and vice versa. Free timestamp converter supporting multiple formats and timezones.',
     metaKeywords: 'timestamp converter, unix timestamp, epoch converter, date converter, time converter',
@@ -160,6 +163,7 @@ export const TOOLS: readonly ToolDef[] = [
     keywords: ['character counter', 'word counter', 'text analytics', 'line counter', 'text statistics'],
     seoKey: 'character-count',
     footerGroup: 'text',
+    footerName: 'Character Counter',
     metaTitle: 'Character Counter - Word Count & Text Analytics | DEVYANTRA',
     metaDescription: 'Count characters, words, lines, and paragraphs in text. Free character counter with detailed text analytics and statistics.',
     metaKeywords: 'character counter, word counter, text analytics, line counter, text statistics',

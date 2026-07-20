@@ -43,6 +43,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useSEO } from '@/composables/useSEO'
 import { SEO_CONFIG } from '@/config/seo'
 import ErrorBoundary from '@/components/ErrorBoundary.vue'
+import { TOOLS, toolPath } from '@/tools/registry'
 
 const router = useRouter()
 const route = useRoute()
@@ -99,56 +100,7 @@ const navigateTab = (targetIndex: number) => {
   })
 }
 
-const tools = [
-  {
-    title: 'Text Compare',
-    subtitle: 'Compare & Format',
-    icon: 'pi pi-arrows-alt',
-    route: '/tools/text-compare'
-  },
-  {
-    title: 'Delimiter',
-    subtitle: 'Split & Join',
-    icon: 'pi pi-arrows-h',
-    route: '/tools/delimiter'
-  },
-  {
-    title: 'Code Formatter',
-    subtitle: 'JSON, SQL & More',
-    icon: 'pi pi-file-edit',
-    route: '/tools/format-text'
-  },
-  {
-    title: 'JWT Decoder',
-    subtitle: 'Token Analysis',
-    icon: 'pi pi-shield',
-    route: '/tools/jwt-decoder'
-  },
-  {
-    title: 'Hash Generator',
-    subtitle: 'MD5, SHA1, SHA256',
-    icon: 'pi pi-lock',
-    route: '/tools/hash-generator'
-  },
-  {
-    title: 'Base64 Tools',
-    subtitle: 'Encode & Decode',
-    icon: 'pi pi-arrow-right-arrow-left',
-    route: '/tools/base64-tools'
-  },
-  {
-    title: 'Timestamp',
-    subtitle: 'Unix & ISO Converter',
-    icon: 'pi pi-clock',
-    route: '/tools/timestamp-converter'
-  },
-  {
-    title: 'Character Count',
-    subtitle: 'Text Analytics',
-    icon: 'pi pi-hashtag',
-    route: '/tools/character-count'
-  }
-]
+const tools = TOOLS.map(t => ({ title: t.name, subtitle: t.description, icon: t.icon, route: toolPath(t) }))
 
 const activeTabIndex = computed(() => {
   const idx = tools.findIndex(t => t.route === route.path)

@@ -9,19 +9,17 @@
         <div class="footer-section">
           <h2 class="footer-heading">Text Tools</h2>
           <nav aria-label="Text tools">
-            <router-link to="/tools/text-compare">Text Compare</router-link>
-            <router-link to="/tools/format-text">Code Formatter</router-link>
-            <router-link to="/tools/delimiter">Delimiter Tool</router-link>
-            <router-link to="/tools/character-count">Character Counter</router-link>
+            <router-link v-for="tool in textTools" :key="tool.slug" :to="toolPath(tool)">
+              {{ tool.footerName ?? tool.name }}
+            </router-link>
           </nav>
         </div>
         <div class="footer-section">
           <h2 class="footer-heading">Encoding & Security</h2>
           <nav aria-label="Encoding and security tools">
-            <router-link to="/tools/hash-generator">Hash Generator</router-link>
-            <router-link to="/tools/base64-tools">Base64 Tools</router-link>
-            <router-link to="/tools/jwt-decoder">JWT Decoder</router-link>
-            <router-link to="/tools/timestamp-converter">Timestamp Converter</router-link>
+            <router-link v-for="tool in encodingTools" :key="tool.slug" :to="toolPath(tool)">
+              {{ tool.footerName ?? tool.name }}
+            </router-link>
           </nav>
         </div>
         <div class="footer-section">
@@ -41,6 +39,16 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+import { TOOLS, toolPath } from '@/tools/registry'
+
+const textTools = computed(() =>
+  TOOLS.filter(t => t.footerGroup === 'text')
+)
+
+const encodingTools = computed(() =>
+  TOOLS.filter(t => t.footerGroup === 'encoding')
+)
 </script>
 
 <style scoped>
