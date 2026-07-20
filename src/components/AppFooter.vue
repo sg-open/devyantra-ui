@@ -28,6 +28,15 @@
             <router-link to="/feedback">Feedback</router-link>
             <a href="https://github.com/sg-open/devyantra-ui" target="_blank" rel="noopener">GitHub</a>
           </nav>
+          <button
+            v-if="pwaInstall.available"
+            type="button"
+            class="install-app-btn"
+            @click="pwaInstall.prompt()"
+          >
+            <i class="pi pi-download" aria-hidden="true"></i>
+            Install app
+          </button>
           <p class="footer-privacy">All tools process data locally in your browser. Nothing is sent to any server.</p>
         </div>
       </div>
@@ -39,7 +48,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, inject } from 'vue'
 import { TOOLS, toolPath } from '@/tools/registry'
 
 const textTools = computed(() =>
@@ -49,6 +58,10 @@ const textTools = computed(() =>
 const encodingTools = computed(() =>
   TOOLS.filter(t => t.footerGroup === 'encoding')
 )
+
+// Provided by App.vue (spec D4); the fallback keeps this component usable
+// standalone (e.g. component tests) without a PWA-install ancestor.
+const pwaInstall = inject('pwa-install', { available: false, prompt: async () => {} })
 </script>
 
 <style scoped>
@@ -97,6 +110,35 @@ const encodingTools = computed(() =>
 
 .footer-section nav a:hover {
   color: var(--dt-brand);
+}
+
+.install-app-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  margin-top: var(--space-sm, 0.5rem);
+  padding: 4px 10px;
+  height: 28px;
+  background: var(--dt-surface-2);
+  border: 1px solid var(--dt-border);
+  border-radius: var(--radius-md);
+  color: var(--dt-text-primary);
+  font-family: inherit;
+  font-size: var(--text-sm, 0.85rem);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast, 150ms);
+}
+
+.install-app-btn:hover {
+  border-color: var(--dt-brand);
+  color: var(--dt-brand);
+  background: var(--dt-brand-light);
+}
+
+.install-app-btn i {
+  font-size: 13px;
 }
 
 .footer-privacy {

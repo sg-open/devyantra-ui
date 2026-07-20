@@ -53,6 +53,11 @@
         </div>
 
         <div class="header-actions">
+          <div v-if="!online" class="offline-pill" v-tooltip.bottom="'No internet connection — all tools keep working'" role="status">
+            <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
+            <span>Offline — everything still works</span>
+          </div>
+
           <button class="cmdk-trigger" @click="commandPaletteOpen = true" v-tooltip.bottom="'Search tools (⌘K)'" aria-label="Search tools, ⌘K">
             <i class="pi pi-search"></i>
             <kbd>⌘K</kbd>
@@ -110,7 +115,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, reactive, provide, onMounted, onUnmounted } from 'vue'
 import { RouterView } from 'vue-router'
 import { useThemeStore } from '@/stores/theme'
 import AppFooter from '@/components/AppFooter.vue'
@@ -131,6 +136,49 @@ const handleKeydown = (e: KeyboardEvent) => {
     commandPaletteOpen.value = !commandPaletteOpen.value
   }
 }
+
+// Offline pill (spec D4) — reflects the browser's connectivity signal directly;
+// this is optimistic (online really only means "has a network interface"), which
+// matches the pill's own wording: tools work either way, this is just a heads-up.
+const online = ref(navigator.onLine)
+const updateOnlineStatus = () => {
+  online.value = navigator.onLine
+}
+
+// Install prompt (spec D4) — Chrome/Edge fire `beforeinstallprompt` when the PWA
+// install criteria are met; capturing it lets us trigger it from our own "Install
+// app" button later instead of only the browser's native UI. Not in the TS DOM
+// lib, so the event is typed locally and the listener registered loosely.
+interface BeforeInstallPromptEvent extends Event {
+  prompt(): Promise<void>
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>
+}
+
+const deferredPrompt = ref<BeforeInstallPromptEvent | null>(null)
+
+const handleBeforeInstallPrompt = (e: Event) => {
+  e.preventDefault()
+  deferredPrompt.value = e as BeforeInstallPromptEvent
+}
+
+const handleAppInstalled = () => {
+  deferredPrompt.value = null
+}
+
+const promptInstall = async () => {
+  const promptEvent = deferredPrompt.value
+  if (!promptEvent) return
+  await promptEvent.prompt()
+  await promptEvent.userChoice
+  // The captured event can only be used once either way — hide the button
+  // regardless of the user's choice.
+  deferredPrompt.value = null
+}
+
+provide('pwa-install', reactive({
+  available: computed(() => deferredPrompt.value !== null),
+  prompt: promptInstall,
+}))
 
 onMounted(() => {
   const viewport = document.querySelector('meta[name="viewport"]')
@@ -160,10 +208,19 @@ onMounted(() => {
 
   document.addEventListener('keydown', handleKeydown)
 
+  window.addEventListener('online', updateOnlineStatus)
+  window.addEventListener('offline', updateOnlineStatus)
+  window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+  window.addEventListener('appinstalled', handleAppInstalled)
 })
 
 onUnmounted(() => {
   document.removeEventListener('keydown', handleKeydown)
+
+  window.removeEventListener('online', updateOnlineStatus)
+  window.removeEventListener('offline', updateOnlineStatus)
+  window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+  window.removeEventListener('appinstalled', handleAppInstalled)
 })
 </script>
 
@@ -340,6 +397,25 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.offline-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  height: 32px;
+  background: var(--dt-warning-light);
+  border: 1px solid rgba(212, 130, 10, 0.2);
+  border-radius: var(--radius-md);
+  color: var(--dt-warning);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.offline-pill i {
+  font-size: 13px;
 }
 
 .cmdk-trigger {

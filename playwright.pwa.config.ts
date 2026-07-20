@@ -1,15 +1,14 @@
 import { defineConfig, devices } from '@playwright/test'
 
 /**
+ * PWA offline suite — separate from playwright.config.ts because service
+ * workers don't exist under `vite dev`: this needs a real production build
+ * served by `vite preview` (see webServer below). Chromium only, since that's
+ * the browser the offline/install-prompt behavior is verified against.
  * @see https://playwright.dev/docs/test-configuration
  */
 export default defineConfig({
-  testDir: './tests/e2e',
-  // The PWA offline suite needs a production build + `vite preview` (service
-  // workers don't exist under `vite dev`) — it runs separately via
-  // playwright.pwa.config.ts, so exclude it here to keep this config's
-  // dev-server-backed run green.
-  testIgnore: '**/pwa-offline.spec.ts',
+  testMatch: 'tests/e2e/pwa-offline.spec.ts',
   outputDir: './temp/reports/test-results',
   /* Run tests in files in parallel */
   fullyParallel: true,
@@ -28,7 +27,7 @@ export default defineConfig({
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: 'http://localhost:5173',
+    baseURL: 'http://localhost:4173',
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
@@ -46,49 +45,18 @@ export default defineConfig({
     navigationTimeout: 30000,
   },
 
-  /* Configure projects for major browsers */
+  /* Chromium only — the offline/service-worker behavior under test isn't browser-agnostic. */
   projects: [
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
-
-    {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-    },
-
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
-
-    /* Test against mobile viewports. */
-    {
-      name: 'Mobile Chrome',
-      use: { ...devices['Pixel 5'] },
-    },
-    {
-      name: 'Mobile Safari',
-      use: { ...devices['iPhone 12'] },
-    },
-
-    /* Test against branded browsers. */
-    // {
-    //   name: 'Microsoft Edge',
-    //   use: { ...devices['Desktop Edge'], channel: 'msedge' },
-    // },
-    // {
-    //   name: 'Google Chrome',
-    //   use: { ...devices['Desktop Chrome'], channel: 'chrome' },
-    // },
   ],
 
-  /* Run your local dev server before starting the tests */
+  /* Serve the real production build — `npm run build` must run first. */
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:5173',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000, // 2 minutes
+    command: 'npm run preview -- --port 4173',
+    url: 'http://localhost:4173',
+    reuseExistingServer: false,
   },
 })
