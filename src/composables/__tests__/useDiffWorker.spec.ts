@@ -118,29 +118,43 @@ describe('useDiffWorker', () => {
   })
 
   it('I5: a runtime worker error (onerror) falls back to a synchronous compute so the request still completes', async () => {
-    class ErroringWorker {
-      onmessage: ((e: MessageEvent) => void) | null = null
-      onerror: ((e: unknown) => void) | null = null
-      constructor() {
-        // Never responds via onmessage — only the runtime failure fires.
-        setTimeout(() => this.onerror?.(new Event('error')), 0)
+    // This test chains two real setTimeout(fn, 0) hops: the worker's onerror
+    // firing, then the synchronous-fallback timer that handler schedules in
+    // turn. Both used to have to land inside a single fixed-duration
+    // wall-clock flush() — under full-suite parallel load the second hop
+    // occasionally missed that window, flaking the assertions below. Fake
+    // timers plus runAllTimersAsync() drain both chained hops deterministically,
+    // independent of real wall-clock scheduling pressure.
+    vi.useFakeTimers()
+    try {
+      class ErroringWorker {
+        onmessage: ((e: MessageEvent) => void) | null = null
+        onerror: ((e: unknown) => void) | null = null
+        constructor() {
+          // Never responds via onmessage — only the runtime failure fires.
+          setTimeout(() => this.onerror?.(new Event('error')), 0)
+        }
+        postMessage() {
+          /* never responds */
+        }
+        terminate() {}
       }
-      postMessage() {
-        /* never responds */
-      }
-      terminate() {}
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      vi.stubGlobal('Worker', ErroringWorker)
+      const { useDiffWorker } = await import('@/composables/useDiffWorker')
+      const w = useDiffWorker()
+      w.compute('a\nb\n', 'a\nX\n', opts)
+      await vi.runAllTimersAsync(); await nextTick()
+      expect(w.state.value).toBe('done')
+      expect(w.usingFallback).toBe(true)
+      expect(w.model.value!.stats.modified).toBe(1)
+      expect(warnSpy).toHaveBeenCalledTimes(1)
+      warnSpy.mockRestore()
+    } finally {
+      // Scoped to this test only — every other test in this file still runs
+      // on real timers via flush(), so fake timers must not leak past here.
+      vi.useRealTimers()
     }
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    vi.stubGlobal('Worker', ErroringWorker)
-    const { useDiffWorker } = await import('@/composables/useDiffWorker')
-    const w = useDiffWorker()
-    w.compute('a\nb\n', 'a\nX\n', opts)
-    await flush(); await nextTick()
-    expect(w.state.value).toBe('done')
-    expect(w.usingFallback).toBe(true)
-    expect(w.model.value!.stats.modified).toBe(1)
-    expect(warnSpy).toHaveBeenCalledTimes(1)
-    warnSpy.mockRestore()
   })
 
   it('I5: a well-formed {id, error} response lands in the error state with its detail', async () => {
