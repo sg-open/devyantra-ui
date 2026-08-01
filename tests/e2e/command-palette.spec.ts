@@ -49,8 +49,14 @@ test.describe('Command Palette', () => {
     await searchInput.fill('jwt')
     await page.waitForTimeout(100)
 
+    // Count-agnostic (D1 spirit — more tools are still landing in this
+    // track): since Task 4, "JSON Explorer" (description "Tree view & JSON
+    // paths") also coincidentally contains the j...w...t subsequence (w from
+    // "view", t from "paths") and scores > 0, so the filtered list can be
+    // more than just JWT Decoder. What must always hold, and is asserted
+    // here, is that JWT Decoder itself is present and ranks first.
     const items = page.locator('.palette-item')
-    await expect(items).toHaveCount(1)
+    expect(await items.count()).toBeGreaterThanOrEqual(1)
     await expect(items.first()).toContainText('JWT Decoder')
   })
 

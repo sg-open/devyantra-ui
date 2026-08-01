@@ -287,6 +287,39 @@ export const SEO_CONFIG = {
           answer: 'DevYantra uses the native JavaScript RegExp engine built into your browser, including named capture groups and lookbehind assertions where supported. Behavior matches exactly what new RegExp() produces in your own browser, since that is exactly what runs under the hood.'
         }
       ]
+    },
+
+    'json-explorer': {
+      name: 'JSON Explorer',
+      description: 'Explore JSON as a collapsible tree with click-to-copy JSON paths, search, and structure stats. Free, private, and entirely in your browser.',
+      category: 'Data Inspection',
+      features: [
+        'Collapsible tree with type badges for every value',
+        'Click any key to copy its JSON path',
+        'Search that expands and highlights matches',
+        'Structure stats: keys, max depth, and size',
+        '2 MB published limit, entirely synchronous and private'
+      ],
+      howToSteps: [
+        { name: 'Paste JSON', text: 'Paste your JSON into the input field — it parses automatically a moment after you stop typing.' },
+        { name: 'Expand nodes', text: 'Use the arrow next to each object or array to expand or collapse it. The top few levels are expanded by default.' },
+        { name: 'Click a key to copy its path', text: 'Click any key in the tree to copy its full JSON path (for example $.users[1].name) to your clipboard.' },
+        { name: 'Search to jump', text: 'Type in the search box to expand and highlight every key or string value that matches, case-insensitively.' }
+      ],
+      faqs: [
+        {
+          question: 'How do I get the path to a value?',
+          answer: 'Click the key of any value in the tree. Its JSON path — for example $.users[1].name, or $["weird key"] when a property name is not a valid identifier — is copied to your clipboard immediately, with a toast confirming the copy. Hovering over a key also shows its path as a tooltip.'
+        },
+        {
+          question: 'Why is there a 2 MB limit?',
+          answer: 'Parsing and building the tree happens synchronously on the main thread so results feel instant — no spinner, no worker round-trip. Keeping that snappy requires a size limit; 2 MB comfortably covers real-world API responses and config files. Larger payloads are better explored in a dedicated editor.'
+        },
+        {
+          question: 'Is my JSON uploaded anywhere?',
+          answer: 'No. Parsing, path generation, and search all run locally in your browser tab. DevYantra makes zero network requests with your data.'
+        }
+      ]
     }
   } as Record<string, ToolSEOConfig>,
 

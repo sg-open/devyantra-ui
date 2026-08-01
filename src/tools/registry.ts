@@ -188,6 +188,22 @@ export const TOOLS: readonly ToolDef[] = [
     metaKeywords: 'regex tester, regular expression tester, regex online, regex match, regex replace, redos safe regex',
     toolCategory: 'Code Testing',
     sitemapPriority: '0.9'
+  },
+  {
+    slug: 'json-explorer',
+    name: 'JSON Explorer',
+    shortName: 'JSON Explorer',
+    description: 'Tree view & JSON paths',
+    icon: 'pi pi-sitemap',
+    category: 'Code',
+    keywords: ['json viewer', 'json tree viewer', 'json explorer', 'json path finder', 'json parser online'],
+    seoKey: 'json-explorer',
+    footerGroup: 'text',
+    metaTitle: 'JSON Explorer - Tree Viewer & Path Finder | DEVYANTRA',
+    metaDescription: 'Explore JSON as a collapsible tree with click-to-copy JSON paths, search, and structure stats. Free, private, and entirely in your browser.',
+    metaKeywords: 'json viewer, json tree viewer, json explorer, json path finder, json parser online',
+    toolCategory: 'Data Inspection',
+    sitemapPriority: '0.9'
   }
 ]
 

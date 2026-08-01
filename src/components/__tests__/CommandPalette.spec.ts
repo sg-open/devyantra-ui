@@ -49,11 +49,20 @@ describe('CommandPalette', () => {
   })
 
   it('fuzzy-matches an abbreviation against label+description (query "jwt")', async () => {
+    // Count-agnostic (D1 spirit — more tools are still landing in this
+    // track): as of Task 4, a second combined string ("JSON Explorer Tree
+    // view & JSON paths") also contains the j...w...t subsequence (w from
+    // "view", t from "paths"), scoring 13.89 vs JWT Decoder's 20.0 —
+    // verified directly against the frozen fuzzyScore (Task 1) + current
+    // registry data. Rather than re-pin an exact count that a future tool
+    // could just as easily perturb again, assert what must always hold:
+    // JWT Decoder is present and ranks first (its own literal "jwt"
+    // contiguous-prefix match scores far above any coincidental subsequence).
     const wrapper = await openPalette()
     await wrapper.find('.palette-input').setValue('jwt')
 
     const items = wrapper.findAll('.palette-item')
-    expect(items).toHaveLength(1)
+    expect(items.length).toBeGreaterThanOrEqual(1)
     expect(items[0]!.text()).toContain('JWT Decoder')
   })
 

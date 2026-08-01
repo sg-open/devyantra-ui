@@ -78,3 +78,65 @@ test.describe('Regex Tester', () => {
     await expect(page.locator('.rx-chip').first()).toContainText('1 match')
   })
 })
+
+/* ═══════════════════════════════════════════
+   JSON EXPLORER (Task 4, spec D3)
+   ═══════════════════════════════════════════ */
+test.describe('JSON Explorer', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/tools/json-explorer', { waitUntil: 'domcontentloaded' })
+    await page.waitForSelector('#main-content', { state: 'visible' })
+  })
+
+  test('renders the users-fixture tree, copies a clicked key\'s path, and a search highlights its match', async ({ page }) => {
+    await page.locator('#json-input').fill('{"users":[{"name":"Ada"},{"name":"Lin"}]}')
+
+    // Parse is 300ms-debounced; the fixture is shallow enough (depth <= 2
+    // containers throughout) that every leaf, including users[1].name, is
+    // expanded by default — no manual expand-clicks needed to see it.
+    const adaValue = page.locator('.jx-value[data-path="$.users[0].name"]')
+    const linValue = page.locator('.jx-value[data-path="$.users[1].name"]')
+    await expect(linValue).toBeVisible({ timeout: 2000 })
+    await expect(linValue).toHaveText('"Lin"')
+    await expect(adaValue).toHaveText('"Ada"')
+
+    // Clicking the "name" key under index 1 copies its full JSON path.
+    await page.locator('.jx-key[data-path="$.users[1].name"]').click()
+    const clipboardText = await page.evaluate(() => navigator.clipboard.readText())
+    expect(clipboardText).toBe('$.users[1].name')
+
+    // Searching "Lin" highlights the matching value only, not its sibling.
+    await page.locator('#json-search').fill('Lin')
+    await expect(linValue).toHaveClass(/jx-match/)
+    await expect(adaValue).not.toHaveClass(/jx-match/)
+  })
+
+  test('input over the 2 MB published limit shows the limit message instead of a tree', async ({ page }) => {
+    const big = 'x'.repeat(3 * 1024 * 1024) // exactly 3 MiB of ASCII -> byte-exact "3.00 MB"
+    // Programmatic set + 'input' dispatch (drives v-model) instead of .fill():
+    // a multi-MB string blows well past a comfortable .fill() budget.
+    await page.locator('#json-input').waitFor()
+    await page.evaluate((text) => {
+      const ta = document.querySelector('#json-input') as HTMLTextAreaElement
+      ta.value = text
+      ta.dispatchEvent(new Event('input', { bubbles: true }))
+    }, big)
+
+    const error = page.locator('.jx-error')
+    await expect(error).toBeVisible({ timeout: 2000 })
+    await expect(error).toContainText('Input is 3.00 MB; the limit is 2 MB')
+  })
+
+  test('persistence: input survives a reload and the tree recomputes on its own', async ({ page }) => {
+    await page.locator('#json-input').fill('{"a":1,"b":[true,false]}')
+    await page.waitForTimeout(1000) // useToolState's default 800ms save debounce
+
+    await page.reload({ waitUntil: 'domcontentloaded' })
+    await page.waitForSelector('#main-content', { state: 'visible' })
+
+    await expect(page.locator('#json-input')).toHaveValue('{"a":1,"b":[true,false]}')
+    // Restored state recomputes on its own (debounced parse fires post-mount) —
+    // no user edit required to see the tree again.
+    await expect(page.locator('.jx-value[data-path="$.b[0]"]')).toHaveText('true', { timeout: 2000 })
+  })
+})
