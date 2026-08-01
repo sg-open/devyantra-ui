@@ -1,0 +1,105 @@
+// regex.worker.ts — runs inside a dedicated Worker. The main thread must never
+// execute a user-supplied pattern directly (that's how a catastrophic-backtracking
+// pattern freezes a tab) — this file, plus the 2s watchdog in useRegexWorker, is
+// the entire ReDoS mitigation: worst case, this worker thread spins forever and
+// the composable terminates it, never the page.
+//
+// Protocol is request/response correlated by an incrementing `id` so the
+// composable can drop stale responses (supersede semantics live on the caller
+// side, same split as diff.worker.ts).
+
+export interface RegexRequest {
+  id: number
+  pattern: string
+  flags: string
+  testString: string
+  replacement: string | null
+}
+
+export interface RegexMatch {
+  index: number
+  match: string
+  groups: Array<{ name: string | null; value: string | null }>
+}
+
+export interface RegexResult {
+  matches: RegexMatch[]
+  truncated: boolean
+  replaced: string | null
+  elapsedMs: number
+}
+
+export type RegexResponse = { id: number; result: RegexResult } | { id: number; error: string }
+
+// Hard cap on collected matches. A pattern that legitimately matches more than
+// this against realistic test-string sizes is vanishingly rare; the cap exists
+// so a pattern matching e.g. every character of a huge paste can't blow up
+// memory building the results table — `truncated: true` tells the caller why
+// the list stops short.
+const MAX_MATCHES = 10_000
+
+// Pure computation — exported so tests (and the FakeWorker test doubles that
+// stand in for a real Worker) can drive it directly without spinning up an
+// actual worker thread, the same role computeDiffModel plays for diff.worker.ts.
+export function computeRegexResult(pattern: string, flags: string, testString: string, replacement: string | null): RegexResult {
+  const startedAt = performance.now()
+
+  // Constructed with the caller's exact flags: this is what surfaces a
+  // SyntaxError precisely as the browser would report it for those flags, and
+  // it's reused below for the replace step so replace behaves exactly as the
+  // caller's own flags dictate (no forcing) — a non-global regex correctly
+  // replaces only the first match.
+  const original = new RegExp(pattern, flags)
+
+  // A separate g-forced copy for match collection: the matches table and
+  // highlight view must enumerate every match regardless of whether the
+  // caller ticked the 'g' flag checkbox — that checkbox governs replace-all
+  // vs replace-first, not how many matches get displayed.
+  const matchFlags = flags.includes('g') ? flags : `${flags}g`
+  const matchRe = new RegExp(pattern, matchFlags)
+
+  const matches: RegexMatch[] = []
+  let truncated = false
+  let m: RegExpExecArray | null
+  while ((m = matchRe.exec(testString)) !== null) {
+    const groups: RegexMatch['groups'] = []
+    for (let i = 1; i < m.length; i++) {
+      groups.push({ name: null, value: m[i] ?? null })
+    }
+    if (m.groups) {
+      for (const [name, value] of Object.entries(m.groups)) {
+        groups.push({ name, value: value ?? null })
+      }
+    }
+    matches.push({ index: m.index, match: m[0], groups })
+
+    if (matches.length >= MAX_MATCHES) {
+      truncated = true
+      break
+    }
+
+    // Zero-length-match guard: a pattern like /a*/ matches '' at every
+    // position it doesn't otherwise match at. Without forcing lastIndex
+    // forward here, exec() never advances past a zero-length hit and this
+    // loop spins on the same index forever.
+    if (m.index === matchRe.lastIndex) {
+      matchRe.lastIndex++
+    }
+  }
+
+  const replaced = replacement !== null ? testString.replace(original, replacement) : null
+
+  return { matches, truncated, replaced, elapsedMs: performance.now() - startedAt }
+}
+
+self.onmessage = (event: MessageEvent<RegexRequest>) => {
+  const { id, pattern, flags, testString, replacement } = event.data
+  try {
+    const result = computeRegexResult(pattern, flags, testString, replacement)
+    const response: RegexResponse = { id, result }
+    postMessage(response)
+  } catch (err) {
+    const response: RegexResponse = { id, error: err instanceof Error ? err.message : 'Invalid regular expression' }
+    postMessage(response)
+  }
+}
