@@ -352,6 +352,39 @@ export const SEO_CONFIG = {
           answer: 'When BOTH the day-of-month and day-of-week fields are restricted (neither is left as a bare *), classic cron matches a day when EITHER condition is true, not only when both are — this is the traditional vixie cron behavior. For example, "0 0 13 * FRI" runs at midnight on the 13th of every month AND on every Friday, not only on Fridays that happen to land on the 13th. If only one of the two fields is restricted, that field alone controls which days match.'
         }
       ]
+    },
+
+    'uuid-generator': {
+      name: 'UUID & ULID Generator',
+      description: 'Generate UUID v4, timestamp-ordered UUID v7, and ULIDs in bulk — and inspect any identifier to reveal its version, variant, and embedded timestamp.',
+      category: 'Identifiers',
+      features: [
+        'Generate 1 to 100 identifiers at once',
+        'UUID v4 (random), UUID v7 (timestamp-ordered), and ULID (Crockford Base32) support',
+        'Inspect any identifier to extract its version, variant, and embedded timestamp',
+        'Uppercase/lowercase toggle for generated output',
+        'One-click copy of the entire batch'
+      ],
+      howToSteps: [
+        { name: 'Pick a kind', text: 'Choose UUID v4 (fully random), UUID v7 (timestamp-ordered), or ULID (Crockford Base32).' },
+        { name: 'Set a count', text: 'Choose how many identifiers to generate at once, from 1 to 100.' },
+        { name: 'Generate', text: 'Click Generate to produce the list.' },
+        { name: 'Copy or inspect', text: 'Copy the entire batch with one click, or paste any single identifier into the inspector to decode its version, variant, and timestamp.' }
+      ],
+      faqs: [
+        {
+          question: 'What\'s the difference between UUID v4 and v7?',
+          answer: 'UUID v4 is fully random (122 random bits) with no inherent ordering — two v4 IDs generated seconds apart look completely unrelated. UUID v7 embeds a 48-bit millisecond timestamp in its most significant bits, so v7 IDs generated later always sort after ones generated earlier when compared as plain strings, which makes them better database primary keys (less index fragmentation) while still remaining globally unique.'
+        },
+        {
+          question: 'What is a ULID?',
+          answer: 'A ULID (Universally Unique Lexicographically Sortable Identifier) encodes a 48-bit millisecond timestamp and 80 bits of randomness as 26 Crockford Base32 characters, instead of UUID\'s 36-character hyphenated hex format. Like UUID v7, ULIDs sort chronologically as plain strings; unlike UUID, they have no dashes, exclude visually ambiguous letters (I, L, O, U), and are 10 characters shorter.'
+        },
+        {
+          question: 'Are these IDs generated securely?',
+          answer: 'Yes. Every random bit — the full 122 bits of a v4 UUID, the random suffix of a v7 UUID, and the 80-bit random component of a ULID — comes from crypto.getRandomValues(), the Web Crypto API\'s cryptographically secure random number generator, running locally in your browser. Nothing is sent to a server.'
+        }
+      ]
     }
   } as Record<string, ToolSEOConfig>,
 

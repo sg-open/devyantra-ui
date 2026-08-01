@@ -197,3 +197,93 @@ test.describe('Cron Parser', () => {
     await expect(page.locator('.cron-runs-table tbody tr')).toHaveCount(10)
   })
 })
+
+/* ═══════════════════════════════════════════
+   UUID / ULID GENERATOR (Task 7, spec D5)
+   ═══════════════════════════════════════════ */
+test.describe('UUID / ULID Generator', () => {
+  // Crockford's Base32 alphabet, verbatim from the engine spec — excludes I, L, O, U.
+  const CROCKFORD = '0123456789ABCDEFGHJKMNPQRSTVWXYZ'
+  const ulidRe = new RegExp(`^[${CROCKFORD}]{26}$`)
+  const uuidV7Re = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
+  const uuidV4Re = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
+
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/tools/uuid-generator', { waitUntil: 'domcontentloaded' })
+    await page.waitForSelector('#main-content', { state: 'visible' })
+  })
+
+  test('loads with UUID v4 selected by default and a freshly generated identifier already showing', async ({ page }) => {
+    await expect(page.locator('#kind-v4')).toBeChecked()
+    await expect(page.locator('#uuid-count')).toHaveValue('1')
+
+    const rows = page.locator('.uuid-row')
+    await expect(rows).toHaveCount(1)
+    await expect(rows.first()).toHaveText(uuidV4Re)
+  })
+
+  test('generating 5 UUID v7 IDs produces 5 rows matching the UUID shape; inspecting the first shows version 7 and a timestamp within the last minute', async ({ page }) => {
+    await page.locator('#kind-v7').check()
+    await page.locator('#uuid-count').fill('5')
+    await page.locator('#uuid-generate').click()
+
+    const rows = page.locator('.uuid-row')
+    await expect(rows).toHaveCount(5)
+    const allIds = await rows.allTextContents()
+    for (const id of allIds) {
+      expect(id).toMatch(uuidV7Re)
+    }
+
+    await page.locator('#uuid-inspect-input').fill(allIds[0]!)
+
+    await expect(page.locator('.inspect-kind')).toHaveText('UUID')
+    await expect(page.locator('.inspect-version')).toHaveText('7')
+    await expect(page.locator('.inspect-variant')).toHaveText('RFC 4122')
+
+    const isoText = (await page.locator('.inspect-timestamp-iso').textContent())!.trim()
+    const decodedMs = new Date(isoText).getTime()
+    const ageMs = Date.now() - decodedMs
+    expect(ageMs).toBeGreaterThanOrEqual(0)
+    expect(ageMs).toBeLessThan(60_000) // "within the last minute"
+  })
+
+  test('switching to ULID auto-selects uppercase and generates 26-char Crockford rows', async ({ page }) => {
+    await page.locator('#kind-ulid').check()
+    // Component contract: kind-switch auto-defaults case (ULID -> uppercase)
+    // as long as the user hasn't manually overridden the toggle this session.
+    await expect(page.locator('#uppercase-on')).toHaveClass(/active/)
+
+    await page.locator('#uuid-generate').click()
+
+    const rows = page.locator('.uuid-row')
+    await expect(rows).toHaveCount(1) // count was left at its default (1)
+    const text = (await rows.first().textContent())!.trim()
+    expect(text).toHaveLength(26)
+    expect(text).toMatch(ulidRe)
+  })
+
+  test('persistence: kind and count survive a reload, and a fresh batch regenerates on its own', async ({ page }) => {
+    await page.locator('#kind-ulid').check()
+    await page.locator('#uuid-count').fill('7')
+    await page.locator('#uuid-generate').click() // flushes {kind,count,uppercase} immediately
+
+    const beforeReload = await page.locator('.uuid-row').allTextContents()
+    expect(beforeReload).toHaveLength(7)
+
+    await page.reload({ waitUntil: 'domcontentloaded' })
+    await page.waitForSelector('#main-content', { state: 'visible' })
+
+    await expect(page.locator('#kind-ulid')).toBeChecked()
+    await expect(page.locator('#uuid-count')).toHaveValue('7')
+
+    // Restored settings regenerate a batch on their own — no click required —
+    // but generated VALUES are never persisted, so it's a fresh random batch.
+    const afterReload = page.locator('.uuid-row')
+    await expect(afterReload).toHaveCount(7)
+    const afterIds = await afterReload.allTextContents()
+    for (const id of afterIds) {
+      expect(id.trim()).toMatch(ulidRe)
+    }
+    expect(afterIds).not.toEqual(beforeReload)
+  })
+})

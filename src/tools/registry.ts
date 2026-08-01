@@ -220,6 +220,22 @@ export const TOOLS: readonly ToolDef[] = [
     metaKeywords: 'cron parser, cron expression, crontab explained, next cron run, cron schedule',
     toolCategory: 'Date & Time',
     sitemapPriority: '0.9'
+  },
+  {
+    slug: 'uuid-generator',
+    name: 'UUID Generator',
+    shortName: 'UUID / ULID',
+    description: 'Generate & inspect IDs',
+    icon: 'pi pi-id-card',
+    category: 'Security',
+    keywords: ['uuid generator', 'uuid v4', 'uuid v7', 'ulid generator', 'guid generator', 'uuid decoder'],
+    seoKey: 'uuid-generator',
+    footerGroup: 'encoding',
+    metaTitle: 'UUID & ULID Generator - v4, v7, Inspector | DEVYANTRA',
+    metaDescription: 'Generate UUID v4, timestamp-ordered UUID v7, and ULIDs in bulk — and inspect any identifier to reveal its version, variant, and embedded timestamp.',
+    metaKeywords: 'uuid generator, uuid v4, uuid v7, ulid generator, guid generator, uuid decoder',
+    toolCategory: 'Identifiers',
+    sitemapPriority: '0.9'
   }
 ]
 
