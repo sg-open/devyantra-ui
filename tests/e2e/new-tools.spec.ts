@@ -140,3 +140,60 @@ test.describe('JSON Explorer', () => {
     await expect(page.locator('.jx-value[data-path="$.b[0]"]')).toHaveText('true', { timeout: 2000 })
   })
 })
+
+/* ═══════════════════════════════════════════
+   CRON PARSER (Task 6, spec D4 UI)
+   ═══════════════════════════════════════════ */
+test.describe('Cron Parser', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/tools/cron-parser', { waitUntil: 'domcontentloaded' })
+    await page.waitForSelector('#main-content', { state: 'visible' })
+  })
+
+  test('default expression describes itself in plain English and lists the next 10 runs', async ({ page }) => {
+    await expect(page.locator('#cron-expression')).toHaveValue('30 9 * * 1-5')
+    await expect(page.locator('.cron-description')).toHaveText('At 09:30, Monday through Friday', { timeout: 2000 })
+    await expect(page.locator('.cron-runs-table tbody tr')).toHaveCount(10)
+  })
+
+  test('switching to the "Every 15 min" preset updates the expression, description, and table', async ({ page }) => {
+    // Pinned exact describeCron() output (src/lib/__tests__/cron.spec.ts) — a
+    // deterministic assertion that the whole recompute pipeline re-ran.
+    await page.locator('#cron-presets').selectOption('*/15 * * * *')
+    await expect(page.locator('#cron-expression')).toHaveValue('*/15 * * * *')
+    await expect(page.locator('.cron-description')).toHaveText('Every 15 minutes', { timeout: 2000 })
+    await expect(page.locator('.cron-runs-table tbody tr')).toHaveCount(10)
+  })
+
+  test('"1 2 3" shows the 5-field grammar error inline', async ({ page }) => {
+    await page.locator('#cron-expression').fill('1 2 3')
+    const error = page.locator('.field-error')
+    await expect(error).toBeVisible({ timeout: 2000 })
+    await expect(error).toContainText(
+      'Expected 5 fields, got 3. Six- and seven-field variants (seconds/years) aren\'t supported.'
+    )
+    // No results render alongside the error.
+    await expect(page.locator('.cron-runs-table')).toHaveCount(0)
+  })
+
+  test('"0 0 31 2 *" (day 31 of February) shows the no-match error inline', async ({ page }) => {
+    await page.locator('#cron-expression').fill('0 0 31 2 *')
+    const error = page.locator('.field-error')
+    await expect(error).toBeVisible({ timeout: 2000 })
+    await expect(error).toContainText('No matching times in the next 4 years')
+  })
+
+  test('persistence: expression survives a reload and recomputes on its own', async ({ page }) => {
+    await page.locator('#cron-expression').fill('0 12 * JAN,JUL *')
+    await page.waitForTimeout(1000) // useToolState's default 800ms save debounce
+
+    await page.reload({ waitUntil: 'domcontentloaded' })
+    await page.waitForSelector('#main-content', { state: 'visible' })
+
+    await expect(page.locator('#cron-expression')).toHaveValue('0 12 * JAN,JUL *')
+    // Restored state recomputes on its own (debounced compute fires post-mount) —
+    // no user edit required to see the description/table again.
+    await expect(page.locator('.cron-description')).toHaveText('At 12:00, in January and July', { timeout: 2000 })
+    await expect(page.locator('.cron-runs-table tbody tr')).toHaveCount(10)
+  })
+})

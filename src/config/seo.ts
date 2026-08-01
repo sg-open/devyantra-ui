@@ -320,6 +320,38 @@ export const SEO_CONFIG = {
           answer: 'No. Parsing, path generation, and search all run locally in your browser tab. DevYantra makes zero network requests with your data.'
         }
       ]
+    },
+
+    'cron-parser': {
+      name: 'Cron Parser',
+      description: 'Parse cron expressions into plain English and preview the next 10 run times in local time and UTC. Supports ranges, steps, lists, and day names.',
+      category: 'Date & Time',
+      features: [
+        'Plain-English description of any standard 5-field cron expression',
+        'Next 10 run times, shown in both local time and UTC',
+        'Per-field breakdown table (minute, hour, day of month, month, day of week)',
+        'One-click presets for common schedules',
+        'Full standard syntax: names, ranges, steps, and lists'
+      ],
+      howToSteps: [
+        { name: 'Type or pick a preset', text: 'Type a standard 5-field cron expression, or choose one of the built-in presets to fill it in for you.' },
+        { name: 'Read the description', text: 'A plain-English sentence explains exactly when the schedule runs.' },
+        { name: 'Check the next runs', text: 'Review the next 10 run times in both your local timezone and UTC, plus a per-field breakdown of what each part of the expression resolved to.' }
+      ],
+      faqs: [
+        {
+          question: 'Why isn\'t my 6-field expression accepted?',
+          answer: 'DevYantra parses the standard 5-field cron format (minute, hour, day-of-month, month, day-of-week). Six- and seven-field variants that add a leading seconds field or a trailing year field are non-standard extensions used by some job schedulers, not the original cron format — they are rejected with a clear error rather than silently misinterpreted.'
+        },
+        {
+          question: 'Which timezone are the run times in?',
+          answer: 'The next-runs table shows every time in both your local timezone (whatever your system clock and browser are set to) and UTC, side by side. Daylight saving transitions follow your local system clock, exactly as a real cron daemon on that machine would observe them.'
+        },
+        {
+          question: 'What does the day-of-month/day-of-week OR rule mean?',
+          answer: 'When BOTH the day-of-month and day-of-week fields are restricted (neither is left as a bare *), classic cron matches a day when EITHER condition is true, not only when both are — this is the traditional vixie cron behavior. For example, "0 0 13 * FRI" runs at midnight on the 13th of every month AND on every Friday, not only on Fridays that happen to land on the 13th. If only one of the two fields is restricted, that field alone controls which days match.'
+        }
+      ]
     }
   } as Record<string, ToolSEOConfig>,
 

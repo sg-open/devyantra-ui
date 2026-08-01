@@ -204,6 +204,22 @@ export const TOOLS: readonly ToolDef[] = [
     metaKeywords: 'json viewer, json tree viewer, json explorer, json path finder, json parser online',
     toolCategory: 'Data Inspection',
     sitemapPriority: '0.9'
+  },
+  {
+    slug: 'cron-parser',
+    name: 'Cron Parser',
+    shortName: 'Cron Parser',
+    description: 'Explain & preview schedules',
+    icon: 'pi pi-stopwatch',
+    category: 'Time',
+    keywords: ['cron parser', 'cron expression', 'crontab explained', 'next cron run', 'cron schedule'],
+    seoKey: 'cron-parser',
+    footerGroup: 'encoding',
+    metaTitle: 'Cron Expression Parser - Next Runs & Plain English | DEVYANTRA',
+    metaDescription: 'Parse cron expressions into plain English and preview the next 10 run times in local time and UTC. Supports ranges, steps, lists, and day names.',
+    metaKeywords: 'cron parser, cron expression, crontab explained, next cron run, cron schedule',
+    toolCategory: 'Date & Time',
+    sitemapPriority: '0.9'
   }
 ]
 
