@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { mount, VueWrapper } from '@vue/test-utils'
 import AppFooter from '../AppFooter.vue'
+import { TOOLS } from '@/tools/registry'
 
 describe('AppFooter', () => {
   let wrapper: VueWrapper
@@ -66,9 +67,9 @@ describe('AppFooter', () => {
         const href = l.attributes('href')
         return href && href.startsWith('/tools/')
       })
-      expect(toolLinks).toHaveLength(8)
+      expect(toolLinks).toHaveLength(TOOLS.length)
       const hrefs = toolLinks.map(l => l.attributes('href'))
-      expect(new Set(hrefs).size).toBe(8)
+      expect(new Set(hrefs).size).toBe(TOOLS.length)
     })
   })
 })

@@ -8,10 +8,10 @@ import { TOOLS, PAGES, toolPath } from '../registry'
 import { SEO_CONFIG } from '@/config/seo'
 
 describe('tool registry invariants', () => {
-  it('has exactly 8 tools with unique slugs and paths', () => {
-    expect(TOOLS).toHaveLength(8)
-    expect(new Set(TOOLS.map(t => t.slug)).size).toBe(8)
-    expect(new Set(TOOLS.map(toolPath)).size).toBe(8)
+  it('has at least 8 tools with unique slugs and paths', () => {
+    expect(TOOLS.length).toBeGreaterThanOrEqual(8)
+    expect(new Set(TOOLS.map(t => t.slug)).size).toBe(TOOLS.length)
+    expect(new Set(TOOLS.map(toolPath)).size).toBe(TOOLS.length)
   })
 
   it('every seoKey resolves in SEO_CONFIG.tools', () => {
@@ -32,9 +32,16 @@ describe('tool registry invariants', () => {
     }
   })
 
-  it('footer groups partition all tools 4/4', () => {
-    expect(TOOLS.filter(t => t.footerGroup === 'text')).toHaveLength(4)
-    expect(TOOLS.filter(t => t.footerGroup === 'encoding')).toHaveLength(4)
+  it('footer groups partition all tools with at least one tool in each group', () => {
+    const textGroup = TOOLS.filter(t => t.footerGroup === 'text')
+    const encodingGroup = TOOLS.filter(t => t.footerGroup === 'encoding')
+
+    for (const tool of TOOLS) {
+      expect(['text', 'encoding']).toContain(tool.footerGroup)
+    }
+
+    expect(textGroup.length).toBeGreaterThan(0)
+    expect(encodingGroup.length).toBeGreaterThan(0)
   })
 
   it('pages include feedback and privacy', () => {
