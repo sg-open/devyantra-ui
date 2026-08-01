@@ -14,7 +14,8 @@ const toolComponents: Record<string, () => Promise<unknown>> = {
   'hash-generator': () => import('../views/tools/HashGeneratorView.vue'),
   'base64-tools': () => import('../views/tools/Base64ToolsView.vue'),
   'timestamp-converter': () => import('../views/tools/TimestampConverterView.vue'),
-  'character-count': () => import('../views/tools/CharacterCountView.vue')
+  'character-count': () => import('../views/tools/CharacterCountView.vue'),
+  'regex-tester': () => import('../views/tools/RegexTesterView.vue')
 }
 
 // SEO-optimized tool routes, generated from the registry

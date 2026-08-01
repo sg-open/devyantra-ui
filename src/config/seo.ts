@@ -255,6 +255,38 @@ export const SEO_CONFIG = {
           answer: 'Enter your text with one item per line in the right panel, choose your delimiter, and click "Join with Delimiter". The tool also offers options to trim whitespace and remove empty lines during conversion.'
         }
       ]
+    },
+    'regex-tester': {
+      name: 'Regex Tester',
+      description: 'Test regular expressions online with live match highlighting, named groups, and replace preview. ReDoS-safe: patterns run in a worker and can never freeze your browser.',
+      category: 'Code Testing',
+      features: [
+        'Live match highlighting with a capture-group table',
+        'Replace preview with $1 and $<name> support',
+        'g/i/m/s/u/y flag toggles',
+        'Curated common-pattern library (email, URL, UUID, and more)',
+        'Worker-isolated execution that can never freeze the page'
+      ],
+      howToSteps: [
+        { name: 'Enter a pattern', text: 'Type or paste a regular expression into the Pattern field — a syntax error is shown inline underneath it as you type.' },
+        { name: 'Toggle flags', text: 'Check g, i, m, s, u, or y to control global matching, case-insensitivity, multiline anchors, dotall mode, unicode mode, and sticky matching.' },
+        { name: 'Paste test text', text: 'Paste the text you want to match against into the Test string area.' },
+        { name: 'Read matches or the replace preview', text: 'Matches highlight instantly with a details table below; switch on Replace mode to preview a $1 / $<name> substitution.' }
+      ],
+      faqs: [
+        {
+          question: 'Why did my pattern time out?',
+          answer: 'Some patterns (for example, nested quantifiers like (a+)+) can cause catastrophic backtracking, where the regex engine tries an exponential number of ways to match and effectively never finishes. DevYantra runs every pattern in a dedicated Web Worker with a 2-second budget — if a pattern does not finish in time, the worker is terminated and a timeout message appears instead of a frozen tab. Editing the pattern runs it again immediately, and the tab stays responsive throughout.'
+        },
+        {
+          question: 'Does my text leave the browser?',
+          answer: 'No. The pattern and test string are evaluated entirely inside a Web Worker running in your own browser tab. Nothing is uploaded anywhere — this tool makes zero network requests.'
+        },
+        {
+          question: 'Which regex dialect is this?',
+          answer: 'DevYantra uses the native JavaScript RegExp engine built into your browser, including named capture groups and lookbehind assertions where supported. Behavior matches exactly what new RegExp() produces in your own browser, since that is exactly what runs under the hood.'
+        }
+      ]
     }
   } as Record<string, ToolSEOConfig>,
 

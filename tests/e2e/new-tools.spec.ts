@@ -1,0 +1,80 @@
+import { test, expect } from './fixtures/base'
+
+// New Tools Track — e2e coverage for each tool as it lands (Task 3+).
+// Standard header mirrors platform.spec.ts: clipboard permissions granted up
+// front since every tool's ToolActions "Copy" button exercises the clipboard.
+test.use({ permissions: ['clipboard-read', 'clipboard-write'] })
+
+/* ═══════════════════════════════════════════
+   REGEX TESTER (Task 3, spec D2 UI)
+   ═══════════════════════════════════════════ */
+test.describe('Regex Tester', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/tools/regex-tester', { waitUntil: 'domcontentloaded' })
+    await page.waitForSelector('#main-content', { state: 'visible' })
+  })
+
+  test('happy path: named-group pattern highlights matches and lists the group in the table', async ({ page }) => {
+    await page.locator('#regex-pattern').fill('(?<word>w\\w+)')
+    await page.locator('#flag-i').check() // brief pairs this pattern with flags "gi"; g is on by default
+    await page.locator('#regex-test-string').fill('Hello World Wide Web')
+
+    // 3 matches: World, Wide, Web
+    await expect(page.locator('.rx-hl')).toHaveCount(3, { timeout: 3000 })
+    await expect(page.locator('.rx-matches-table tbody tr')).toHaveCount(3)
+
+    // The named group appears in the groups column alongside its value.
+    await expect(page.locator('.rx-matches-table')).toContainText('word')
+    await expect(page.locator('.rx-matches-table')).toContainText('World')
+  })
+
+  test('persistence: pattern, flags, and test string survive a reload', async ({ page }) => {
+    await page.locator('#regex-pattern').fill('\\d+')
+    await page.locator('#flag-i').check()
+    await page.locator('#regex-test-string').fill('order 42 and 108')
+    await page.waitForTimeout(1000) // useToolState's default 800ms save debounce
+
+    await page.reload({ waitUntil: 'domcontentloaded' })
+    await page.waitForSelector('#main-content', { state: 'visible' })
+
+    await expect(page.locator('#regex-pattern')).toHaveValue('\\d+')
+    await expect(page.locator('#flag-i')).toBeChecked()
+    await expect(page.locator('#regex-test-string')).toHaveValue('order 42 and 108')
+
+    // Restored state recomputes on its own (debounced run fires post-mount) —
+    // no user edit required to see the two matches (42, 108) again.
+    await expect(page.locator('.rx-hl')).toHaveCount(2, { timeout: 3000 })
+  })
+
+  test('ReDoS: catastrophic backtracking times out, the tab stays responsive, and fixing the pattern recovers', async ({ page }) => {
+    await page.locator('#regex-pattern').fill('(a+)+$')
+    await page.locator('#regex-test-string').fill('a'.repeat(40) + 'b')
+
+    const timeoutMessage = page.locator('.rx-timeout')
+    await expect(timeoutMessage).toBeVisible({ timeout: 5000 })
+    await expect(timeoutMessage).toContainText(
+      'Pattern timed out after 2 s — likely catastrophic backtracking. Edit the pattern to try again.'
+    )
+
+    // Responsiveness proof: the pathological pattern only ever runs inside the
+    // (now-terminated) worker thread, never on the main thread — so the UI
+    // must still take a click immediately, proving the tab was never frozen.
+    const patternInput = page.locator('#regex-pattern')
+    await expect(patternInput).toBeEditable()
+    const flagCheckbox = page.locator('#flag-i')
+    await flagCheckbox.click()
+    await expect(flagCheckbox).toBeChecked()
+
+    // That click also reruns the still-pathological pattern (flags are part
+    // of the debounced run(), per spec) — let this second run cycle all the
+    // way back to timeout so the worker is idle again before the fix below,
+    // rather than racing a fresh request against a still-busy worker.
+    await expect(timeoutMessage).toBeHidden({ timeout: 1500 })
+    await expect(timeoutMessage).toBeVisible({ timeout: 5000 })
+
+    // Editing the pattern to something benign recovers to a normal result.
+    await patternInput.fill('a+')
+    await expect(page.locator('.rx-matches-table')).toBeVisible({ timeout: 3000 })
+    await expect(page.locator('.rx-chip').first()).toContainText('1 match')
+  })
+})

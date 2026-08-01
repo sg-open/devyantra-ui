@@ -172,6 +172,22 @@ export const TOOLS: readonly ToolDef[] = [
     metaKeywords: 'character counter, word counter, text analytics, line counter, text statistics',
     toolCategory: 'Text Analysis',
     sitemapPriority: '0.9'
+  },
+  {
+    slug: 'regex-tester',
+    name: 'Regex Tester',
+    shortName: 'Regex Tester',
+    description: 'Test & debug patterns',
+    icon: 'pi pi-asterisk',
+    category: 'Code',
+    keywords: ['regex tester', 'regular expression tester', 'regex online', 'regex match', 'regex replace', 'redos safe regex'],
+    seoKey: 'regex-tester',
+    footerGroup: 'text',
+    metaTitle: 'Regex Tester Online - Live Match Highlighting | DEVYANTRA',
+    metaDescription: 'Test regular expressions online with live match highlighting, named groups, and replace preview. ReDoS-safe: patterns run in a worker and can never freeze your browser.',
+    metaKeywords: 'regex tester, regular expression tester, regex online, regex match, regex replace, redos safe regex',
+    toolCategory: 'Code Testing',
+    sitemapPriority: '0.9'
   }
 ]
 
