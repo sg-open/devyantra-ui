@@ -236,6 +236,22 @@ export const TOOLS: readonly ToolDef[] = [
     metaKeywords: 'uuid generator, uuid v4, uuid v7, ulid generator, guid generator, uuid decoder',
     toolCategory: 'Identifiers',
     sitemapPriority: '0.9'
+  },
+  {
+    slug: 'url-parser',
+    name: 'URL Parser',
+    shortName: 'URL Parser',
+    description: 'Decompose & edit URLs',
+    icon: 'pi pi-link',
+    category: 'Encoding',
+    keywords: ['url parser', 'query string parser', 'url decoder', 'url encoder', 'parse url online', 'query params editor'],
+    seoKey: 'url-parser',
+    footerGroup: 'encoding',
+    metaTitle: 'URL Parser & Query String Editor | DEVYANTRA',
+    metaDescription: 'Break any URL into scheme, host, path, and an editable query-parameter table that rebuilds the URL live. Encode or decode components instantly.',
+    metaKeywords: 'url parser, query string parser, url decoder, url encoder, parse url online, query params editor',
+    toolCategory: 'Encoding',
+    sitemapPriority: '0.9'
   }
 ]
 

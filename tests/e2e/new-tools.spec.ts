@@ -287,3 +287,68 @@ test.describe('UUID / ULID Generator', () => {
     expect(afterIds).not.toEqual(beforeReload)
   })
 })
+
+/* ═══════════════════════════════════════════
+   URL PARSER (Task 8, spec D6)
+   ═══════════════════════════════════════════ */
+test.describe('URL Parser', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/tools/url-parser', { waitUntil: 'domcontentloaded' })
+    await page.waitForSelector('#main-content', { state: 'visible' })
+  })
+
+  test('parses the search fixture into parts and a param grid, then edits and deletes rows live', async ({ page }) => {
+    await page.locator('#url-input').fill('https://example.com/search?q=hello+world&tag=a&tag=b#top')
+
+    // "+" decodes as a space (application/x-www-form-urlencoded policy).
+    const rows = page.locator('.param-row')
+    await expect(rows).toHaveCount(3)
+    await expect(rows.nth(0).locator('.param-key')).toHaveValue('q')
+    await expect(rows.nth(0).locator('.param-value')).toHaveValue('hello world')
+    await expect(rows.nth(1).locator('.param-key')).toHaveValue('tag')
+    await expect(rows.nth(1).locator('.param-value')).toHaveValue('a')
+    await expect(rows.nth(2).locator('.param-key')).toHaveValue('tag')
+    await expect(rows.nth(2).locator('.param-value')).toHaveValue('b')
+    await expect(page.locator('.part-hash')).toHaveText('top')
+
+    // Editing q -> "bye" rebuilds live; both tag rows are still present.
+    await rows.nth(0).locator('.param-value').fill('bye')
+    const rebuilt = page.locator('#rebuilt-url')
+    await expect(rebuilt).toHaveValue('https://example.com/search?q=bye&tag=a&tag=b#top')
+
+    // Deleting the first "tag" row drops it from the rebuilt URL but keeps the other.
+    await rows.nth(1).locator('.param-delete').click()
+    await expect(page.locator('.param-row')).toHaveCount(2)
+    await expect(rebuilt).toHaveValue('https://example.com/search?q=bye&tag=b#top')
+  })
+
+  test('"ht!tp:/x" shows the invalid-URL error inline, not the base-URL hint', async ({ page }) => {
+    await page.locator('#url-input').fill('ht!tp:/x')
+
+    const error = page.locator('.field-error')
+    await expect(error).toBeVisible({ timeout: 2000 })
+    await expect(error).toContainText('Invalid URL: "ht!tp:/x"')
+
+    // No results, and no base-URL field — this is a broken absolute attempt,
+    // not a relative reference waiting on a base.
+    await expect(page.locator('.param-row')).toHaveCount(0)
+    await expect(page.locator('#url-base-input')).toHaveCount(0)
+  })
+
+  test('persistence: input survives a reload and the parts/param grid recompute on their own', async ({ page }) => {
+    await page.locator('#url-input').fill('https://example.com/search?q=hello+world&tag=a&tag=b#top')
+    await page.waitForTimeout(1000) // useToolState's default 800ms save debounce
+
+    await page.reload({ waitUntil: 'domcontentloaded' })
+    await page.waitForSelector('#main-content', { state: 'visible' })
+
+    await expect(page.locator('#url-input')).toHaveValue('https://example.com/search?q=hello+world&tag=a&tag=b#top')
+
+    // Restored input recomputes on its own — no user edit required.
+    await expect(page.locator('.part-hash')).toHaveText('top', { timeout: 2000 })
+    const rows = page.locator('.param-row')
+    await expect(rows).toHaveCount(3)
+    await expect(rows.nth(0).locator('.param-value')).toHaveValue('hello world')
+    await expect(page.locator('#rebuilt-url')).toHaveValue('https://example.com/search?q=hello%20world&tag=a&tag=b#top')
+  })
+})

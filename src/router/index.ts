@@ -18,7 +18,8 @@ const toolComponents: Record<string, () => Promise<unknown>> = {
   'regex-tester': () => import('../views/tools/RegexTesterView.vue'),
   'json-explorer': () => import('../views/tools/JsonExplorerView.vue'),
   'cron-parser': () => import('../views/tools/CronParserView.vue'),
-  'uuid-generator': () => import('../views/tools/UuidGeneratorView.vue')
+  'uuid-generator': () => import('../views/tools/UuidGeneratorView.vue'),
+  'url-parser': () => import('../views/tools/UrlParserView.vue')
 }
 
 // SEO-optimized tool routes, generated from the registry

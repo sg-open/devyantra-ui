@@ -385,6 +385,40 @@ export const SEO_CONFIG = {
           answer: 'Yes. Every random bit — the full 122 bits of a v4 UUID, the random suffix of a v7 UUID, and the 80-bit random component of a ULID — comes from crypto.getRandomValues(), the Web Crypto API\'s cryptographically secure random number generator, running locally in your browser. Nothing is sent to a server.'
         }
       ]
+    },
+
+    'url-parser': {
+      name: 'URL Parser',
+      description: 'Break any URL into scheme, host, path, and an editable query-parameter table that rebuilds the URL live. Encode or decode components instantly.',
+      category: 'Encoding',
+      features: [
+        'Decompose any URL into scheme, host, port, path, hash, and query parameters',
+        'Editable query-parameter grid that rebuilds the URL live as you type',
+        'Full support for repeated keys (e.g. tag=a&tag=b) — order and duplicates preserved',
+        'Encode or decode text with encodeURIComponent/decodeURIComponent',
+        'Base-URL resolution for relative inputs (e.g. /path?x=1)',
+        'International domain names shown in both punycode and unicode'
+      ],
+      howToSteps: [
+        { name: 'Paste a URL', text: 'Paste a URL into the field — if it is relative, a base-URL field appears so it can be resolved.' },
+        { name: 'Read the parts', text: 'Scheme, host, port, path, and hash appear in a table below, with the unicode form shown alongside any punycode host.' },
+        { name: 'Edit query parameters', text: 'Change a value, delete a row, or add a new one in the query-parameter table.' },
+        { name: 'Copy the rebuilt URL', text: 'The rebuilt URL updates live as you edit; copy it with one click.' }
+      ],
+      faqs: [
+        {
+          question: 'Why did my + turn into %20?',
+          answer: 'Both + and %20 mean a literal space inside a URL\'s query string — but + only means that by convention inside a query string, while %20 means it everywhere and can never be confused with a literal plus sign. The rebuilt URL always uses the unambiguous %20 form, even if the original URL you pasted used +.'
+        },
+        {
+          question: 'Can I edit query parameters?',
+          answer: 'Yes. Every key and value in the query-parameter table is editable — change a value, delete a row, or add a new one — and the rebuilt URL field below updates immediately to match, preserving repeated keys and their order.'
+        },
+        {
+          question: 'Does this handle international domains?',
+          answer: 'Yes. A host with non-ASCII characters (like bücher.example) is shown in both its punycode form (xn--bcher-kva.example, the form actually used on the wire) and its original unicode spelling, side by side.'
+        }
+      ]
     }
   } as Record<string, ToolSEOConfig>,
 
