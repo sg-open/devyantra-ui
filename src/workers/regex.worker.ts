@@ -102,9 +102,18 @@ export function computeRegexResult(pattern: string, flags: string, testString: s
     // against '😀a' spins at index 0 until MAX_MATCHES). Advancing by the
     // full code point width (2 when the code point at lastIndex is astral,
     // 1 otherwise) keeps lastIndex always on a code-point boundary.
+    //
+    // The code-point advance is gated on the u flag (verifier follow-up):
+    // spec AdvanceStringIndex(S, index, unicode) is index + 1 when unicode
+    // is FALSE — a non-u regex genuinely zero-length-matches at every code
+    // UNIT boundary, including mid-surrogate (native: /x*/g on '😀a' yields
+    // indices [0, 1, 2, 3]; /x*/gu yields [0, 2, 3]). An unconditional
+    // 2-step would silently skip the mid-surrogate match the caller's own
+    // flags say exists. (The tool's flag checkboxes never emit 'v', so
+    // unicodeSets mode needs no parallel gate here.)
     if (m.index === matchRe.lastIndex) {
       const cp = testString.codePointAt(matchRe.lastIndex)
-      matchRe.lastIndex += cp !== undefined && cp > 0xffff ? 2 : 1
+      matchRe.lastIndex += flags.includes('u') && cp !== undefined && cp > 0xffff ? 2 : 1
     }
   }
 

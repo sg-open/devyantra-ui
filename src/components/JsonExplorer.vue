@@ -70,6 +70,7 @@
 
         <div class="jx-tree" role="group" aria-label="JSON tree">
           <JsonTreeNode
+            :key="parseGeneration"
             :node="root"
             :depth="0"
             :is-array-item="false"
@@ -186,6 +187,22 @@ const parsedResult = computed(() => {
 const root = computed<JsonNode | null>(() => {
   const result = parsedResult.value
   return result && 'root' in result ? result.root : null
+})
+
+// Root remount key (verifier follow-up): JsonTreeNode's expand/paging state
+// is deliberately init-once per instance (localExpanded / visibleCount are
+// seeded from props at setup and never re-derived) — so a NEW parse result
+// must get a NEW component tree via :key, not an in-place patch of the old
+// one carrying stale state (e.g. a 3-item array's expanded root + 3-row
+// paging surviving a swap to a 5,000-item array that should start
+// collapsed). A counter bumped once per fresh successful parse — NOT
+// :key="debouncedInput", which would make Vue string-compare up to 2 MB of
+// text on every patch — gives each parse its own stable identity. Every
+// successful re-parse builds brand-new JsonNode objects, so reference
+// inequality here exactly means "a different parse".
+const parseGeneration = ref(0)
+watch(root, (newRoot, oldRoot) => {
+  if (newRoot && newRoot !== oldRoot) parseGeneration.value++
 })
 
 const parseError = computed<JsonParseError | null>(() => {

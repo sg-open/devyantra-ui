@@ -181,6 +181,32 @@ test.describe('JSON Explorer', () => {
     await expect(page.locator('.jx-value[data-path="$.b[0]"]')).toHaveText('true', { timeout: 2000 })
   })
 
+  test('a new parse remounts the tree: expansion/paging state never leaks across an input swap (verifier follow-up)', async ({ page }) => {
+    // Small array first: root has 3 children (<= 200) -> auto-expanded.
+    await page.locator('#json-input').fill('[1,2,3]')
+    const rootToggle = page.locator('.jx-toggle').first()
+    await expect(rootToggle).toBeVisible({ timeout: 2000 })
+    await expect(rootToggle).toHaveAttribute('aria-expanded', 'true')
+    await expect(page.locator('.jx-children > .jx-node')).toHaveCount(3)
+
+    // Swap the ENTIRE input for a 5,000-element array. Without a :key on
+    // the root JsonTreeNode, Vue patches the SAME component instance in
+    // place — its init-once localExpanded/visibleCount refs (true / 3, from
+    // the 3-item array) would survive, leaving a huge array expanded with
+    // stale 3-row paging instead of starting collapsed per the > 200 rule.
+    const bigArray = JSON.stringify(Array.from({ length: 5000 }, (_, i) => i))
+    await page.evaluate((text) => {
+      const ta = document.querySelector('#json-input') as HTMLTextAreaElement
+      ta.value = text
+      ta.dispatchEvent(new Event('input', { bubbles: true }))
+    }, bigArray)
+
+    // Fresh parse -> fresh component tree -> the > 200-children rule applies.
+    await expect(page.locator('.jx-stat').first()).toContainText('5000', { timeout: 2000 })
+    await expect(rootToggle).toHaveAttribute('aria-expanded', 'false')
+    await expect(page.locator('.jx-children')).toHaveCount(0)
+  })
+
   test('a 5,000-element flat array stays responsive and renders a bounded tree with a "show more" row (F1)', async ({ page }) => {
     // Small numbers only, so this stays well under the 2 MB published limit
     // (~23 KB) — the point here is CHILD COUNT (5,000), not payload size.
@@ -207,10 +233,15 @@ test.describe('JSON Explorer', () => {
     await expect(moreRow).toBeVisible({ timeout: 2000 })
     await expect(moreRow).toHaveText('Show 1,000 more (4,000 remaining)')
 
-    // Extra responsiveness proof: an unrelated input still accepts typing immediately.
+    // Extra responsiveness proof: an unrelated input still accepts typing
+    // immediately. The probe query must match NOTHING ('zzz' vs numeric
+    // keys/values): a MATCHING query would legitimately grow the page to
+    // reveal its highest match (the search-visibility rule, covered by its
+    // own JsonTreeNode component test) and change the paging arithmetic
+    // this test asserts next.
     const search = page.locator('#json-search')
-    await search.fill('123')
-    await expect(search).toHaveValue('123')
+    await search.fill('zzz')
+    await expect(search).toHaveValue('zzz')
 
     // Clicking "show more" reveals the next page on top of the first.
     await moreRow.click()

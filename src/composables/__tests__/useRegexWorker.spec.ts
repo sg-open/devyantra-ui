@@ -88,6 +88,26 @@ describe('useRegexWorker', () => {
     expect(w.result.value!.truncated).toBe(false)
   }, 3000)
 
+  it('WITHOUT the u flag, the guard advances by one code UNIT even mid-surrogate, matching native matchAll (verifier follow-up)', async () => {
+    vi.stubGlobal('Worker', FakeWorker)
+    const { useRegexWorker } = await import('@/composables/useRegexWorker')
+    const w = useRegexWorker()
+    // Spec AdvanceStringIndex(S, index, unicode) is index + 1 when unicode
+    // is FALSE — a non-u /x*/g really does zero-length-match at every code
+    // UNIT boundary of '😀a', INCLUDING index 1 (between the emoji's two
+    // surrogate halves). Pinned against the native engine:
+    // [...'😀a'.matchAll(/x*/g)].map(m => m.index) === [0, 1, 2, 3].
+    // The code-point-width advance must therefore be gated on the u flag,
+    // or we'd silently skip the mid-surrogate match the caller's own flags
+    // say exists.
+    w.run({ pattern: 'x*', flags: 'g', testString: '😀a', replacement: null })
+    await flush(); await nextTick()
+    expect(w.state.value).toBe('done')
+    expect(w.result.value!.matches.map((m) => m.index)).toEqual([0, 1, 2, 3])
+    expect(w.result.value!.matches.every((m) => m.match === '')).toBe(true)
+    expect(w.result.value!.truncated).toBe(false)
+  })
+
   it('caps at 10,000 matches and reports truncated', async () => {
     vi.stubGlobal('Worker', FakeWorker)
     const { useRegexWorker } = await import('@/composables/useRegexWorker')

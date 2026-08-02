@@ -84,4 +84,32 @@ describe('JsonTreeNode — F1: bounded render of large arrays', () => {
       expect(wrapper.find('.jx-more').exists()).toBe(false)
     })
   })
+
+  it('a search match beyond the current page grows the page to reveal it, never a force-expanded-but-unmounted match (verifier follow-up)', async () => {
+    const node = makeArrayNode(1500)
+    const wrapper = mount(JsonTreeNode, {
+      props: { node, depth: 0, isArrayItem: false, ...emptySets }
+    })
+
+    // 1,500 > 200 -> starts collapsed, nothing mounted yet.
+    expect(wrapper.find('.jx-children').exists()).toBe(false)
+
+    // A search lands on child [1200] — beyond the 1,000-row first page.
+    // searchExpand carries this node's own path (as searchJsonTree always
+    // does for a match's ancestors), so the node force-expands...
+    await wrapper.setProps({
+      searchMatches: new Set(['$[1200]']),
+      searchExpand: new Set(['$'])
+    })
+
+    // ...and the matched row must actually be MOUNTED, not silently absent
+    // beyond the page boundary: visibleCount grows to cover the highest
+    // searched direct-child index.
+    expect(wrapper.find('.jx-children').exists()).toBe(true)
+    expect(wrapper.find('.jx-value[data-path="$[1200]"]').exists()).toBe(true)
+    expect(wrapper.findAll('.jx-children > .jx-node')).toHaveLength(1201)
+
+    // Paging still works past the grown boundary.
+    expect(wrapper.find('.jx-more').text()).toBe('Show 299 more (299 remaining)')
+  })
 })

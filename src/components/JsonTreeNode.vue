@@ -71,7 +71,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import type { JsonNode } from '@/lib/jsonModel'
 import { useClipboard } from '@/composables/useClipboard'
 
@@ -141,6 +141,34 @@ const nextPageSize = computed(() => Math.min(CHILDREN_PAGE_SIZE, remainingCount.
 const showMore = (): void => {
   visibleCount.value = Math.min(visibleCount.value + CHILDREN_PAGE_SIZE, props.node.children?.length ?? 0)
 }
+
+// Search must never point at an UNMOUNTED child (verifier follow-up): a
+// match at a direct-child index >= visibleCount would force-expand this
+// node's ancestors (searchExpand) while the matched row itself stayed
+// beyond the page boundary — silently invisible. Whenever the search sets
+// change, grow visibleCount just enough to cover the HIGHEST direct child
+// the search needs rendered: one that matched itself (searchMatches), or a
+// container that must be expanded because a deeper descendant matched
+// (searchExpand). Growth only — clearing the search never shrinks the page
+// back, matching how manual "show more" growth also persists.
+watch(
+  () => [props.searchMatches, props.searchExpand] as const,
+  ([matches, expand]) => {
+    const children = props.node.children
+    if (!children || children.length <= visibleCount.value) return
+    if (matches.size === 0 && expand.size === 0) return
+    // Scan from the top down to the current boundary: the first hit IS the
+    // highest index the search needs, so the loop can stop there.
+    for (let i = children.length - 1; i >= visibleCount.value; i--) {
+      const path = children[i]!.path
+      if (matches.has(path) || expand.has(path)) {
+        visibleCount.value = i + 1
+        return
+      }
+    }
+  },
+  { immediate: true }
+)
 
 const copyPath = (): void => {
   void copyWithFeedback(props.node.path, 'Path')
