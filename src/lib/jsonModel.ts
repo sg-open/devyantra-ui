@@ -124,15 +124,23 @@ export function parseJsonModel(input: string): JsonParseResult {
     return { error: { message: `Input is ${mb} MB; the limit is 2 MB`, position: null } }
   }
 
-  let value: unknown
+  // buildNode's recursion now runs INSIDE this try (not just JSON.parse):
+  // a pathologically deep-nested-but-otherwise-valid document (e.g. 3000
+  // levels of `[[[...]]]`) parses fine (V8's JSON.parse is iterative, not
+  // call-stack-recursive) but then overflows the JS call stack when
+  // buildNode walks it recursively — that RangeError must be caught here
+  // too, or it escapes parseJsonModel's `try` entirely and reaches Vue as an
+  // uncaught exception instead of the tool's normal inline error state.
   try {
-    value = JSON.parse(input)
+    const value: unknown = JSON.parse(input)
+    return { root: buildNode(value, null, '$') }
   } catch (e) {
+    if (e instanceof RangeError) {
+      return { error: { message: 'JSON is nested too deeply to explore', position: null } }
+    }
     const message = e instanceof Error ? e.message : String(e)
     return { error: { message, position: extractPosition(message) } }
   }
-
-  return { root: buildNode(value, null, '$') }
 }
 
 export interface JsonStats {

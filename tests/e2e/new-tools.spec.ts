@@ -139,6 +139,42 @@ test.describe('JSON Explorer', () => {
     // no user edit required to see the tree again.
     await expect(page.locator('.jx-value[data-path="$.b[0]"]')).toHaveText('true', { timeout: 2000 })
   })
+
+  test('a 5,000-element flat array stays responsive and renders a bounded tree with a "show more" row (F1)', async ({ page }) => {
+    // Small numbers only, so this stays well under the 2 MB published limit
+    // (~23 KB) — the point here is CHILD COUNT (5,000), not payload size.
+    const bigArray = JSON.stringify(Array.from({ length: 5000 }, (_, i) => i))
+    await page.locator('#json-input').waitFor()
+    await page.evaluate((text) => {
+      const ta = document.querySelector('#json-input') as HTMLTextAreaElement
+      ta.value = text
+      ta.dispatchEvent(new Event('input', { bubbles: true }))
+    }, bigArray)
+
+    // Root is a single array node with 5,000 children (> 200) -> starts
+    // COLLAPSED even at depth 0 (F1's amended default-expand rule), so the
+    // unbounded-mount blowup this fixes can't even begin at parse time.
+    const rootToggle = page.locator('.jx-toggle').first()
+    await expect(rootToggle).toBeVisible({ timeout: 2000 })
+    await expect(rootToggle).toHaveAttribute('aria-expanded', 'false')
+
+    // Expanding must complete promptly and the page must stay interactive —
+    // proof the tab never freezes mounting whatever this reveals.
+    await rootToggle.click()
+    await expect(page.locator('.jx-children > .jx-node')).toHaveCount(1000)
+    const moreRow = page.locator('.jx-more')
+    await expect(moreRow).toBeVisible({ timeout: 2000 })
+    await expect(moreRow).toHaveText('Show 1,000 more (4,000 remaining)')
+
+    // Extra responsiveness proof: an unrelated input still accepts typing immediately.
+    const search = page.locator('#json-search')
+    await search.fill('123')
+    await expect(search).toHaveValue('123')
+
+    // Clicking "show more" reveals the next page on top of the first.
+    await moreRow.click()
+    await expect(page.locator('.jx-children > .jx-node')).toHaveCount(2000)
+  })
 })
 
 /* ═══════════════════════════════════════════
@@ -333,6 +369,18 @@ test.describe('URL Parser', () => {
     // not a relative reference waiting on a base.
     await expect(page.locator('.param-row')).toHaveCount(0)
     await expect(page.locator('#url-base-input')).toHaveCount(0)
+  })
+
+  test('the encode/decode textarea has a proper accessible label (F4)', async ({ page }) => {
+    // getByLabel resolves via the <label for="encode-decode-input"> association
+    // added in F4 — if the label were missing/mismatched this lookup itself
+    // would fail to find the textarea at all.
+    const textarea = page.getByLabel('Text to encode or decode')
+    await expect(textarea).toHaveId('encode-decode-input')
+
+    await textarea.fill('hello world')
+    await page.locator('#encode-btn').click()
+    await expect(textarea).toHaveValue('hello%20world')
   })
 
   test('persistence: input survives a reload and the parts/param grid recompute on their own', async ({ page }) => {

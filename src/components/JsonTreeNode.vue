@@ -50,7 +50,7 @@
 
     <div v-if="isContainer && isExpanded && node.children!.length > 0" class="jx-children">
       <JsonTreeNode
-        v-for="child in node.children"
+        v-for="child in visibleChildren"
         :key="child.path"
         :node="child"
         :depth="depth + 1"
@@ -58,6 +58,14 @@
         :search-matches="searchMatches"
         :search-expand="searchExpand"
       />
+      <button
+        v-if="remainingCount > 0"
+        type="button"
+        class="jx-more"
+        @click="showMore"
+      >
+        Show {{ nextPageSize.toLocaleString() }} more ({{ remainingCount.toLocaleString() }} remaining)
+      </button>
     </div>
   </div>
 </template>
@@ -87,10 +95,21 @@ const displayKey = computed(() => {
   return props.isArrayItem ? `[${props.node.key}]` : props.node.key
 })
 
+// Render cap (F1): a container with more children than this renders only
+// the first CHILDREN_PAGE_SIZE, plus a "show more" row to reveal the next
+// page — a flat array of hundreds of thousands of items must never mount
+// one component per item up front (that's what froze the tab: ~900k
+// mounted components for a 1.8MB flat array with no cap at all).
+const CHILDREN_PAGE_SIZE = 1000
+
 // Default-expanded rule (component contract): a container starts open when
-// ITS OWN depth is <= 2 (root = 0). Set once per instance — depth never
-// changes for a mounted node, so this never needs to be a computed.
-const localExpanded = ref(props.depth <= 2)
+// ITS OWN depth is <= 2 (root = 0) AND it has at most 200 children — a
+// large node (> 200 children) starts collapsed regardless of depth, so an
+// eagerly-expanded huge array can't itself defeat the render cap above by
+// auto-opening every node down to depth 2. Set once per instance — neither
+// depth nor node.children ever change for a mounted node, so this never
+// needs to be a computed.
+const localExpanded = ref(props.depth <= 2 && (props.node.children?.length ?? 0) <= 200)
 
 // Search-forced expansion ORs in on top of the manual/default state so an
 // active search always reveals its matches, even under a node the user
@@ -102,6 +121,25 @@ const isMatch = computed(() => props.searchMatches.has(props.node.path))
 
 const toggle = (): void => {
   localExpanded.value = !localExpanded.value
+}
+
+// How many of this node's children are currently mounted — starts at one
+// page, grows by one page per "show more" click. A plain per-instance ref
+// (not derived from anything reactive on `node`) is enough: `node.children`
+// never changes size for a mounted node.
+const visibleCount = ref(Math.min(CHILDREN_PAGE_SIZE, props.node.children?.length ?? 0))
+
+const visibleChildren = computed(() => props.node.children?.slice(0, visibleCount.value) ?? [])
+
+const remainingCount = computed(() => (props.node.children?.length ?? 0) - visibleCount.value)
+
+// The size of the NEXT page specifically (the last page is often smaller
+// than CHILDREN_PAGE_SIZE) — keeps the button's "Show N more" number honest
+// about exactly how many a click is about to reveal.
+const nextPageSize = computed(() => Math.min(CHILDREN_PAGE_SIZE, remainingCount.value))
+
+const showMore = (): void => {
+  visibleCount.value = Math.min(visibleCount.value + CHILDREN_PAGE_SIZE, props.node.children?.length ?? 0)
 }
 
 const copyPath = (): void => {
@@ -248,5 +286,25 @@ const copyPath = (): void => {
   margin-left: 0.6rem;
   padding-left: 0.65rem;
   border-left: 1px dashed var(--dt-border);
+}
+
+.jx-more {
+  display: inline-flex;
+  align-items: center;
+  margin: var(--space-xs) 0;
+  padding: 4px 10px;
+  border: 1px dashed var(--dt-border);
+  border-radius: var(--radius-md, 6px);
+  background: transparent;
+  color: var(--dt-brand);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.jx-more:hover {
+  background: var(--dt-brand-light);
 }
 </style>

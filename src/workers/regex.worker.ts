@@ -82,8 +82,19 @@ export function computeRegexResult(pattern: string, flags: string, testString: s
     // position it doesn't otherwise match at. Without forcing lastIndex
     // forward here, exec() never advances past a zero-length hit and this
     // loop spins on the same index forever.
+    //
+    // AMENDS THE PLAN'S NORMATIVE ALGORITHM (reviewer-directed, for u-flag
+    // correctness): a plain `lastIndex++` can land mid-surrogate-pair when
+    // testString contains an astral character (e.g. '😀', 2 UTF-16 code
+    // units) — under the /u flag, the engine then snaps lastIndex back to
+    // the start of that pair, so `m.index === matchRe.lastIndex` is true
+    // again next iteration and the loop never advances (verified: /x*/gu
+    // against '😀a' spins at index 0 until MAX_MATCHES). Advancing by the
+    // full code point width (2 when the code point at lastIndex is astral,
+    // 1 otherwise) keeps lastIndex always on a code-point boundary.
     if (m.index === matchRe.lastIndex) {
-      matchRe.lastIndex++
+      const cp = testString.codePointAt(matchRe.lastIndex)
+      matchRe.lastIndex += cp !== undefined && cp > 0xffff ? 2 : 1
     }
   }
 

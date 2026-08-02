@@ -68,6 +68,26 @@ describe('useRegexWorker', () => {
     expect(w.result.value!.truncated).toBe(false)
   })
 
+  it('u-flag zero-length guard: astral characters (surrogate pairs) do not cause an infinite loop (F3)', async () => {
+    vi.stubGlobal('Worker', FakeWorker)
+    const { useRegexWorker } = await import('@/composables/useRegexWorker')
+    const w = useRegexWorker()
+    // '😀' is a surrogate pair (2 UTF-16 code units); naively incrementing
+    // lastIndex by 1 after a zero-length match lands mid-surrogate, and the
+    // /u flag then snaps exec() back to the start of the pair — an infinite
+    // loop at index 0 without the codePointAt-aware guard.
+    w.run({ pattern: 'x*', flags: 'gu', testString: '😀a', replacement: null })
+    await flush(); await nextTick()
+    expect(w.state.value).toBe('done')
+    // 3 zero-length matches: before the emoji (0), after the emoji/before
+    // "a" (2 — the emoji occupies code units 0-1), and after "a" (3, end of
+    // string). Empirically verified against the fixed algorithm.
+    expect(w.result.value!.matches).toHaveLength(3)
+    expect(w.result.value!.matches.map((m) => m.index)).toEqual([0, 2, 3])
+    expect(w.result.value!.matches.every((m) => m.match === '')).toBe(true)
+    expect(w.result.value!.truncated).toBe(false)
+  }, 3000)
+
   it('caps at 10,000 matches and reports truncated', async () => {
     vi.stubGlobal('Worker', FakeWorker)
     const { useRegexWorker } = await import('@/composables/useRegexWorker')

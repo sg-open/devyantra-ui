@@ -210,6 +210,15 @@ describe('parseJsonModel — malformed JSON: position extraction from the native
   })
 })
 
+describe('parseJsonModel — pathologically deep nesting (F2)', () => {
+  it('maps the buildNode RangeError (stack overflow) to a clean error-as-value instead of letting it escape the module', () => {
+    const input = '['.repeat(3000) + '1' + ']'.repeat(3000)
+    const error = expectError(input)
+    expect(error.message).toBe('JSON is nested too deeply to explore')
+    expect(error.position).toBeNull()
+  })
+})
+
 describe('computeStats', () => {
   it('counts every non-root node as a "key" and finds the max nesting depth', () => {
     // $ (depth0) -> a (depth1, object) -> b (depth2, array) -> [0] (depth3, number)

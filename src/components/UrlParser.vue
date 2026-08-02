@@ -175,6 +175,7 @@
 
       <section class="encode-decode-section">
         <h2 class="section-heading">Encode / Decode Helper</h2>
+        <label class="input-label" for="encode-decode-input">Text to encode or decode</label>
         <textarea
           id="encode-decode-input"
           v-model="encodeText"
