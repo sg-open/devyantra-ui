@@ -163,6 +163,19 @@ test.describe('JSON Explorer', () => {
     await page.waitForSelector('#main-content', { state: 'visible' })
 
     await expect(page.locator('#json-input')).toHaveValue('{"a":1,"b":[true,false]}')
+
+    // No restore-flash (same class as the cron M8 fix): debouncedInput is
+    // seeded from the restored input, so the FIRST render of the tool's own
+    // DOM must already contain the tree — not a ~300ms blank gap where
+    // neither the empty-state, an error, nor the tree renders (the live
+    // `input` is non-empty so the empty-state branch is skipped, while
+    // root/parseError still hang off a yet-unseeded debouncedInput). A
+    // single non-retrying evaluate (not a polling assertion, which would
+    // mask the gap by simply waiting it out) is the point of this check.
+    await page.locator('#json-input').waitFor()
+    const immediateTreePresent = await page.evaluate(() => !!document.querySelector('.jx-tree'))
+    expect(immediateTreePresent).toBe(true)
+
     // Restored state recomputes on its own (debounced parse fires post-mount) —
     // no user edit required to see the tree again.
     await expect(page.locator('.jx-value[data-path="$.b[0]"]')).toHaveText('true', { timeout: 2000 })

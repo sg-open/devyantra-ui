@@ -153,7 +153,15 @@ const toolState = useToolState('json-explorer', { input })
 // Parsing runs 300ms after the last edit, against this separate ref — never
 // directly off `input`, so rapid typing never re-parses (and re-walks a
 // potentially large tree) on every keystroke.
-const debouncedInput = ref('')
+//
+// Seeded from `input.value` (NOT a hardcoded '') so it already reflects
+// whatever useToolState just restored, above, the moment this ref is
+// created — same class of bug as CronParser's restore flash (fix-wave M8):
+// otherwise a reload with restored content renders NONE of the three
+// result branches for the first 300ms (the live `input` is non-empty so
+// the empty-state is skipped, while root/parseError still hang off this
+// yet-unseeded ref) — a blank content gap until the debounce first fires.
+const debouncedInput = ref(input.value)
 let debounceHandle: ReturnType<typeof setTimeout> | null = null
 
 const scheduleParse = (): void => {
