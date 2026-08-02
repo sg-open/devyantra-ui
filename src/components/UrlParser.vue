@@ -46,7 +46,7 @@
             autocomplete="off"
             autocapitalize="off"
             spellcheck="false"
-            aria-describedby="url-input-error"
+            :aria-describedby="result.kind === 'error' ? 'url-input-error' : undefined"
           />
         </div>
 
@@ -112,62 +112,69 @@
             </table>
           </div>
 
-          <div class="param-grid-section">
-            <div class="param-grid-header">
-              <span class="input-label">Query Parameters</span>
+          <p v-if="isOpaqueUrl" class="url-opaque-note">
+            <i class="pi pi-info-circle"></i>
+            <span>This URL has no query structure to edit.</span>
+          </p>
+
+          <template v-else>
+            <div class="param-grid-section">
+              <div class="param-grid-header">
+                <span class="input-label">Query Parameters</span>
+              </div>
+
+              <div v-if="editableParams.length === 0" class="param-grid-empty">No query parameters.</div>
+
+              <div v-else class="param-grid">
+                <div class="param-grid-labels" aria-hidden="true">
+                  <span>Key</span>
+                  <span>Value</span>
+                </div>
+                <div v-for="(param, i) in editableParams" :key="i" class="param-row">
+                  <input
+                    v-model="param.key"
+                    type="text"
+                    class="p-inputtext param-key"
+                    :aria-label="`Parameter ${i + 1} key`"
+                    autocomplete="off"
+                    autocapitalize="off"
+                    spellcheck="false"
+                  />
+                  <input
+                    v-model="param.value"
+                    type="text"
+                    class="p-inputtext param-value"
+                    :aria-label="`Parameter ${i + 1} value`"
+                    autocomplete="off"
+                    autocapitalize="off"
+                    spellcheck="false"
+                  />
+                  <button
+                    type="button"
+                    class="param-delete"
+                    :aria-label="`Delete parameter ${i + 1}`"
+                    @click="deleteParam(i)"
+                  >
+                    <i class="pi pi-trash"></i>
+                  </button>
+                </div>
+              </div>
+
+              <button type="button" class="param-add-row" @click="addParam">
+                <i class="pi pi-plus"></i>
+                Add parameter
+              </button>
             </div>
 
-            <div v-if="editableParams.length === 0" class="param-grid-empty">No query parameters.</div>
-
-            <div v-else class="param-grid">
-              <div class="param-grid-labels" aria-hidden="true">
-                <span>Key</span>
-                <span>Value</span>
-              </div>
-              <div v-for="(param, i) in editableParams" :key="i" class="param-row">
-                <input
-                  v-model="param.key"
-                  type="text"
-                  class="p-inputtext param-key"
-                  :aria-label="`Parameter ${i + 1} key`"
-                  autocomplete="off"
-                  autocapitalize="off"
-                  spellcheck="false"
-                />
-                <input
-                  v-model="param.value"
-                  type="text"
-                  class="p-inputtext param-value"
-                  :aria-label="`Parameter ${i + 1} value`"
-                  autocomplete="off"
-                  autocapitalize="off"
-                  spellcheck="false"
-                />
-                <button
-                  type="button"
-                  class="param-delete"
-                  :aria-label="`Delete parameter ${i + 1}`"
-                  @click="deleteParam(i)"
-                >
-                  <i class="pi pi-trash"></i>
-                </button>
-              </div>
+            <div class="rebuilt-url-field">
+              <label class="input-label" for="rebuilt-url">Rebuilt URL</label>
+              <input id="rebuilt-url" type="text" readonly class="p-inputtext url-text-input rebuilt-url-input" :value="rebuiltUrl" />
             </div>
-
-            <button type="button" class="param-add-row" @click="addParam">
-              <i class="pi pi-plus"></i>
-              Add parameter
-            </button>
-          </div>
-
-          <div class="rebuilt-url-field">
-            <label class="input-label" for="rebuilt-url">Rebuilt URL</label>
-            <input id="rebuilt-url" type="text" readonly class="p-inputtext url-text-input rebuilt-url-input" :value="rebuiltUrl" />
-          </div>
+          </template>
 
           <ToolActions
-            :copy-text="rebuiltUrl"
-            copy-label="Rebuilt URL"
+            :copy-text="isOpaqueUrl ? input.trim() : rebuiltUrl"
+            :copy-label="isOpaqueUrl ? 'URL' : 'Rebuilt URL'"
             @clear="clearAll"
           />
         </template>
@@ -292,6 +299,23 @@ const result = computed<UrlParseState>(() => {
   }
 })
 
+// Opaque-path URLs (M5) — mailto:, data:, tel:, and friends have no
+// authority AND no hierarchical (slash-rooted) path, so there is no
+// query-string "structure" to present as an editable grid or to safely
+// round-trip through buildUrl (which always assumes a `scheme://host/path`
+// shape). `host === ''` alone isn't enough — a bare relative path like
+// "search?q=1" also has an empty host but IS hierarchical — so this also
+// requires the path NOT starting with "/". Note: a mailto: URL can
+// technically carry real "?key=value" query params (WHATWG still parses
+// them off an opaque path), but per this simplified, component-level rule
+// they're never exposed as an editable grid either — out of scope for the
+// pragmatic common cases (mailto:/data:/tel:) this targets.
+const isOpaqueUrl = computed(() => {
+  if (result.value.kind !== 'success') return false
+  const p = result.value.parsed
+  return p.host === '' && !p.path.startsWith('/')
+})
+
 // Revealed once genuinely needed, AND stays visible once the user has typed
 // into it (so it never vanishes out from under them mid-edit just because
 // the URL now happens to resolve) — a judgment call the brief's e2e matrix
@@ -322,12 +346,15 @@ const deleteParam = (index: number): void => {
   editableParams.value.splice(index, 1)
 }
 
-// Blank/in-progress rows (no key typed yet) are excluded from the rebuild —
-// an "Add parameter" row shouldn't inject a bare "=value" into the URL
-// before the user has typed a key for it.
+// Only a FULLY blank row (key AND value both empty — an untouched "Add
+// parameter" placeholder) is excluded from the rebuild (M10). A row with an
+// empty key but a real value is a legitimately-parsed param (a URL can
+// contain "?=value" — URLSearchParams round-trips it fine) and must survive
+// untouched, not be silently dropped just because the brief's own "?a=&b=2"
+// fixture happens to only exercise empty VALUES, never empty KEYS.
 const rebuiltUrl = computed(() => {
   if (result.value.kind !== 'success') return ''
-  const params = editableParams.value.filter((p) => p.key.trim() !== '')
+  const params = editableParams.value.filter((p) => p.key.trim() !== '' || p.value.trim() !== '')
   return buildUrl({ ...result.value.parsed, params })
 })
 
@@ -447,6 +474,7 @@ const runDecode = (): void => {
 }
 
 .url-needs-base-hint,
+.url-opaque-note,
 .field-error {
   display: flex;
   align-items: center;
@@ -457,7 +485,8 @@ const runDecode = (): void => {
   font-size: var(--text-sm);
 }
 
-.url-needs-base-hint {
+.url-needs-base-hint,
+.url-opaque-note {
   background: var(--dt-surface-2);
   border: 1px solid var(--dt-border);
   color: var(--dt-text-secondary);

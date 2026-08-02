@@ -111,6 +111,16 @@ describe('useRegexWorker', () => {
     expect(w.errorDetail.value).toMatch(/Unterminated group/)
   })
 
+  it('echoes the exact testString it computed against, so the UI can build highlight segments from a value that never races a live edit (M7)', async () => {
+    vi.stubGlobal('Worker', FakeWorker)
+    const { useRegexWorker } = await import('@/composables/useRegexWorker')
+    const w = useRegexWorker()
+    w.run({ pattern: '\\d+', flags: 'g', testString: 'order 42', replacement: null })
+    await flush(); await nextTick()
+    expect(w.state.value).toBe('done')
+    expect(w.result.value!.testString).toBe('order 42')
+  })
+
   it('supersede: only the second run lands', async () => {
     vi.stubGlobal('Worker', FakeWorker)
     const { useRegexWorker } = await import('@/composables/useRegexWorker')

@@ -170,5 +170,9 @@ describe('inspect', () => {
     it('a ULID-length string containing an excluded letter (I) is not mistaken for a ULID', () => {
       expect(inspect('IIIIIIIIIIIIIIIIIIIIIIIIII').kind).toBe('unknown')
     })
+
+    it('a ULID whose first char is out of the valid time range (> \'7\') is rejected, even though it is a well-formed Crockford string (M6)', () => {
+      expect(inspect('Z'.repeat(26)).kind).toBe('unknown')
+    })
   })
 })

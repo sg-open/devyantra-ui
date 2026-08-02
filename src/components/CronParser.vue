@@ -41,7 +41,7 @@
             autocomplete="off"
             autocapitalize="off"
             spellcheck="false"
-            aria-describedby="cron-expression-error"
+            :aria-describedby="result.kind === 'error' ? 'cron-expression-error' : undefined"
           />
         </div>
 
@@ -194,7 +194,14 @@ const toolState = useToolState('cron-parser', { expression })
 // Computation runs 300ms after the last edit, against this separate ref —
 // never directly off `expression` — so rapid typing never recomputes
 // (parse + describe + a next-10-runs scan) on every keystroke.
-const debouncedExpression = ref('30 9 * * 1-5')
+//
+// Seeded from `expression.value` (NOT a separate hardcoded literal) so it
+// already reflects whatever useToolState just restored, above, the moment
+// this ref is created (M8) — otherwise a reload that restored some OTHER
+// expression would flash this hardcoded default's description/next-runs
+// for the first 300ms, until the debounce timer first fires and copies the
+// real value over.
+const debouncedExpression = ref(expression.value)
 let debounceHandle: ReturnType<typeof setTimeout> | null = null
 
 const scheduleCompute = (): void => {

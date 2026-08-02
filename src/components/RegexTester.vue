@@ -31,7 +31,7 @@
               autocomplete="off"
               autocapitalize="off"
               spellcheck="false"
-              aria-describedby="regex-pattern-error"
+              :aria-describedby="regexWorker.state.value === 'error' ? 'regex-pattern-error' : undefined"
             />
             <span class="pattern-delim pattern-delim--flags" aria-hidden="true">/{{ flags }}</span>
           </div>
@@ -168,21 +168,31 @@
             </table>
           </div>
 
+          <div v-if="replaceMode" class="rx-replace-preview">
+            <label class="input-label">Replace preview</label>
+            <pre class="rx-replace-output">{{ regexWorker.result.value.replaced }}</pre>
+          </div>
+
+          <!-- Single ToolActions row (M10): replace mode's "copy replaced
+               text" action lives in the main row's extra slot instead of a
+               second full ToolActions instance (which duplicated Clear). -->
           <ToolActions
             :copy-text="matchesJSON"
             copy-label="Matches (JSON)"
             @clear="clearAll"
-          />
-
-          <div v-if="replaceMode" class="rx-replace-preview">
-            <label class="input-label">Replace preview</label>
-            <pre class="rx-replace-output">{{ regexWorker.result.value.replaced }}</pre>
-            <ToolActions
-              :copy-text="regexWorker.result.value.replaced ?? ''"
-              copy-label="Replaced text"
-              @clear="clearAll"
-            />
-          </div>
+          >
+            <template v-if="replaceMode" #extra>
+              <button
+                type="button"
+                class="p-button p-button-sm p-button-outlined"
+                :disabled="!regexWorker.result.value.replaced?.trim()"
+                @click="copyReplaced"
+              >
+                <i class="pi pi-copy"></i>
+                Copy replaced text
+              </button>
+            </template>
+          </ToolActions>
         </template>
       </div>
     </div>
@@ -237,6 +247,7 @@ import { ref, computed, watch, onScopeDispose } from 'vue'
 import { useRegexWorker } from '@/composables/useRegexWorker'
 import { useToolState } from '@/composables/useToolState'
 import { useToast } from '@/composables/useToast'
+import { useClipboard } from '@/composables/useClipboard'
 import ToolActions from '@/components/tool/ToolActions.vue'
 
 interface LibraryPattern {
@@ -289,6 +300,7 @@ const PATTERN_LIBRARY: LibraryPattern[] = [
 
 const toast = useToast()
 const regexWorker = useRegexWorker()
+const { copyWithFeedback } = useClipboard()
 
 const pattern = ref('')
 const testString = ref('')
@@ -339,9 +351,17 @@ interface HighlightSegment {
 // Model-driven highlight spans built directly from matches[].index/match —
 // plain/highlight segments over testString, interpolated in the template
 // only (no v-html anywhere in this component).
+//
+// Built from result.testString (the ECHOED string the worker actually
+// matched against), never the live testString ref directly (M7): evaluation
+// is 250ms-debounced, so there's a window after a fresh keystroke where
+// `regexWorker.result` still holds the previous run's matches while
+// `testString.value` already reflects the new text — slicing stale
+// match.index/match.length against the NEW text would transiently
+// misalign every highlight span until the next run lands.
 const highlightSegments = computed<HighlightSegment[]>(() => {
   const result = regexWorker.result.value
-  const text = testString.value
+  const text = result ? result.testString : testString.value
   if (!text) return []
 
   if (!result || result.matches.length === 0) {
@@ -365,6 +385,15 @@ const highlightSegments = computed<HighlightSegment[]>(() => {
 })
 
 const matchesJSON = computed(() => JSON.stringify(regexWorker.result.value?.matches ?? [], null, 2))
+
+// M10: replace mode's copy action, folded into the main ToolActions row's
+// extra slot instead of a second ToolActions instance (which duplicated the
+// Clear button). Mirrors ToolActions' own handleCopy — same guard (no-op on
+// blank text) and the same copyWithFeedback/toast plumbing.
+const copyReplaced = (): void => {
+  const replaced = regexWorker.result.value?.replaced
+  if (replaced?.trim()) void copyWithFeedback(replaced, 'Replaced text')
+}
 
 // 250ms-debounced run() on any change to pattern/flags/testString/replace
 // settings — a single shared timer, so several rapid changes (e.g. a flag

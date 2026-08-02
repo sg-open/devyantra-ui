@@ -27,6 +27,16 @@ export interface RegexResult {
   truncated: boolean
   replaced: string | null
   elapsedMs: number
+  /**
+   * The exact testString this result was computed against, echoed back
+   * verbatim (M7). Evaluation is debounced 250ms in RegexTester.vue, so
+   * there's a window where the user has already typed further edits into
+   * the live testString ref before a stale result lands — building
+   * highlight segments from that live ref instead of this echo would slice
+   * match.index/match.length against a DIFFERENT string than the one they
+   * were computed from, transiently misaligning every highlight span.
+   */
+  testString: string
 }
 
 export type RegexResponse = { id: number; result: RegexResult } | { id: number; error: string }
@@ -100,7 +110,7 @@ export function computeRegexResult(pattern: string, flags: string, testString: s
 
   const replaced = replacement !== null ? testString.replace(original, replacement) : null
 
-  return { matches, truncated, replaced, elapsedMs: performance.now() - startedAt }
+  return { matches, truncated, replaced, elapsedMs: performance.now() - startedAt, testString }
 }
 
 self.onmessage = (event: MessageEvent<RegexRequest>) => {

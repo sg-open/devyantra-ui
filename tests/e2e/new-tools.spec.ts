@@ -77,6 +77,34 @@ test.describe('Regex Tester', () => {
     await expect(page.locator('.rx-matches-table')).toBeVisible({ timeout: 3000 })
     await expect(page.locator('.rx-chip').first()).toContainText('1 match')
   })
+
+  test('the pattern field\'s aria-describedby is absent until an error renders, then points at it (M10)', async ({ page }) => {
+    const patternInput = page.locator('#regex-pattern')
+    expect(await patternInput.getAttribute('aria-describedby')).toBeNull()
+
+    await patternInput.fill('(')
+    await expect(page.locator('#regex-pattern-error')).toBeVisible({ timeout: 2000 })
+    await expect(patternInput).toHaveAttribute('aria-describedby', 'regex-pattern-error')
+  })
+
+  test('replace mode shows a single ToolActions row, with a working "copy replaced text" action inside it (M10)', async ({ page }) => {
+    await page.locator('#regex-pattern').fill('\\d+')
+    await page.locator('#regex-test-string').fill('order 42')
+    await page.locator('.replace-toggle input').check()
+    await page.locator('#regex-replacement').fill('N')
+
+    await expect(page.locator('.rx-replace-output')).toHaveText('order N', { timeout: 2000 })
+
+    // Exactly one ToolActions row, even in replace mode — the second,
+    // duplicate-Clear-button instance is gone.
+    await expect(page.locator('.tool-actions')).toHaveCount(1)
+
+    const copyReplacedBtn = page.locator('.tool-actions button:has-text("Copy replaced text")')
+    await expect(copyReplacedBtn).toBeVisible()
+    await copyReplacedBtn.click()
+    const clipboardText = await page.evaluate(() => navigator.clipboard.readText())
+    expect(clipboardText).toBe('order N')
+  })
 })
 
 /* ═══════════════════════════════════════════
@@ -202,7 +230,12 @@ test.describe('Cron Parser', () => {
   })
 
   test('"1 2 3" shows the 5-field grammar error inline', async ({ page }) => {
-    await page.locator('#cron-expression').fill('1 2 3')
+    const expressionInput = page.locator('#cron-expression')
+
+    // M10: no dangling aria-describedby while there's nothing to describe.
+    expect(await expressionInput.getAttribute('aria-describedby')).toBeNull()
+
+    await expressionInput.fill('1 2 3')
     const error = page.locator('.field-error')
     await expect(error).toBeVisible({ timeout: 2000 })
     await expect(error).toContainText(
@@ -210,6 +243,9 @@ test.describe('Cron Parser', () => {
     )
     // No results render alongside the error.
     await expect(page.locator('.cron-runs-table')).toHaveCount(0)
+
+    // M10: once the error IS rendered, aria-describedby points at it.
+    await expect(expressionInput).toHaveAttribute('aria-describedby', 'cron-expression-error')
   })
 
   test('"0 0 31 2 *" (day 31 of February) shows the no-match error inline', async ({ page }) => {
@@ -227,6 +263,19 @@ test.describe('Cron Parser', () => {
     await page.waitForSelector('#main-content', { state: 'visible' })
 
     await expect(page.locator('#cron-expression')).toHaveValue('0 12 * JAN,JUL *')
+
+    // No restore-flash (M8): debouncedExpression is seeded from the restored
+    // expression, not a separate hardcoded literal, so the very FIRST render
+    // of .cron-description must already be the restored expression's own
+    // description — never the hardcoded default's ("At 09:30, Monday
+    // through Friday") — even before the 300ms compute-debounce would
+    // otherwise be the first chance to correct it. A single non-retrying
+    // read (not toHaveText's polling assertion, which would mask a transient
+    // flash by simply waiting it out) is the point of this check.
+    await page.locator('.cron-description').waitFor()
+    const immediateDescription = (await page.locator('.cron-description').textContent())?.trim()
+    expect(immediateDescription).toBe('At 12:00, in January and July')
+
     // Restored state recomputes on its own (debounced compute fires post-mount) —
     // no user edit required to see the description/table again.
     await expect(page.locator('.cron-description')).toHaveText('At 12:00, in January and July', { timeout: 2000 })
@@ -359,7 +408,12 @@ test.describe('URL Parser', () => {
   })
 
   test('"ht!tp:/x" shows the invalid-URL error inline, not the base-URL hint', async ({ page }) => {
-    await page.locator('#url-input').fill('ht!tp:/x')
+    const urlInput = page.locator('#url-input')
+
+    // M10: no dangling aria-describedby while there's nothing to describe.
+    expect(await urlInput.getAttribute('aria-describedby')).toBeNull()
+
+    await urlInput.fill('ht!tp:/x')
 
     const error = page.locator('.field-error')
     await expect(error).toBeVisible({ timeout: 2000 })
@@ -369,6 +423,49 @@ test.describe('URL Parser', () => {
     // not a relative reference waiting on a base.
     await expect(page.locator('.param-row')).toHaveCount(0)
     await expect(page.locator('#url-base-input')).toHaveCount(0)
+
+    // M10: once the error IS rendered, aria-describedby points at it.
+    await expect(urlInput).toHaveAttribute('aria-describedby', 'url-input-error')
+  })
+
+  test('preserves a legitimately-parsed empty-key param on rebuild, instead of silently dropping it (M10)', async ({ page }) => {
+    await page.locator('#url-input').fill('https://example.com/search?=value&b=2')
+
+    const rows = page.locator('.param-row')
+    await expect(rows).toHaveCount(2)
+    await expect(rows.nth(0).locator('.param-key')).toHaveValue('')
+    await expect(rows.nth(0).locator('.param-value')).toHaveValue('value')
+    await expect(rows.nth(1).locator('.param-key')).toHaveValue('b')
+
+    // The rebuild must keep the empty-key param — it's real parsed data, not
+    // an untouched "Add parameter" placeholder (which has BOTH key and value
+    // blank, unlike this row).
+    await expect(page.locator('#rebuilt-url')).toHaveValue('https://example.com/search?=value&b=2')
+
+    // An actually-blank "Add parameter" row is still excluded from the rebuild.
+    await page.locator('.param-add-row').click()
+    await expect(rows).toHaveCount(3)
+    await expect(page.locator('#rebuilt-url')).toHaveValue('https://example.com/search?=value&b=2')
+  })
+
+  test('opaque-path URLs (mailto:) suppress the param grid and rebuilt-URL field, showing a note instead (M5)', async ({ page }) => {
+    await page.locator('#url-input').fill('mailto:a@b.com')
+
+    const note = page.locator('.url-opaque-note')
+    await expect(note).toBeVisible({ timeout: 2000 })
+    await expect(note).toContainText('This URL has no query structure to edit.')
+    await expect(page.locator('.param-grid-section')).toHaveCount(0)
+    await expect(page.locator('#rebuilt-url')).toHaveCount(0)
+
+    // The read-only parts table itself still renders normally.
+    await expect(page.locator('.part-scheme')).toHaveText('mailto')
+    await expect(page.locator('.part-path')).toHaveText('a@b.com')
+
+    // A normal hierarchical URL is never mistaken for opaque just because
+    // it happens to have no query params.
+    await page.locator('#url-input').fill('https://example.com/path')
+    await expect(page.locator('.url-opaque-note')).toHaveCount(0)
+    await expect(page.locator('#rebuilt-url')).toBeVisible()
   })
 
   test('the encode/decode textarea has a proper accessible label (F4)', async ({ page }) => {

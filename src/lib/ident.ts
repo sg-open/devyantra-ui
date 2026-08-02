@@ -189,6 +189,13 @@ export function inspect(id: string): IdentInfo {
 
   if (ULID_SHAPE_RE.test(trimmed)) {
     const upper = trimmed.toUpperCase()
+    // The 48-bit time only fills 3 of the first char's 5 bits (10 chars x 5
+    // bits = 50 > 48) — so a spec-valid ULID's first char can only ever be
+    // '0'-'7' (CROCKFORD_ALPHABET's own index order places the digits
+    // before the letters, so plain string comparison here exactly matches
+    // "decoded value <= 7"). Anything else is a well-formed Crockford
+    // string but an out-of-range ULID, not a real one (M6).
+    if (upper[0]! > '7') return { kind: 'unknown' }
     const ms = Number(decodeCrockford(upper.slice(0, ULID_TIME_CHARS)))
     return { kind: 'ulid', timestamp: new Date(ms) }
   }

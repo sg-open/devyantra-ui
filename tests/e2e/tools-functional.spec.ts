@@ -1,5 +1,6 @@
 import { test, expect } from './fixtures/base'
 import type { Page } from '@playwright/test'
+import { TOOLS } from '../../src/tools/registry'
 
 /* ─── Helper: toggle to dark mode ─── */
 async function setDarkMode(page: Page) {
@@ -628,20 +629,13 @@ test.describe('Delimiter Tool', () => {
    CROSS-CUTTING: THEME TOGGLE IN BOTH MODES
    ═══════════════════════════════════════════ */
 test.describe('Theme toggle across all tools', () => {
-  const tools = [
-    'format-text',
-    'hash-generator',
-    'base64-tools',
-    'jwt-decoder',
-    'timestamp-converter',
-    'character-count',
-    'delimiter',
-    'regex-tester',
-    'json-explorer',
-    'cron-parser',
-    'uuid-generator',
-    'url-parser',
-  ]
+  // Derived from the registry (single source of truth — same pattern as
+  // fixtures/base.ts's navigateToTool) instead of a hardcoded per-tool list,
+  // so a future tool #14 is covered automatically instead of silently
+  // missing this loop the way all 5 New Tools Track tools originally did
+  // (M9). text-compare included: verified it passes this loop (dark-mode
+  // render, no console errors) same as every other tool.
+  const tools = TOOLS.map((t) => t.slug)
 
   for (const tool of tools) {
     test(`${tool} renders without errors in dark mode`, async ({ page, devyantra }) => {
@@ -664,20 +658,11 @@ test.describe('Theme toggle across all tools', () => {
    ACCESSIBILITY: HEADING HIERARCHY + ARIA
    ═══════════════════════════════════════════ */
 test.describe('Accessibility checks across tools', () => {
-  const tools = [
-    'format-text',
-    'hash-generator',
-    'base64-tools',
-    'jwt-decoder',
-    'timestamp-converter',
-    'character-count',
-    'delimiter',
-    'regex-tester',
-    'json-explorer',
-    'cron-parser',
-    'uuid-generator',
-    'url-parser',
-  ]
+  // Derived from the registry — see the "Theme toggle across all tools"
+  // block above for the rationale (M9). text-compare included: verified it
+  // passes both checks below (heading hierarchy, icon-only aria-labels)
+  // same as every other tool.
+  const tools = TOOLS.map((t) => t.slug)
 
   for (const tool of tools) {
     test(`${tool} has no heading level skips`, async ({ page, devyantra }) => {
