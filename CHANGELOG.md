@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ### Added
 
+- **Regex Tester** — live match highlighting, named capture groups, and a replace preview; pattern evaluation runs in a Web Worker with a 2-second watchdog, so a catastrophic-backtracking pattern can never freeze the page
+- **JSON Explorer** — a collapsible tree view for any JSON document with click-to-copy JSON paths, inline search, and structure stats (byte size, depth, node count)
+- **Cron Parser** — explains cron expressions in plain English and previews the next 10 run times in local time and UTC, with one-click presets for common schedules
+- **UUID / ULID Generator** — generate UUID v4, timestamp-ordered UUID v7, or ULIDs in bulk, plus an inspector that decodes any identifier's version, variant, and embedded timestamp
+- **URL Parser** — decomposes any URL into scheme, host, path, and an editable query-parameter grid that rebuilds the URL live, with encode/decode helpers for individual components
 - Offline PWA — a service worker precaches the app shell so every tool keeps working with no network connection at all; an "Install" prompt appears once the browser's `beforeinstallprompt` criteria are met, and an "Offline" pill shows when connectivity drops
 - `/privacy` proof page — walks through exactly what DevYantra does (and doesn't do) with your data, with devtools steps so you can verify it yourself
 - Command palette: fuzzy matching (dependency-free subsequence scorer) instead of plain substring filtering, plus a "Recent" section (last 5 tools, localStorage-backed) shown ahead of the full list when the query is empty

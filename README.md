@@ -41,6 +41,11 @@ Built with Vue 3, TypeScript, and modern web APIs (Web Crypto, Compression Strea
 - [x] **Timestamp Converter** — Convert between Unix timestamps and dates with live clock, relative time, seconds/milliseconds toggle
 - [x] **Character Counter** — Characters, words, lines, paragraphs, sentences, reading time, and social media limits (Twitter, LinkedIn, Instagram, TikTok)
 - [x] **Delimiter Tool** — Split and join text with any delimiter (comma, pipe, semicolon, tab, custom) with trim and empty-line removal
+- [x] **Regex Tester** — Live match highlighting with named capture groups and a replace preview; patterns run in a Web Worker, so they can never freeze the page even under catastrophic backtracking
+- [x] **JSON Explorer** — Collapsible tree view for any JSON document with click-to-copy JSON paths, inline search, and structure stats (size, depth, node count)
+- [x] **Cron Parser** — Explains cron expressions in plain English and previews the next 10 run times in local time and UTC, with one-click presets for common schedules
+- [x] **UUID / ULID Generator** — Generate UUID v4, timestamp-ordered UUID v7, or ULIDs in bulk, plus an inspector that decodes version, variant, and embedded timestamp from any identifier
+- [x] **URL Parser** — Decomposes any URL into scheme, host, path, and an editable query-parameter table that rebuilds the URL live, with encode/decode helpers for individual components
 
 ### Extras
 
