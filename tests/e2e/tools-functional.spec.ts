@@ -636,6 +636,11 @@ test.describe('Theme toggle across all tools', () => {
     'timestamp-converter',
     'character-count',
     'delimiter',
+    'regex-tester',
+    'json-explorer',
+    'cron-parser',
+    'uuid-generator',
+    'url-parser',
   ]
 
   for (const tool of tools) {
@@ -667,6 +672,11 @@ test.describe('Accessibility checks across tools', () => {
     'timestamp-converter',
     'character-count',
     'delimiter',
+    'regex-tester',
+    'json-explorer',
+    'cron-parser',
+    'uuid-generator',
+    'url-parser',
   ]
 
   for (const tool of tools) {

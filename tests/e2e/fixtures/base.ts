@@ -1,4 +1,5 @@
 import { test as base, expect, type Page } from '@playwright/test'
+import { TOOLS, toolPath } from '../../../src/tools/registry'
 
 /**
  * Custom fixtures and page object models for DevYantra E2E tests
@@ -21,24 +22,17 @@ class DevYantraPage implements DevYantraPageObjects {
   constructor(private page: Page) {}
 
   async navigateToTool(toolName: string): Promise<void> {
-    // Map tool names to routes
-    const toolRoutes: Record<string, string> = {
-      'text-compare': '/tools/text-compare',
-      'format-text': '/tools/format-text',
-      'hash-generator': '/tools/hash-generator',
-      'base64-tools': '/tools/base64-tools',
-      'timestamp-converter': '/tools/timestamp-converter',
-      'character-count': '/tools/character-count',
-      'jwt-decoder': '/tools/jwt-decoder',
-      'delimiter': '/tools/delimiter'
-    }
-
-    const route = toolRoutes[toolName]
-    if (!route) {
+    // Route derived from the tool registry (single source of truth) instead
+    // of a hardcoded per-tool map — a map here silently excluded every New
+    // Tools Track tool until Task 9 (New Tools Track) replaced it, the same
+    // class of gap the tools-functional.spec.ts/accessibility.spec.ts
+    // per-tool loop arrays had.
+    const tool = TOOLS.find((t) => t.slug === toolName)
+    if (!tool) {
       throw new Error(`Unknown tool: ${toolName}`)
     }
 
-    await this.page.goto(route, { waitUntil: 'domcontentloaded' })
+    await this.page.goto(toolPath(tool), { waitUntil: 'domcontentloaded' })
     await this.waitForPageLoad()
   }
 
